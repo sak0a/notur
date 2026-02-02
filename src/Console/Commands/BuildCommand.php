@@ -42,14 +42,10 @@ class BuildCommand extends Command
 
         // Install dependencies
         $this->info('Installing dependencies...');
-        $result = $this->runProcess('yarn install', $path);
+        $result = $this->runProcess('bun install', $path);
         if ($result !== 0) {
-            // Fall back to npm
-            $result = $this->runProcess('npm install', $path);
-            if ($result !== 0) {
-                $this->error('Failed to install dependencies.');
-                return 1;
-            }
+            $this->error('Failed to install dependencies.');
+            return 1;
         }
 
         // Build
@@ -65,7 +61,7 @@ class BuildCommand extends Command
             }
         }
 
-        $cmd = "npx webpack --mode {$mode} --config " . escapeshellarg($webpackConfig);
+        $cmd = "bunx webpack --mode {$mode} --config " . escapeshellarg($webpackConfig);
         $result = $this->runProcess($cmd, $path);
 
         if ($result !== 0) {

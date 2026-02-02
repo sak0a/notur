@@ -36,8 +36,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g yarn \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash \
+    && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
+    && ln -s /root/.bun/bin/bunx /usr/local/bin/bunx
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -52,8 +56,8 @@ WORKDIR /var/www/pterodactyl
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 # Install panel frontend dependencies and build
-RUN yarn install --frozen-lockfile \
-    && yarn build:production \
+RUN bun install --frozen-lockfile \
+    && bun run build:production \
     || true
 
 # Set up panel environment

@@ -10,7 +10,7 @@
     "scripts": {
         "build:bridge": "cd bridge && webpack --mode production",
         "build:sdk": "cd sdk && tsc",
-        "build": "yarn build:bridge && yarn build:sdk",
+        "build": "bun run build:bridge && bun run build:sdk",
         "dev:bridge": "cd bridge && webpack --mode development --watch",
         "test:frontend": "jest --config tests/Frontend/jest.config.js"
     },

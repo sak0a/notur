@@ -605,10 +605,10 @@ module.exports = {
 
 ```bash
 # Production build
-npx webpack --mode production
+bunx webpack --mode production
 
 # Development build (with source maps)
-npx webpack --mode development
+bunx webpack --mode development
 ```
 
 ### Important Notes

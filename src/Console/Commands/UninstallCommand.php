@@ -310,26 +310,16 @@ class UninstallCommand extends Command
         $panelDir = base_path();
         $result = 0;
 
-        // Try yarn first, then npm
-        exec('command -v yarn 2>/dev/null', $output, $yarnCheck);
-
-        if ($yarnCheck === 0) {
-            exec(
-                sprintf('cd %s && yarn build:production 2>&1', escapeshellarg($panelDir)),
-                $output,
-                $result,
-            );
-        } else {
-            exec(
-                sprintf('cd %s && npm run build:production 2>&1', escapeshellarg($panelDir)),
-                $output,
-                $result,
-            );
-        }
+        // Use bun for frontend rebuild
+        exec(
+            sprintf('cd %s && bun run build:production 2>&1', escapeshellarg($panelDir)),
+            $output,
+            $result,
+        );
 
         if ($result !== 0) {
             $this->warn('  Frontend rebuild failed. Run manually:');
-            $this->warn('  yarn build:production');
+            $this->warn('  bun run build:production');
         } else {
             $this->info('  Frontend rebuilt successfully.');
         }

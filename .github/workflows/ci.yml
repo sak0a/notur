@@ -129,22 +129,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: 'yarn'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Build bridge
-        run: yarn build:bridge
+        run: bun run build:bridge
 
       - name: Build SDK
-        run: yarn build:sdk
+        run: bun run build:sdk
 
       - name: Build hello-world example
-        run: cd examples/hello-world && npx webpack --mode production
+        run: cd examples/hello-world && bunx webpack --mode production
 
       - name: Run frontend tests
-        run: yarn test:frontend || true  # Allow failure until jest config is finalized
+        run: bun run test:frontend || true  # Allow failure until jest config is finalized
 
   patch-validation:
     name: Validate Patches

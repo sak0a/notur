@@ -61,8 +61,8 @@ class NewCommand extends Command
         $this->newLine();
         $this->line('  <info>Next steps:</info>');
         $this->line("    1. cd {$basePath}");
-        $this->line('    2. cd frontend && npm install');
-        $this->line('    3. npm run build');
+        $this->line('    2. cd frontend && bun install');
+        $this->line('    3. bun run build');
         $this->line('    4. Edit src/' . $this->toClassName($name) . '.php to add backend logic');
         $this->line('    5. Edit frontend/src/index.ts to add UI components');
         $this->line('    6. Run: php artisan notur:install ' . $basePath);
@@ -282,15 +282,15 @@ php artisan notur:install {$id}
 
 ```bash
 cd frontend
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 ## Building
 
 ```bash
 cd frontend
-npm run build
+bun run build
 ```
 
 ## Structure

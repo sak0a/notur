@@ -8,7 +8,7 @@
   - Remove Blade injection (`@include('notur::scripts')`)
   - Delete `notur/` directory and `public/notur/` assets
   - Run `composer remove notur/notur`
-  - Trigger frontend rebuild (`yarn build:production`)
+  - Trigger frontend rebuild (`bun run build:production`)
 - [x] **Reverse patches** — Generate and ship reverse `.patch` files for each React patch so uninstall can cleanly revert without relying on backup copies
 - [x] **`notur:install` command** — Install extensions from registry or local path
 - [x] **`notur:remove` command** — Remove an installed extension (rollback migrations, delete files, update manifest)
@@ -47,7 +47,7 @@
 
 ## Bugs / Tech Debt
 
-- [ ] Frontend tests (`yarn test:frontend`) — Jest config not finalized; CI allows failure
+- [ ] Frontend tests (`bun run test:frontend`) — Jest config not finalized; CI allows failure
 - [ ] Integration tests require Orchestra Testbench + SQLite — verify they run in CI
 - [ ] Installer: validate on non-macOS Linux (current fixes are macOS-oriented)
 - [ ] Patch checksums — installer stores checksums but never validates them on subsequent runs

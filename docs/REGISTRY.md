@@ -211,7 +211,7 @@ Structure your repository with an `extension.yaml` at the root. See the [manifes
 ```bash
 # Build the frontend bundle
 cd your-extension
-npx webpack --mode production
+bunx webpack --mode production
 
 # Export as a .notur archive
 php artisan notur:export /path/to/your-extension

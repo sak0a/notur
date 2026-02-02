@@ -12,7 +12,7 @@
     "scripts": {
         "build": "tsc",
         "dev": "tsc --watch",
-        "prepublishOnly": "npm run build"
+        "prepublishOnly": "bun run build"
     },
     "peerDependencies": {
         "react": "^16.14.0",

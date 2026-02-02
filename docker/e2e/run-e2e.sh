@@ -106,8 +106,8 @@ docker compose -f "$COMPOSE_FILE" exec -T app bash -c '
         # Build and copy bridge
         if [ -d vendor/notur/notur/bridge ]; then
             cd vendor/notur/notur/bridge
-            yarn install --frozen-lockfile 2>/dev/null || npm install 2>/dev/null || true
-            yarn build 2>/dev/null || npx webpack --mode production 2>/dev/null || true
+            bun install --frozen-lockfile 2>/dev/null || true
+            bun run build 2>/dev/null || bunx webpack --mode production 2>/dev/null || true
             cp dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js 2>/dev/null || true
             cd /var/www/pterodactyl
         fi

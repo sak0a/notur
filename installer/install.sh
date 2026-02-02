@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Notur Extension Framework Installer
-# Usage: curl -sSL https://notur.dev/install | bash
+# Usage: curl -sSL https://notur.site/install | bash
 #   or:  bash install.sh [/path/to/pterodactyl]
 
 NOTUR_VERSION="1.0.0"
@@ -53,16 +53,13 @@ if ! command -v composer &> /dev/null; then
     die "Composer is not installed."
 fi
 
-# Check Node/Yarn
+# Check Node/Bun
 if ! command -v node &> /dev/null; then
     die "Node.js is not installed."
 fi
 
-if ! command -v yarn &> /dev/null; then
-    warn "Yarn not found — will try npm instead."
-    USE_NPM=true
-else
-    USE_NPM=false
+if ! command -v bun &> /dev/null; then
+    die "Bun is not installed. Install it from https://bun.sh"
 fi
 
 # Check sodium extension
@@ -153,11 +150,7 @@ fi
 info "Step 4/6: Rebuilding frontend assets..."
 cd "${PANEL_DIR}"
 
-if [ "${USE_NPM}" = true ]; then
-    npm install && npm run build:production || die "Frontend build failed."
-else
-    yarn install && yarn build:production || die "Frontend build failed."
-fi
+bun install && bun run build:production || die "Frontend build failed."
 
 ok "Frontend rebuilt."
 
@@ -174,7 +167,7 @@ if [ -f "${BRIDGE_JS}" ]; then
     cp "${BRIDGE_JS}" "${PANEL_DIR}/public/notur/bridge.js"
     ok "Bridge runtime installed."
 else
-    warn "Bridge runtime not found at ${BRIDGE_JS}. Build it with: cd vendor/notur/notur/bridge && yarn build"
+    warn "Bridge runtime not found at ${BRIDGE_JS}. Build it with: cd vendor/notur/notur/bridge && bun run build"
 fi
 
 # Initialize extensions.json

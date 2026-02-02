@@ -18,7 +18,7 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 - PHP 8.2+
 - Node.js 22+ (matches panel requirement)
 - Composer 2.x
-- Yarn or npm
+- Bun
 
 ## Installation (into a Pterodactyl Panel)
 
@@ -40,20 +40,19 @@ php artisan migrate
 composer install
 
 # Install frontend dependencies
-yarn install
-# or: npm install
+bun install
 
 # Build the bridge runtime
-yarn build:bridge
+bun run build:bridge
 
 # Build the SDK
-yarn build:sdk
+bun run build:sdk
 
 # Run PHP tests
 ./vendor/bin/phpunit
 
 # Run frontend tests
-yarn test:frontend
+bun run test:frontend
 ```
 
 ## Architecture

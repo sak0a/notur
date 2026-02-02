@@ -25,25 +25,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: website/package-lock.json
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
         working-directory: website
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build site
         working-directory: website
-        run: npm run build
+        run: bun run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website/dist
+          path: website/docs/.vitepress/dist
 
   deploy:
     environment:
