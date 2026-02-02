@@ -1,0 +1,124 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Notur Extension Manifest",
+    "type": "object",
+    "required": ["id", "name", "version", "entrypoint"],
+    "properties": {
+        "notur": {
+            "type": "string",
+            "description": "Notur manifest format version"
+        },
+        "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9\\-]+/[a-z0-9\\-]+$",
+            "description": "Unique extension identifier (vendor/name)"
+        },
+        "name": {
+            "type": "string",
+            "description": "Human-readable extension name"
+        },
+        "version": {
+            "type": "string",
+            "description": "Semantic version string"
+        },
+        "description": {
+            "type": "string"
+        },
+        "authors": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "email": { "type": "string" }
+                },
+                "required": ["name"]
+            }
+        },
+        "license": {
+            "type": "string"
+        },
+        "requires": {
+            "type": "object",
+            "properties": {
+                "notur": { "type": "string" },
+                "pterodactyl": { "type": "string" },
+                "php": { "type": "string" }
+            }
+        },
+        "dependencies": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+        },
+        "entrypoint": {
+            "type": "string",
+            "description": "Fully qualified PHP class name"
+        },
+        "autoload": {
+            "type": "object",
+            "properties": {
+                "psr-4": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" }
+                }
+            }
+        },
+        "backend": {
+            "type": "object",
+            "properties": {
+                "routes": {
+                    "type": "object",
+                    "properties": {
+                        "api-client": { "type": "string" },
+                        "admin": { "type": "string" },
+                        "web": { "type": "string" }
+                    }
+                },
+                "migrations": { "type": "string" },
+                "commands": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "middleware": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    }
+                },
+                "events": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    }
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                }
+            }
+        },
+        "frontend": {
+            "type": "object",
+            "properties": {
+                "bundle": { "type": "string" },
+                "styles": { "type": "string" },
+                "slots": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object"
+                    }
+                }
+            }
+        },
+        "admin": {
+            "type": "object",
+            "properties": {
+                "views": {
+                    "type": "object"
+                }
+            }
+        }
+    }
+}

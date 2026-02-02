@@ -1,0 +1,32 @@
+notur: "1.0"
+id: "notur/hello-world"
+name: "Hello World"
+version: "1.0.0"
+description: "A minimal Notur extension for testing"
+authors:
+  - name: "Notur Team"
+license: "MIT"
+
+requires:
+  notur: "^1.0"
+  pterodactyl: "^1.11"
+  php: "^8.2"
+
+entrypoint: 'Notur\HelloWorld\HelloWorldExtension'
+
+autoload:
+  psr-4:
+    'Notur\HelloWorld\': "src/"
+
+backend:
+  routes:
+    api-client: "src/routes/api-client.php"
+  permissions:
+    - "hello.view"
+
+frontend:
+  bundle: "resources/frontend/dist/hello-world.js"
+  slots:
+    dashboard.widgets:
+      component: "HelloWidget"
+      order: 100

@@ -1,0 +1,73 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Notur Registry Index",
+    "type": "object",
+    "required": ["version", "extensions"],
+    "properties": {
+        "version": {
+            "type": "string",
+            "description": "Registry schema version"
+        },
+        "updated_at": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "extensions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["id", "name", "repository"],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9\\-]+/[a-z0-9\\-]+$"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "repository": {
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "latest_version": {
+                        "type": "string"
+                    },
+                    "versions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "license": {
+                        "type": "string"
+                    },
+                    "authors": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string" },
+                                "email": { "type": "string" }
+                            }
+                        }
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "requires": {
+                        "type": "object",
+                        "properties": {
+                            "notur": { "type": "string" },
+                            "pterodactyl": { "type": "string" },
+                            "php": { "type": "string" }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

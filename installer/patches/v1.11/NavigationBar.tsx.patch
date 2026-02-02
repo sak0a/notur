@@ -1,0 +1,11 @@
+--- a/resources/scripts/components/NavigationBar.tsx	2026-02-02 21:48:26
++++ b/resources/scripts/components/NavigationBar.tsx	2026-02-02 21:49:37
+@@ -73,6 +73,8 @@
+                             </a>
+                         </Tooltip>
+                     )}
++                    {/* [Notur] Navbar extension slot */}
++                    <div id="notur-slot-navbar" style={{ display: 'contents' }}></div>
+                     <Tooltip placement={'bottom'} content={'Account Settings'}>
+                         <NavLink to={'/account'}>
+                             <span className={'flex items-center w-5 h-5'}>

@@ -1,0 +1,30 @@
+import * as React from 'react';
+import { createExtension } from '@notur/sdk';
+
+const ExampleWidget: React.FC<{ extensionId: string }> = ({ extensionId }) => {
+    return (
+        <div style={{ padding: '1rem', background: 'var(--notur-bg-secondary)', borderRadius: 'var(--notur-radius-md)' }}>
+            <h3 style={{ color: 'var(--notur-text-primary)' }}>
+                {{displayName}}
+            </h3>
+            <p style={{ color: 'var(--notur-text-secondary)' }}>
+                Hello from {{vendor}}/{{name}}!
+            </p>
+        </div>
+    );
+};
+
+createExtension({
+    config: {
+        id: '{{vendor}}/{{name}}',
+        name: '{{displayName}}',
+        version: '1.0.0',
+    },
+    slots: [
+        {
+            slot: 'dashboard.widgets',
+            component: ExampleWidget,
+            order: 100,
+        },
+    ],
+});

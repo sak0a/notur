@@ -1,0 +1,30 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Notur\Http\Controllers\ExtensionAdminController;
+
+Route::prefix('admin/notur')
+    ->middleware(['web', 'admin'])
+    ->group(function () {
+        Route::get('/extensions', [ExtensionAdminController::class, 'index'])
+            ->name('admin.notur.extensions');
+
+        Route::get('/extensions/{extensionId}', [ExtensionAdminController::class, 'show'])
+            ->name('admin.notur.extensions.show')
+            ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');
+
+        Route::post('/extensions/install', [ExtensionAdminController::class, 'install'])
+            ->name('admin.notur.extensions.install');
+
+        Route::post('/extensions/{extensionId}/enable', [ExtensionAdminController::class, 'enable'])
+            ->name('admin.notur.extensions.enable')
+            ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');
+
+        Route::post('/extensions/{extensionId}/disable', [ExtensionAdminController::class, 'disable'])
+            ->name('admin.notur.extensions.disable')
+            ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');
+
+        Route::post('/extensions/{extensionId}/remove', [ExtensionAdminController::class, 'remove'])
+            ->name('admin.notur.extensions.remove')
+            ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');
+    });

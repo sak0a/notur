@@ -1,0 +1,54 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use Notur\Contracts\ExtensionInterface;
+use Notur\Contracts\HasRoutes;
+use Notur\Contracts\HasFrontendSlots;
+
+class {{className}} implements ExtensionInterface, HasRoutes, HasFrontendSlots
+{
+    public function getId(): string
+    {
+        return '{{vendor}}/{{name}}';
+    }
+
+    public function getName(): string
+    {
+        return '{{displayName}}';
+    }
+
+    public function getVersion(): string
+    {
+        return '1.0.0';
+    }
+
+    public function register(): void
+    {
+        //
+    }
+
+    public function boot(): void
+    {
+        //
+    }
+
+    public function getBasePath(): string
+    {
+        return __DIR__ . '/..';
+    }
+
+    public function getRouteFiles(): array
+    {
+        return [
+            'api-client' => 'src/routes/api-client.php',
+        ];
+    }
+
+    public function getFrontendSlots(): array
+    {
+        return [];
+    }
+}

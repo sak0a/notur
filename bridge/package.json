@@ -1,0 +1,19 @@
+{
+    "name": "@notur/bridge",
+    "version": "1.0.0",
+    "description": "Notur frontend bridge runtime",
+    "main": "dist/bridge.js",
+    "scripts": {
+        "build": "webpack --mode production",
+        "dev": "webpack --mode development --watch"
+    },
+    "peerDependencies": {
+        "react": "^16.14.0",
+        "react-dom": "^16.14.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.0",
+        "@types/react": "^16.14.0",
+        "@types/react-dom": "^16.9.0"
+    }
+}

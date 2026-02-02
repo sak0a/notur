@@ -1,0 +1,30 @@
+--- a/resources/scripts/routers/ServerRouter.tsx	2026-02-02 21:44:15
++++ b/resources/scripts/routers/ServerRouter.tsx	2026-02-02 21:46:42
+@@ -20,6 +20,7 @@
+ import ConflictStateRenderer from '@/components/server/ConflictStateRenderer';
+ import PermissionRoute from '@/components/elements/PermissionRoute';
+ import routes from '@/routers/routes';
++import { getNoturRoutes } from '@/routers/routes';
+ 
+ export default () => {
+     const match = useRouteMatch<{ id: string }>();
+@@ -98,6 +99,8 @@
+                                     </a>
+                                 )}
+                             </div>
++                            {/* [Notur] Server sub-navigation slot */}
++                            <div id="notur-slot-server.subnav" style={{ display: 'contents' }}></div>
+                         </SubNavigation>
+                     </CSSTransition>
+                     <InstallListener />
+@@ -116,6 +119,10 @@
+                                             </Spinner.Suspense>
+                                         </PermissionRoute>
+                                     ))}
++                                    {/* [Notur] Extension server routes */}
++                                    {getNoturRoutes('server').map((route: any, i: number) => (
++                                        <Route key={`notur-server-${i}`} {...route} />
++                                    ))}
+                                     <Route path={'*'} component={NotFound} />
+                                 </Switch>
+                             </TransitionRouter>

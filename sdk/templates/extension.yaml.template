@@ -1,0 +1,29 @@
+notur: "1.0"
+id: "{{vendor}}/{{name}}"
+name: "{{displayName}}"
+version: "1.0.0"
+description: "{{description}}"
+authors:
+  - name: "{{authorName}}"
+license: "MIT"
+
+requires:
+  notur: "^1.0"
+  pterodactyl: "^1.11"
+  php: "^8.2"
+
+entrypoint: "{{namespace}}\\{{className}}"
+
+autoload:
+  psr-4:
+    "{{namespace}}\\": "src/"
+
+backend:
+  routes:
+    api-client: "src/routes/api-client.php"
+  migrations: "database/migrations"
+  permissions: []
+
+frontend:
+  bundle: "resources/frontend/dist/extension.js"
+  slots: {}
