@@ -29,10 +29,10 @@ All notable changes to the Notur Extension Library are documented here.
 ## Phase 3: Frontend Slots + SDK
 
 ### Added
-- **All slot renderers** -- Nine predefined slots wired up: `navbar`, `server.subnav`, `server.page`, `server.terminal.buttons`, `server.files.actions`, `dashboard.widgets`, `dashboard.page`, `account.page`, `account.subnav`.
-- **Additional React patches** -- `ServerRouter.tsx` for server subnav/page slots, terminal button and file manager toolbar slots.
+- **All slot renderers** -- Expanded slot set (23 total) including headers/footers, console/file manager slots, and dashboard server list slots.
+- **Additional React patches** -- `DashboardContainer.tsx`, `ServerConsoleContainer.tsx`, `FileManagerContainer.tsx`, and navigation/router updates to expose the new slot containers.
 - **Bridge hooks** -- `useSlot(slotId)` for reactive slot subscriptions, `useExtensionApi({ extensionId })` for scoped HTTP client with CSRF handling, `useExtensionState(extensionId, initialState)` for shared cross-component state.
-- **Theme system** -- CSS custom property extraction from the live Pterodactyl DOM. Three-strategy approach: mapped `--ptero-*` variables, computed style probes on known elements, and stylesheet scanning. `ThemeProvider` wiring with 23 default CSS custom properties.
+- **Theme system** -- CSS custom property extraction from the live Pterodactyl DOM. Three-strategy approach: mapped `--ptero-*` variables, computed style probes on known elements, and stylesheet scanning. `ThemeProvider` wiring with 25 default CSS custom properties.
 - **`notur:new` command** -- Scaffold new extensions from templates. Generates `extension.yaml`, PHP entrypoint, route file, frontend entry, and webpack config.
 - **SDK webpack config** -- Base webpack configuration for extension builds. Externalizes React/ReactDOM, configures TypeScript, outputs UMD bundles.
 - **SDK type exports** -- Published `@notur/sdk` TypeScript types: `ExtensionConfig`, `SlotConfig`, `RouteConfig`, `ExtensionDefinition`, `NoturApi`.

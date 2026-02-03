@@ -14,6 +14,9 @@
              )}
 +            {/* [Notur] Slot containers */}
 +            <div id="notur-slot-account.subnav" style={{ display: 'contents' }}></div>
++            {location.pathname.startsWith('/account') && (
++                <div id="notur-slot-account.header" style={{ display: 'contents' }}></div>
++            )}
 +            <div id="notur-slot-dashboard.widgets"></div>
              <TransitionRouter>
                  <React.Suspense fallback={<Spinner centered />}>
@@ -33,3 +36,11 @@
                          <Route path={'*'}>
                              <NotFound />
                          </Route>
+@@ -51,6 +59,9 @@
+             </TransitionRouter>
++            {location.pathname.startsWith('/account') && (
++                <div id="notur-slot-account.footer" style={{ display: 'contents' }}></div>
++            )}
+         </>
+     );
+ };

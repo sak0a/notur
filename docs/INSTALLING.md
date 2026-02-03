@@ -40,7 +40,10 @@ cd /var/www/pterodactyl
 patch -p1 < vendor/notur/notur/installer/patches/v1.11/routes.ts.patch
 patch -p1 < vendor/notur/notur/installer/patches/v1.11/ServerRouter.tsx.patch
 patch -p1 < vendor/notur/notur/installer/patches/v1.11/DashboardRouter.tsx.patch
+patch -p1 < vendor/notur/notur/installer/patches/v1.11/DashboardContainer.tsx.patch
 patch -p1 < vendor/notur/notur/installer/patches/v1.11/NavigationBar.tsx.patch
+patch -p1 < vendor/notur/notur/installer/patches/v1.11/ServerTerminal.tsx.patch
+patch -p1 < vendor/notur/notur/installer/patches/v1.11/FileManager.tsx.patch
 ```
 
 **What the patches do:**
@@ -48,9 +51,12 @@ patch -p1 < vendor/notur/notur/installer/patches/v1.11/NavigationBar.tsx.patch
 | File | Change |
 |---|---|
 | `routes.ts` | Adds `getNoturRoutes()` function that reads extension routes from `window.__NOTUR__` |
-| `ServerRouter.tsx` | Adds slot container for server sub-nav + renders extension server routes |
-| `DashboardRouter.tsx` | Adds slot containers for dashboard widgets + renders extension dashboard/account routes |
-| `NavigationBar.tsx` | Adds slot container in the top navigation bar |
+| `ServerRouter.tsx` | Adds slot containers for server navigation + renders extension server routes |
+| `DashboardRouter.tsx` | Adds slot containers for dashboard/account navigation + renders extension dashboard/account routes |
+| `DashboardContainer.tsx` | Adds dashboard header/footer and server list slots |
+| `NavigationBar.tsx` | Adds slot containers in the top navigation bar |
+| `ServerTerminal.tsx` | Adds console page slots + terminal button slot |
+| `FileManager.tsx` | Adds file manager toolbar/header/footer slots |
 
 ### Step 4: Rebuild Frontend
 

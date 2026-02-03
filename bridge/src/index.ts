@@ -14,6 +14,7 @@ import {
     applyCssVariables,
     extractPterodactylVariables,
 } from './theme/CssVariables';
+import { ensureGlassStyles } from './theme/GlassStyles';
 
 // Ensure React/ReactDOM are exposed globally for extension bundles.
 // If another instance is already present, warn to help diagnose hook issues.
@@ -174,6 +175,7 @@ function init(): void {
 
     // Apply default CSS variables immediately, then layer panel extraction
     applyCssVariables(DEFAULT_CSS_VARIABLES);
+    ensureGlassStyles();
 
     // Extract Pterodactyl's live theme variables and apply them on top
     try {

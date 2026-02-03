@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { PluginRegistry, SlotRegistration } from './PluginRegistry';
-import { SlotId } from './slots/SlotDefinitions';
+import { SLOT_IDS, SlotId } from './slots/SlotDefinitions';
 import { SlotErrorBoundary } from './ErrorBoundary';
 
 interface SlotRendererProps {
@@ -53,13 +53,22 @@ export class SlotRenderer extends React.Component<SlotRendererProps, SlotRendere
 
         const elements = registrations.map((reg, index) => {
             const Component = reg.component;
+            const content = React.createElement(Component, {
+                extensionId: reg.extensionId,
+                ...componentProps,
+            });
+            const wrapped =
+                slotId === SLOT_IDS.DASHBOARD_WIDGETS
+                    ? React.createElement(
+                          'div',
+                          { className: 'notur-surface notur-surface--card notur-surface--widget' },
+                          content,
+                      )
+                    : content;
             return React.createElement(
                 SlotErrorBoundary,
                 { key: `${reg.extensionId}-${index}`, extensionId: reg.extensionId },
-                React.createElement(Component, {
-                    extensionId: reg.extensionId,
-                    ...componentProps,
-                }),
+                wrapped,
             );
         });
 
@@ -94,13 +103,22 @@ export function InlineSlot({
         null,
         ...registrations.map((reg, index) => {
             const Component = reg.component;
+            const content = React.createElement(Component, {
+                extensionId: reg.extensionId,
+                ...componentProps,
+            });
+            const wrapped =
+                slotId === SLOT_IDS.DASHBOARD_WIDGETS
+                    ? React.createElement(
+                          'div',
+                          { className: 'notur-surface notur-surface--card notur-surface--widget' },
+                          content,
+                      )
+                    : content;
             return React.createElement(
                 SlotErrorBoundary,
                 { key: `${reg.extensionId}-${index}`, extensionId: reg.extensionId },
-                React.createElement(Component, {
-                    extensionId: reg.extensionId,
-                    ...componentProps,
-                }),
+                wrapped,
             );
         }),
     );

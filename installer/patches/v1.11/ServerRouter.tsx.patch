@@ -14,6 +14,8 @@
                              </div>
 +                            {/* [Notur] Server sub-navigation slot */}
 +                            <div id="notur-slot-server.subnav" style={{ display: 'contents' }}></div>
++                            {/* [Notur] Server header slot */}
++                            <div id="notur-slot-server.header" style={{ display: 'contents' }}></div>
                          </SubNavigation>
                      </CSSTransition>
                      <InstallListener />
@@ -28,3 +30,10 @@
                                      <Route path={'*'} component={NotFound} />
                                  </Switch>
                              </TransitionRouter>
+@@ -132,6 +141,7 @@
+                         </ErrorBoundary>
+                     )}
++                    <div id="notur-slot-server.footer" style={{ display: 'contents' }}></div>
+                 </>
+             )}
+         </React.Fragment>

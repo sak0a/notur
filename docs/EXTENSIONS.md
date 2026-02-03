@@ -267,13 +267,27 @@ php artisan notur:install /path/to/acme-server-analytics-1.0.0.notur
 | Slot ID | Location | Type |
 |---|---|---|
 | `navbar` | Top navigation bar | Component portal |
+| `navbar.left` | Navbar left (near logo) | Component portal |
 | `server.subnav` | Server sub-navigation | Nav items |
+| `server.header` | Server header area | Component portal |
 | `server.page` | Server area | Full route/page |
+| `server.footer` | Server footer area | Component portal |
 | `server.terminal.buttons` | Terminal power buttons | Component portal |
+| `server.console.header` | Console page header | Component portal |
+| `server.console.sidebar` | Console sidebar area | Component portal |
+| `server.console.footer` | Console page footer | Component portal |
 | `server.files.actions` | File manager toolbar | Component portal |
+| `server.files.header` | File manager header | Component portal |
+| `server.files.footer` | File manager footer | Component portal |
+| `dashboard.header` | Dashboard header area | Component portal |
 | `dashboard.widgets` | Dashboard below server list | Component portal |
+| `dashboard.serverlist.before` | Before dashboard server list | Component portal |
+| `dashboard.serverlist.after` | After dashboard server list | Component portal |
+| `dashboard.footer` | Dashboard footer area | Component portal |
 | `dashboard.page` | Dashboard area | Full route/page |
+| `account.header` | Account header area | Component portal |
 | `account.page` | Account area | Full route/page |
+| `account.footer` | Account footer area | Component portal |
 | `account.subnav` | Account sub-navigation | Nav items |
 
 ## Available Hooks

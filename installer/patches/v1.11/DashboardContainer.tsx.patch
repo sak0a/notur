@@ -1,0 +1,49 @@
+--- a/resources/scripts/components/dashboard/DashboardContainer.tsx	2026-02-03 00:00:00
++++ b/resources/scripts/components/dashboard/DashboardContainer.tsx	2026-02-03 00:00:00
+@@ -39,6 +39,7 @@
+ 
+     return (
+         <PageContentBlock title={'Dashboard'} showFlashKey={'dashboard'}>
++            <div id="notur-slot-dashboard.header" style={{ display: 'contents' }}></div>
+             {rootAdmin && (
+                 <div css={tw`mb-2 flex justify-end items-center`}>
+                     <p css={tw`uppercase text-xs text-neutral-400 mr-2`}>
+@@ -56,15 +57,21 @@
+             ) : (
+                 <Pagination data={servers} onPageSelect={setPage}>
+-                    {({ items }) =>
+-                        items.length > 0 ? (
+-                            items.map((server, index) => (
+-                                <ServerRow key={server.uuid} server={server} css={index > 0 ? tw`mt-2` : undefined} />
+-                            ))
+-                        ) : (
+-                            <p css={tw`text-center text-sm text-neutral-400`}>
+-                                {showOnlyAdmin
+-                                    ? 'There are no other servers to display.'
+-                                    : 'There are no servers associated with your account.'}
+-                            </p>
+-                        )
+-                    }
++                    {({ items }) => (
++                        <>
++                            <div id="notur-slot-dashboard.serverlist.before" style={{ display: 'contents' }}></div>
++                            {items.length > 0 ? (
++                                items.map((server, index) => (
++                                    <ServerRow key={server.uuid} server={server} css={index > 0 ? tw`mt-2` : undefined} />
++                                ))
++                            ) : (
++                                <p css={tw`text-center text-sm text-neutral-400`}>
++                                    {showOnlyAdmin
++                                        ? 'There are no other servers to display.'
++                                        : 'There are no servers associated with your account.'}
++                                </p>
++                            )}
++                            <div id="notur-slot-dashboard.serverlist.after" style={{ display: 'contents' }}></div>
++                        </>
++                    )}
+                 </Pagination>
+             )}
++            <div id="notur-slot-dashboard.footer" style={{ display: 'contents' }}></div>
+         </PageContentBlock>
+     );
+ };

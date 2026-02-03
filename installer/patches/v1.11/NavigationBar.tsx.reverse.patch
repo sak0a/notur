@@ -9,3 +9,10 @@
                      <Tooltip placement={'bottom'} content={'Account Settings'}>
                          <NavLink to={'/account'}>
                              <span className={'flex items-center w-5 h-5'}>
+@@ -45,8 +45,6 @@
+                     >
+                         {name}
+                     </Link>
+-                    {/* [Notur] Navbar left extension slot */}
+-                    <div id="notur-slot-navbar.left" style={{ display: 'contents' }}></div>
+                 </div>

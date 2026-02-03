@@ -8,12 +8,14 @@
 
  export default () => {
      const match = useRouteMatch<{ id: string }>();
-@@ -99,8 +98,6 @@
+@@ -99,10 +98,6 @@
                                      </a>
                                  )}
                              </div>
 -                            {/* [Notur] Server sub-navigation slot */}
 -                            <div id="notur-slot-server.subnav" style={{ display: 'contents' }}></div>
+-                            {/* [Notur] Server header slot */}
+-                            <div id="notur-slot-server.header" style={{ display: 'contents' }}></div>
                          </SubNavigation>
                      </CSSTransition>
                      <InstallListener />
@@ -28,3 +30,10 @@
                                      <Route path={'*'} component={NotFound} />
                                  </Switch>
                              </TransitionRouter>
+@@ -133,7 +129,6 @@
+                         </ErrorBoundary>
+                     )}
+-                    <div id="notur-slot-server.footer" style={{ display: 'contents' }}></div>
+                 </>
+             )}
+         </React.Fragment>

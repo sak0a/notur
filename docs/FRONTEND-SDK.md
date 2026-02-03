@@ -433,13 +433,27 @@ Slots are predefined injection points in the Pterodactyl panel where extensions 
 | Constant | Slot ID | Location | Type | Description |
 |---|---|---|---|---|
 | `NAVBAR` | `navbar` | Top navigation bar | `portal` | Render components in the navbar |
+| `NAVBAR_LEFT` | `navbar.left` | Navbar left area | `portal` | Render components near the logo |
 | `SERVER_SUBNAV` | `server.subnav` | Server sub-navigation | `nav` | Add items to server sub-nav |
+| `SERVER_HEADER` | `server.header` | Server header area | `portal` | Render content below server sub-nav |
 | `SERVER_PAGE` | `server.page` | Server area | `route` | Full page in server context |
+| `SERVER_FOOTER` | `server.footer` | Server footer area | `portal` | Render content at the end of server pages |
 | `SERVER_TERMINAL_BUTTONS` | `server.terminal.buttons` | Terminal power buttons | `portal` | Add buttons near terminal controls |
+| `SERVER_CONSOLE_HEADER` | `server.console.header` | Console page header | `portal` | Render content at the top of the console page |
+| `SERVER_CONSOLE_SIDEBAR` | `server.console.sidebar` | Console sidebar | `portal` | Render content next to console details |
+| `SERVER_CONSOLE_FOOTER` | `server.console.footer` | Console page footer | `portal` | Render content below console graphs |
 | `SERVER_FILES_ACTIONS` | `server.files.actions` | File manager toolbar | `portal` | Add actions to file manager |
+| `SERVER_FILES_HEADER` | `server.files.header` | File manager header | `portal` | Render content above file list |
+| `SERVER_FILES_FOOTER` | `server.files.footer` | File manager footer | `portal` | Render content below file list |
+| `DASHBOARD_HEADER` | `dashboard.header` | Dashboard header | `portal` | Render banners or summaries |
 | `DASHBOARD_WIDGETS` | `dashboard.widgets` | Dashboard below server list | `portal` | Add widgets to the dashboard |
+| `DASHBOARD_SERVERLIST_BEFORE` | `dashboard.serverlist.before` | Before server list | `portal` | Render content before server list |
+| `DASHBOARD_SERVERLIST_AFTER` | `dashboard.serverlist.after` | After server list | `portal` | Render content after server list |
+| `DASHBOARD_FOOTER` | `dashboard.footer` | Dashboard footer | `portal` | Render content below dashboard |
 | `DASHBOARD_PAGE` | `dashboard.page` | Dashboard area | `route` | Full page in dashboard context |
+| `ACCOUNT_HEADER` | `account.header` | Account header | `portal` | Render content above account pages |
 | `ACCOUNT_PAGE` | `account.page` | Account area | `route` | Full page in account context |
+| `ACCOUNT_FOOTER` | `account.footer` | Account footer | `portal` | Render content below account pages |
 | `ACCOUNT_SUBNAV` | `account.subnav` | Account sub-navigation | `nav` | Add items to account sub-nav |
 
 ### Slot Types
@@ -458,13 +472,27 @@ const { SLOT_IDS } = window.__NOTUR__;
 
 // Constants:
 SLOT_IDS.NAVBAR                    // 'navbar'
+SLOT_IDS.NAVBAR_LEFT               // 'navbar.left'
 SLOT_IDS.SERVER_SUBNAV             // 'server.subnav'
+SLOT_IDS.SERVER_HEADER             // 'server.header'
 SLOT_IDS.SERVER_PAGE               // 'server.page'
+SLOT_IDS.SERVER_FOOTER             // 'server.footer'
 SLOT_IDS.SERVER_TERMINAL_BUTTONS   // 'server.terminal.buttons'
+SLOT_IDS.SERVER_CONSOLE_HEADER     // 'server.console.header'
+SLOT_IDS.SERVER_CONSOLE_SIDEBAR    // 'server.console.sidebar'
+SLOT_IDS.SERVER_CONSOLE_FOOTER     // 'server.console.footer'
 SLOT_IDS.SERVER_FILES_ACTIONS      // 'server.files.actions'
+SLOT_IDS.SERVER_FILES_HEADER       // 'server.files.header'
+SLOT_IDS.SERVER_FILES_FOOTER       // 'server.files.footer'
+SLOT_IDS.DASHBOARD_HEADER          // 'dashboard.header'
 SLOT_IDS.DASHBOARD_WIDGETS         // 'dashboard.widgets'
+SLOT_IDS.DASHBOARD_SERVERLIST_BEFORE // 'dashboard.serverlist.before'
+SLOT_IDS.DASHBOARD_SERVERLIST_AFTER  // 'dashboard.serverlist.after'
+SLOT_IDS.DASHBOARD_FOOTER          // 'dashboard.footer'
 SLOT_IDS.DASHBOARD_PAGE            // 'dashboard.page'
+SLOT_IDS.ACCOUNT_HEADER            // 'account.header'
 SLOT_IDS.ACCOUNT_PAGE              // 'account.page'
+SLOT_IDS.ACCOUNT_FOOTER            // 'account.footer'
 SLOT_IDS.ACCOUNT_SUBNAV            // 'account.subnav'
 ```
 
@@ -485,7 +513,7 @@ All Notur theme variables are prefixed with `--notur-`. Extensions should use th
 | `--notur-primary` | `#0967d2` | Primary accent color |
 | `--notur-primary-light` | `#47a3f3` | Light primary |
 | `--notur-primary-dark` | `#03449e` | Dark primary |
-| `--notur-secondary` | `#616e7c` | Secondary color |
+| `--notur-secondary` | `#7c8b9a` | Secondary color |
 | `--notur-success` | `#27ab83` | Success / positive |
 | `--notur-danger` | `#e12d39` | Danger / destructive |
 | `--notur-warning` | `#f7c948` | Warning |
@@ -495,26 +523,36 @@ All Notur theme variables are prefixed with `--notur-`. Extensions should use th
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `--notur-bg-primary` | `#1f2933` | Primary background |
-| `--notur-bg-secondary` | `#323f4b` | Secondary background (cards, inputs) |
-| `--notur-bg-tertiary` | `#3e4c59` | Tertiary background (hover states) |
+| `--notur-bg-primary` | `#0b0d10` | Primary background |
+| `--notur-bg-secondary` | `rgba(17, 19, 24, 0.68)` | Secondary background (cards, inputs) |
+| `--notur-bg-tertiary` | `rgba(25, 28, 35, 0.8)` | Tertiary background (hover states) |
 
 #### Text
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `--notur-text-primary` | `#f5f7fa` | Primary text |
-| `--notur-text-secondary` | `#cbd2d9` | Secondary text |
-| `--notur-text-muted` | `#9aa5b1` | Muted / placeholder text |
+| `--notur-text-primary` | `#f1f5f9` | Primary text |
+| `--notur-text-secondary` | `#cbd5e1` | Secondary text |
+| `--notur-text-muted` | `#94a3b8` | Muted / placeholder text |
 
 #### Borders and Radius
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `--notur-border` | `#3e4c59` | Border color |
-| `--notur-radius-sm` | `4px` | Small border radius |
-| `--notur-radius-md` | `8px` | Medium border radius |
-| `--notur-radius-lg` | `12px` | Large border radius |
+| `--notur-border` | `rgba(148, 163, 184, 0.18)` | Border color |
+| `--notur-radius-sm` | `6px` | Small border radius |
+| `--notur-radius-md` | `12px` | Medium border radius |
+| `--notur-radius-lg` | `18px` | Large border radius |
+
+#### Glass Effects
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `--notur-glass-bg` | `rgba(17, 19, 24, 0.55)` | Glass surface background |
+| `--notur-glass-border` | `rgba(255, 255, 255, 0.12)` | Glass border |
+| `--notur-glass-highlight` | `rgba(255, 255, 255, 0.06)` | Subtle highlight for glass edges |
+| `--notur-glass-shadow` | `0 16px 40px rgba(0, 0, 0, 0.55)` | Soft depth shadow |
+| `--notur-glass-blur` | `16px` | Backdrop blur amount |
 
 #### Typography
 
@@ -527,10 +565,12 @@ All Notur theme variables are prefixed with `--notur-`. Extensions should use th
 
 ```css
 .my-widget {
-    background: var(--notur-bg-secondary);
+    background: var(--notur-glass-bg, var(--notur-bg-secondary));
     color: var(--notur-text-primary);
-    border: 1px solid var(--notur-border);
-    border-radius: var(--notur-radius-md);
+    border: 1px solid var(--notur-glass-border, var(--notur-border));
+    border-radius: var(--notur-radius-lg);
+    box-shadow: var(--notur-glass-shadow, 0 12px 30px rgba(0, 0, 0, 0.35));
+    backdrop-filter: blur(var(--notur-glass-blur, 12px));
     font-family: var(--notur-font-sans);
     padding: 1rem;
 }
@@ -570,6 +610,19 @@ Theme extensions can override CSS custom properties by shipping a CSS file that 
     --notur-text-primary: #e2e8f0;
 }
 ```
+
+### Default Glass Surfaces
+
+The bridge runtime applies glass styling by default to dashboard widgets and extension route pages.
+If you want the same look elsewhere, wrap your UI with these classes:
+
+```html
+<div class="notur-surface notur-surface--card">
+  <!-- your content -->
+</div>
+```
+
+You can also use `notur-surface--page` for full-page layouts.
 
 ---
 

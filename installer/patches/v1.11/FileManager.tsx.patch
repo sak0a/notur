@@ -9,3 +9,18 @@
                              <NewDirectoryButton />
                              <UploadButton />
                              <NavLink to={`/server/${id}/files/new${window.location.hash}`}>
+@@ -88,6 +90,7 @@
+             </ErrorBoundary>
++            <div id="notur-slot-server.files.header" style={{ display: 'contents' }}></div>
+             {!files ? (
+                 <Spinner size={'large'} centered />
+             ) : (
+@@ -118,6 +121,7 @@
+                         )
+                     )}
+                 </>
+             )}
++            <div id="notur-slot-server.files.footer" style={{ display: 'contents' }}></div>
+         </ServerContentBlock>
+     );
+ };

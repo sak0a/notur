@@ -433,13 +433,27 @@ Slots are predefined injection points in the Pterodactyl panel where extensions 
 | Constant | Slot ID | Location | Type | Description |
 |---|---|---|---|---|
 | `NAVBAR` | `navbar` | Top navigation bar | `portal` | Render components in the navbar |
+| `NAVBAR_LEFT` | `navbar.left` | Navbar left area | `portal` | Render components near the logo |
 | `SERVER_SUBNAV` | `server.subnav` | Server sub-navigation | `nav` | Add items to server sub-nav |
+| `SERVER_HEADER` | `server.header` | Server header area | `portal` | Render content below server sub-nav |
 | `SERVER_PAGE` | `server.page` | Server area | `route` | Full page in server context |
+| `SERVER_FOOTER` | `server.footer` | Server footer area | `portal` | Render content at the end of server pages |
 | `SERVER_TERMINAL_BUTTONS` | `server.terminal.buttons` | Terminal power buttons | `portal` | Add buttons near terminal controls |
+| `SERVER_CONSOLE_HEADER` | `server.console.header` | Console page header | `portal` | Render content at the top of the console page |
+| `SERVER_CONSOLE_SIDEBAR` | `server.console.sidebar` | Console sidebar | `portal` | Render content next to console details |
+| `SERVER_CONSOLE_FOOTER` | `server.console.footer` | Console page footer | `portal` | Render content below console graphs |
 | `SERVER_FILES_ACTIONS` | `server.files.actions` | File manager toolbar | `portal` | Add actions to file manager |
+| `SERVER_FILES_HEADER` | `server.files.header` | File manager header | `portal` | Render content above file list |
+| `SERVER_FILES_FOOTER` | `server.files.footer` | File manager footer | `portal` | Render content below file list |
+| `DASHBOARD_HEADER` | `dashboard.header` | Dashboard header | `portal` | Render banners or summaries |
 | `DASHBOARD_WIDGETS` | `dashboard.widgets` | Dashboard below server list | `portal` | Add widgets to the dashboard |
+| `DASHBOARD_SERVERLIST_BEFORE` | `dashboard.serverlist.before` | Before server list | `portal` | Render content before server list |
+| `DASHBOARD_SERVERLIST_AFTER` | `dashboard.serverlist.after` | After server list | `portal` | Render content after server list |
+| `DASHBOARD_FOOTER` | `dashboard.footer` | Dashboard footer | `portal` | Render content below dashboard |
 | `DASHBOARD_PAGE` | `dashboard.page` | Dashboard area | `route` | Full page in dashboard context |
+| `ACCOUNT_HEADER` | `account.header` | Account header | `portal` | Render content above account pages |
 | `ACCOUNT_PAGE` | `account.page` | Account area | `route` | Full page in account context |
+| `ACCOUNT_FOOTER` | `account.footer` | Account footer | `portal` | Render content below account pages |
 | `ACCOUNT_SUBNAV` | `account.subnav` | Account sub-navigation | `nav` | Add items to account sub-nav |
 
 ### Slot Types
@@ -458,13 +472,27 @@ const { SLOT_IDS } = window.__NOTUR__;
 
 // Constants:
 SLOT_IDS.NAVBAR                    // 'navbar'
+SLOT_IDS.NAVBAR_LEFT               // 'navbar.left'
 SLOT_IDS.SERVER_SUBNAV             // 'server.subnav'
+SLOT_IDS.SERVER_HEADER             // 'server.header'
 SLOT_IDS.SERVER_PAGE               // 'server.page'
+SLOT_IDS.SERVER_FOOTER             // 'server.footer'
 SLOT_IDS.SERVER_TERMINAL_BUTTONS   // 'server.terminal.buttons'
+SLOT_IDS.SERVER_CONSOLE_HEADER     // 'server.console.header'
+SLOT_IDS.SERVER_CONSOLE_SIDEBAR    // 'server.console.sidebar'
+SLOT_IDS.SERVER_CONSOLE_FOOTER     // 'server.console.footer'
 SLOT_IDS.SERVER_FILES_ACTIONS      // 'server.files.actions'
+SLOT_IDS.SERVER_FILES_HEADER       // 'server.files.header'
+SLOT_IDS.SERVER_FILES_FOOTER       // 'server.files.footer'
+SLOT_IDS.DASHBOARD_HEADER          // 'dashboard.header'
 SLOT_IDS.DASHBOARD_WIDGETS         // 'dashboard.widgets'
+SLOT_IDS.DASHBOARD_SERVERLIST_BEFORE // 'dashboard.serverlist.before'
+SLOT_IDS.DASHBOARD_SERVERLIST_AFTER  // 'dashboard.serverlist.after'
+SLOT_IDS.DASHBOARD_FOOTER          // 'dashboard.footer'
 SLOT_IDS.DASHBOARD_PAGE            // 'dashboard.page'
+SLOT_IDS.ACCOUNT_HEADER            // 'account.header'
 SLOT_IDS.ACCOUNT_PAGE              // 'account.page'
+SLOT_IDS.ACCOUNT_FOOTER            // 'account.footer'
 SLOT_IDS.ACCOUNT_SUBNAV            // 'account.subnav'
 ```
 
@@ -582,6 +610,19 @@ Theme extensions can override CSS custom properties by shipping a CSS file that 
     --notur-text-primary: #e2e8f0;
 }
 ```
+
+### Default Glass Surfaces
+
+The bridge runtime applies glass styling by default to dashboard widgets and extension route pages.
+If you want the same look elsewhere, wrap your UI with these classes:
+
+```html
+<div class="notur-surface notur-surface--card">
+  <!-- your content -->
+</div>
+```
+
+You can also use `notur-surface--page` for full-page layouts.
 
 ---
 
