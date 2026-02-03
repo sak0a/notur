@@ -55,14 +55,19 @@ WORKDIR /var/www/pterodactyl
 # Install panel PHP dependencies
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
-# Install panel frontend dependencies and build
-RUN bun install --frozen-lockfile \
-    && bun run build:production \
+# Install panel frontend dependencies and build (panel uses yarn)
+RUN npm install -g yarn \
+    && yarn install --frozen-lockfile \
+    && yarn run build:production \
     || true
 
 # Set up panel environment
 RUN cp .env.example .env \
     && php artisan key:generate --force
+
+# Fix storage permissions for www-data (PHP-FPM user)
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
 
 # Copy Notur source into vendor-like location for testing
 COPY . /opt/notur
