@@ -153,11 +153,6 @@ function mountThemeRoot(registry: PluginRegistry): void {
 function init(): void {
     const existing = window.__NOTUR__ || {};
 
-    // Expose React and ReactDOM as globals so extension bundles
-    // (which declare them as webpack externals) can resolve them.
-    (window as any).React = React;
-    (window as any).ReactDOM = ReactDOM;
-
     const registry = new PluginRegistry();
 
     // Apply default CSS variables immediately, then layer panel extraction

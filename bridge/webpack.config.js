@@ -24,7 +24,10 @@ module.exports = {
             },
         ],
     },
-    // React and ReactDOM are bundled into the bridge and exposed as globals
-    // so that extension bundles (which declare them as externals) can use them.
-    // This avoids requiring the host panel to expose React on window.
+    // React and ReactDOM are provided by the panel's bundle as globals.
+    // The index.tsx.patch exposes them on window before bridge.js loads.
+    externals: {
+        react: 'React',
+        'react-dom': 'ReactDOM',
+    },
 };
