@@ -113,12 +113,12 @@ jobs:
               echo "Bridge runtime missing; building..."
               if [ -d "vendor/notur/notur" ]; then
                 cd vendor/notur/notur
-                bun install --frozen-lockfile 2>&1 || npm install 2>&1
-                if ! bun run build:bridge 2>&1; then
-                  if ! npm run build:bridge 2>&1; then
+                NODE_OPTIONS=--openssl-legacy-provider bun install --frozen-lockfile 2>&1 || NODE_OPTIONS=--openssl-legacy-provider npm install 2>&1
+                if ! NODE_OPTIONS=--openssl-legacy-provider bun run build:bridge 2>&1; then
+                  if ! NODE_OPTIONS=--openssl-legacy-provider npm run build:bridge 2>&1; then
                     if [ -d "bridge" ]; then
                       cd bridge
-                      if ! bunx webpack --mode production 2>&1; then
+                      if ! NODE_OPTIONS=--openssl-legacy-provider bunx webpack --mode production 2>&1; then
                         echo "Bridge build failed"
                         exit 1
                       fi
