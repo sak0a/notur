@@ -64,6 +64,15 @@ jobs:
               exit 1
             fi
 
+            # Ensure DB settings in .env match docker-compose environment
+            if [ -f ".env" ]; then
+              sed -i "s/^DB_HOST=.*/DB_HOST=db/" .env
+              sed -i "s/^DB_PORT=.*/DB_PORT=3306/" .env
+              sed -i "s/^DB_DATABASE=.*/DB_DATABASE=panel/" .env
+              sed -i "s/^DB_USERNAME=.*/DB_USERNAME=pterodactyl/" .env
+              sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=pterodactyl/" .env
+            fi
+
             # Inject Notur scripts into Blade layout
             SCRIPTS_BLADE="resources/views/layouts/scripts.blade.php"
             WRAPPER_BLADE="resources/views/templates/wrapper.blade.php"
@@ -158,6 +167,13 @@ jobs:
             php artisan migrate --force 2>&1
             php artisan migrate --path=vendor/notur/notur/database/migrations --force 2>&1
 
+            # Verify Notur tables exist
+            if ! mysql -h db -P 3306 -u pterodactyl -ppterodactyl panel -e "SHOW TABLES LIKE 'notur_%';" 2>/dev/null | grep -q "notur_"; then
+              echo "Notur tables missing after migration"
+              mysql -h db -P 3306 -u pterodactyl -ppterodactyl panel -e "SHOW TABLES;" 2>/dev/null || true
+              exit 1
+            fi
+
             # Fix permissions
             chown -R www-data:www-data storage bootstrap/cache notur public/notur 2>/dev/null || true
           '
@@ -180,6 +196,13 @@ jobs:
             php artisan migrate --path=vendor/notur/notur/database/migrations --force 2>&1
 
             chown -R www-data:www-data notur public/notur 2>/dev/null || true
+
+            # Verify extension routes are registered
+            if ! php artisan route:list 2>/dev/null | grep -q "notur/hello-world"; then
+              echo "Notur extension routes not registered"
+              php artisan route:list 2>/dev/null | grep -i notur || true
+              exit 1
+            fi
           '
 
           # Run tests
