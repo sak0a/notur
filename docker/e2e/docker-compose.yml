@@ -31,6 +31,7 @@ services:
       APP_ENV: testing
       APP_DEBUG: "true"
       APP_URL: http://localhost
+      NODE_OPTIONS: --openssl-legacy-provider
       # APP_KEY is generated at Docker build time (php artisan key:generate in Dockerfile)
       DB_CONNECTION: mysql
       DB_HOST: db
@@ -61,6 +62,7 @@ services:
       DB_DATABASE: panel
       DB_USERNAME: pterodactyl
       DB_PASSWORD: pterodactyl
+      NODE_OPTIONS: --openssl-legacy-provider
     entrypoint: ["bash", "/opt/notur/tests/E2E/e2e-test.sh"]
     volumes:
       - ../../:/opt/notur:ro

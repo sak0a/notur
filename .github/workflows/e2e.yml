@@ -55,7 +55,11 @@ jobs:
             git config --global --add safe.directory /opt/notur
             composer config platform.php 8.2.30 --no-interaction
             composer config repositories.notur path /opt/notur --no-interaction
-            composer require notur/notur:@dev --no-interaction 2>&1
+            if ! COMPOSER_ALLOW_SUPERUSER=1 composer require notur/notur:@dev --no-interaction --with-all-dependencies 2>&1; then
+              echo "Composer require failed. Retrying once with verbose output..."
+              COMPOSER_ALLOW_SUPERUSER=1 composer require notur/notur:@dev --no-interaction --with-all-dependencies -vvv
+              exit 1
+            fi
 
             # Inject Notur scripts into Blade layout
             SCRIPTS_BLADE="resources/views/layouts/scripts.blade.php"
