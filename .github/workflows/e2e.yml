@@ -49,6 +49,7 @@ jobs:
           # Install Notur into the panel using current branch code
           docker compose exec -T app bash -c '
             cd /var/www/pterodactyl
+            export NODE_OPTIONS=--openssl-legacy-provider
 
             # Install from current branch via path repository (tests latest code, not Packagist)
             git config --global --add safe.directory /opt/notur
@@ -92,7 +93,6 @@ jobs:
             yarn install --frozen-lockfile 2>&1 || npm install 2>&1
 
             echo "Building production assets..."
-            export NODE_OPTIONS=--openssl-legacy-provider
             if yarn run build:production 2>&1; then
               echo "Frontend build succeeded"
             else
@@ -111,14 +111,20 @@ jobs:
             BRIDGE_JS="vendor/notur/notur/bridge/dist/bridge.js"
             if [ ! -f "${BRIDGE_JS}" ]; then
               echo "Bridge runtime missing; building..."
-              if [ -d "vendor/notur/notur/bridge" ]; then
-                cd vendor/notur/notur/bridge
-                export NODE_OPTIONS=--openssl-legacy-provider
+              if [ -d "vendor/notur/notur" ]; then
+                cd vendor/notur/notur
                 bun install --frozen-lockfile 2>&1 || npm install 2>&1
-                if ! bun run build 2>&1; then
-                  if ! bunx webpack --mode production 2>&1; then
-                    if ! npm run build 2>&1; then
-                      echo "Bridge build failed"
+                if ! bun run build:bridge 2>&1; then
+                  if ! npm run build:bridge 2>&1; then
+                    if [ -d "bridge" ]; then
+                      cd bridge
+                      if ! bunx webpack --mode production 2>&1; then
+                        echo "Bridge build failed"
+                        exit 1
+                      fi
+                      cd ..
+                    else
+                      echo "Bridge build failed (bridge directory missing)"
                       exit 1
                     fi
                   fi

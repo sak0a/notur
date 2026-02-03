@@ -2,7 +2,7 @@
 # Based on PHP 8.2 + Node 22, installs Pterodactyl Panel + Notur + test extension
 FROM php:8.2-fpm
 
-ARG NODE_VERSION=22
+ARG NODE_VERSION=20
 ARG PANEL_VERSION=v1.11.7
 
 # System dependencies
