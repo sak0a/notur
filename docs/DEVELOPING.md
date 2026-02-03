@@ -53,6 +53,10 @@ bun run build:sdk
 bun run build
 ```
 
+## Releasing / Publishing to npm
+
+To publish **@notur/sdk** to npm and how the registry-validate workflow works, see [PUBLISHING-NPM.md](PUBLISHING-NPM.md).
+
 ## Testing
 
 ### PHP Tests
