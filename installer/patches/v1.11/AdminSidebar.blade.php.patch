@@ -1,7 +1,11 @@
 --- a/resources/views/layouts/admin.blade.php	2026-02-03 00:00:00
 +++ b/resources/views/layouts/admin.blade.php	2026-02-03 00:00:00
-@@
--                        <li class="header">MANAGEMENT</li>
+@@ -83,6 +83,14 @@
+                         <li class="{{ ! starts_with(Route::currentRouteName(), 'admin.api') ?: 'active' }}">
+                             <a href="{{ route('admin.api.index')}}">
+                                 <i class="fa fa-gamepad"></i> <span>Application API</span>
+                             </a>
+                         </li>
 +                        @if (Route::has('admin.notur.extensions'))
 +                            <li class="header">EXTENSIONS</li>
 +                            <li class="{{ ! starts_with(Route::currentRouteName(), 'admin.notur') ?: 'active' }}">
@@ -10,4 +14,4 @@
 +                                </a>
 +                            </li>
 +                        @endif
-+                        <li class="header">MANAGEMENT</li>
+                         <li class="header">MANAGEMENT</li>
