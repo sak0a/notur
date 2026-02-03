@@ -1,8 +1,6 @@
---- a/resources/views/layouts/admin.blade.php	2026-02-03 00:00:00
-+++ b/resources/views/layouts/admin.blade.php	2026-02-03 00:00:00
-@@ -83,6 +83,14 @@
-                         <li class="{{ ! starts_with(Route::currentRouteName(), 'admin.api') ?: 'active' }}">
-                             <a href="{{ route('admin.api.index')}}">
+--- a/resources/views/layouts/admin.blade.php	2026-02-03 20:34:23
++++ b/resources/views/layouts/admin.blade.php	2026-02-03 20:34:23
+@@ -85,6 +85,14 @@
                                  <i class="fa fa-gamepad"></i> <span>Application API</span>
                              </a>
                          </li>
@@ -15,3 +13,5 @@
 +                            </li>
 +                        @endif
                          <li class="header">MANAGEMENT</li>
+                         <li class="{{ ! starts_with(Route::currentRouteName(), 'admin.databases') ?: 'active' }}">
+                             <a href="{{ route('admin.databases') }}">
