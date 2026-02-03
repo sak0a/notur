@@ -87,6 +87,15 @@ jobs:
             # Set up Notur directories and copy bridge
             mkdir -p notur/extensions public/notur/extensions
             BRIDGE_JS="vendor/notur/notur/bridge/dist/bridge.js"
+            if [ ! -f "${BRIDGE_JS}" ]; then
+              echo "Bridge runtime missing; building..."
+              if [ -d "vendor/notur/notur/bridge" ]; then
+                cd vendor/notur/notur/bridge
+                bun install --frozen-lockfile 2>&1 || npm install 2>&1
+                bun run build 2>&1 || bunx webpack --mode production 2>&1 || npm run build 2>&1 || true
+                cd /var/www/pterodactyl
+              fi
+            fi
             if [ -f "${BRIDGE_JS}" ]; then
               cp "${BRIDGE_JS}" public/notur/bridge.js
             fi

@@ -15,6 +15,23 @@ import {
     extractPterodactylVariables,
 } from './theme/CssVariables';
 
+// Ensure React/ReactDOM are exposed globally for extension bundles.
+// If another instance is already present, warn to help diagnose hook issues.
+if (typeof window !== 'undefined') {
+    const win = window as any;
+    if (!win.React) {
+        win.React = React;
+    } else if (win.React !== React) {
+        console.warn('[Notur] Detected multiple React instances on window. This can break hooks.');
+    }
+
+    if (!win.ReactDOM) {
+        win.ReactDOM = ReactDOM;
+    } else if (win.ReactDOM !== ReactDOM) {
+        console.warn('[Notur] Detected multiple ReactDOM instances on window. This can break hooks.');
+    }
+}
+
 declare global {
     interface Window {
         __NOTUR__: {
