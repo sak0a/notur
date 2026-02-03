@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\View\View;
 use Notur\ExtensionManager;
 use Notur\Models\InstalledExtension;
+use Notur\Support\RegistryClient;
 
 class ExtensionAdminController extends Controller
 {
@@ -21,12 +22,28 @@ class ExtensionAdminController extends Controller
     /**
      * Show the extension management page.
      */
-    public function index(): View
+    public function index(Request $request, RegistryClient $registry): View
     {
         $extensions = InstalledExtension::all();
+        $installedIds = $extensions->pluck('extension_id')->all();
+        $query = trim((string) $request->query('q', ''));
+        $registryResults = [];
+        $registryError = null;
+
+        if ($query !== '') {
+            try {
+                $registryResults = $registry->search($query);
+            } catch (\Throwable $e) {
+                $registryError = $e->getMessage();
+            }
+        }
 
         return view('notur::admin.extensions', [
             'extensions' => $extensions,
+            'installedIds' => $installedIds,
+            'registryQuery' => $query,
+            'registryResults' => $registryResults,
+            'registryError' => $registryError,
         ]);
     }
 
