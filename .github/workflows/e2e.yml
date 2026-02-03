@@ -90,6 +90,7 @@ jobs:
             yarn install --frozen-lockfile 2>&1 || npm install 2>&1
 
             echo "Building production assets..."
+            export NODE_OPTIONS=--openssl-legacy-provider
             if yarn run build:production 2>&1; then
               echo "Frontend build succeeded"
             else
