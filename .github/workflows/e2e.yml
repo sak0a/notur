@@ -76,13 +76,32 @@ jobs:
                 PATCH_NAME=$(basename "${patch}")
                 echo "${PATCH_NAME}" | grep -q "reverse" && continue
                 echo "Applying patch: ${PATCH_NAME}"
-                patch --dry-run -p1 < "${patch}" &>/dev/null && patch -p1 < "${patch}" || echo "Skipping: ${PATCH_NAME}"
+                if patch --dry-run -p1 < "${patch}" &>/dev/null; then
+                  patch -p1 < "${patch}"
+                  echo "Applied: ${PATCH_NAME}"
+                else
+                  echo "Skipping: ${PATCH_NAME} (already applied or incompatible)"
+                fi
               done
             fi
 
             # Rebuild frontend with patches applied
+            echo "Installing frontend dependencies..."
             yarn install --frozen-lockfile 2>&1 || npm install 2>&1
-            yarn run build:production 2>&1 || true
+
+            echo "Building production assets..."
+            if yarn run build:production 2>&1; then
+              echo "Frontend build succeeded"
+            else
+              echo "Frontend build failed"
+              exit 1
+            fi
+
+            if [ ! -f "public/assets/manifest.json" ]; then
+              echo "Build artifacts missing: public/assets/manifest.json"
+              ls -la public/assets 2>/dev/null || true
+              exit 1
+            fi
 
             # Set up Notur directories and copy bridge
             mkdir -p notur/extensions public/notur/extensions
@@ -92,12 +111,22 @@ jobs:
               if [ -d "vendor/notur/notur/bridge" ]; then
                 cd vendor/notur/notur/bridge
                 bun install --frozen-lockfile 2>&1 || npm install 2>&1
-                bun run build 2>&1 || bunx webpack --mode production 2>&1 || npm run build 2>&1 || true
+                if ! bun run build 2>&1; then
+                  if ! bunx webpack --mode production 2>&1; then
+                    if ! npm run build 2>&1; then
+                      echo "Bridge build failed"
+                      exit 1
+                    fi
+                  fi
+                fi
                 cd /var/www/pterodactyl
               fi
             fi
             if [ -f "${BRIDGE_JS}" ]; then
               cp "${BRIDGE_JS}" public/notur/bridge.js
+            else
+              echo "Bridge runtime missing after build"
+              exit 1
             fi
 
             # Initialize extensions.json
