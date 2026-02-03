@@ -14,6 +14,8 @@ export function useUserContext(): UserContext | null {
     const [user, setUser] = useState<UserContext | null>(null);
 
     useEffect(() => {
+        let cancelled = false;
+
         // Try reading from Pterodactyl's global state
         const storeState = (window as any).PterodactylUser;
         if (storeState) {
@@ -28,6 +30,7 @@ export function useUserContext(): UserContext | null {
         })
             .then(r => r.json())
             .then(data => {
+                if (cancelled) return;
                 if (data.attributes) {
                     setUser({
                         uuid: data.attributes.uuid,
@@ -38,6 +41,8 @@ export function useUserContext(): UserContext | null {
                 }
             })
             .catch(() => {});
+
+        return () => { cancelled = true; };
     }, []);
 
     return user;

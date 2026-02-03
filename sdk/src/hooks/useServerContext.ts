@@ -33,7 +33,7 @@ export function useServerContext(): ServerContext | null {
 
         // Also check the URL for server UUID
         const match = window.location.pathname.match(/\/server\/([a-f0-9-]+)/);
-        if (match && !context) {
+        if (match) {
             setContext(prev => prev || { uuid: match[1], name: '', node: '', isOwner: false, status: null, permissions: [] });
         }
     }, []);
