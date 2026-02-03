@@ -46,10 +46,9 @@ jobs:
           done
           echo "MySQL is ready"
 
-          # Setup panel
+          # Setup panel (APP_KEY is set via docker-compose environment)
           docker compose exec -T app bash -c '
             cd /var/www/pterodactyl
-            php artisan key:generate --force
             php artisan migrate --force 2>&1 || true
           '
 
