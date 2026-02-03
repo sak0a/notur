@@ -1,6 +1,19 @@
---- a/resources/scripts/components/NavigationBar.tsx	2026-02-02 21:49:37
-+++ b/resources/scripts/components/NavigationBar.tsx	2026-02-02 21:48:26
-@@ -73,8 +73,6 @@
+--- a/resources/scripts/components/NavigationBar.tsx
++++ b/resources/scripts/components/NavigationBar.tsx
+@@ -58,12 +58,8 @@
+                     >
+                         {name}
+                     </Link>
+-                    {/* [Notur] Navbar left extension slot */}
+-                    <div id="notur-slot-navbar.left" style={{ display: 'contents' }}></div>
+                 </div>
+                 <RightNavigation className={'flex h-full items-center justify-center'}>
+-                    {/* [Notur] Navbar before extension slot */}
+-                    <div id="notur-slot-navbar.before" style={{ display: 'contents' }}></div>
+                     <SearchContainer />
+                     <Tooltip placement={'bottom'} content={'Dashboard'}>
+                         <NavLink to={'/'} exact>
+@@ -77,8 +73,6 @@
                              </a>
                          </Tooltip>
                      )}
@@ -9,10 +22,12 @@
                      <Tooltip placement={'bottom'} content={'Account Settings'}>
                          <NavLink to={'/account'}>
                              <span className={'flex items-center w-5 h-5'}>
-@@ -45,8 +45,6 @@
-                     >
-                         {name}
-                     </Link>
--                    {/* [Notur] Navbar left extension slot */}
--                    <div id="notur-slot-navbar.left" style={{ display: 'contents' }}></div>
-                 </div>
+@@ -91,8 +85,6 @@
+                             <FontAwesomeIcon icon={faSignOutAlt} />
+                         </button>
+                     </Tooltip>
+-                    {/* [Notur] Navbar after extension slot */}
+-                    <div id="notur-slot-navbar.after" style={{ display: 'contents' }}></div>
+                 </RightNavigation>
+             </div>
+         </div>

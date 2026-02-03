@@ -286,7 +286,7 @@
                             <thead>
                                 <tr>
                                     <th style="width: 200px;">Task</th>
-                                    <th style="width: 140px;">Cron</th>
+                                    <th style="width: 180px;">Schedule</th>
                                     <th style="width: 160px;">Command</th>
                                     <th style="width: 140px;">Flags</th>
                                     <th>Description</th>
@@ -300,12 +300,27 @@
                                         if (!empty($task['on_one_server'])) $flags[] = 'one-server';
                                         if (!empty($task['run_in_maintenance'])) $flags[] = 'maintenance';
                                         if (isset($task['enabled']) && $task['enabled'] === false) $flags[] = 'disabled';
+                                        $cron = $task['cron'] ?? null;
+                                        $schedule = $task['schedule'] ?? null;
+                                        $scheduleLabel = $cron;
+                                        if (!$scheduleLabel && is_array($schedule)) {
+                                            $type = strtolower((string) ($schedule['type'] ?? ''));
+                                            $scheduleLabel = match ($type) {
+                                                'hourly' => 'hourly',
+                                                'daily' => 'daily',
+                                                'dailyat' => 'dailyAt ' . ($schedule['at'] ?? '—'),
+                                                'weeklyon' => 'weeklyOn ' . ($schedule['day'] ?? '—') . ' ' . ($schedule['at'] ?? '—'),
+                                                'everyminutes' => 'everyMinutes ' . ($schedule['interval'] ?? '—'),
+                                                'everyhours' => 'everyHours ' . ($schedule['interval'] ?? '—'),
+                                                default => $type !== '' ? $type : '—',
+                                            };
+                                        }
                                     @endphp
                                     <tr>
                                         <td>
                                             <strong>{{ $task['label'] ?? $task['id'] ?? 'Unnamed task' }}</strong>
                                         </td>
-                                        <td><code>{{ $task['cron'] ?? '—' }}</code></td>
+                                        <td><code>{{ $scheduleLabel ?? '—' }}</code></td>
                                         <td><code>{{ $task['command'] ?? '—' }}</code></td>
                                         <td>
                                             @if(!empty($flags))

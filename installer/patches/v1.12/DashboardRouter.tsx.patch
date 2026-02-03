@@ -1,19 +1,30 @@
---- a/resources/scripts/routers/DashboardRouter.tsx	2026-02-02 21:48:26
-+++ b/resources/scripts/routers/DashboardRouter.tsx	2026-02-02 21:48:42
+--- a/resources/scripts/routers/DashboardRouter.tsx
++++ b/resources/scripts/routers/DashboardRouter.tsx
 @@ -8,6 +8,7 @@
  import { useLocation } from 'react-router';
  import Spinner from '@/components/elements/Spinner';
  import routes from '@/routers/routes';
 +import { getNoturRoutes } from '@/routers/routes';
-
+ 
  export default () => {
      const location = useLocation();
-@@ -28,6 +29,9 @@
+@@ -18,6 +19,7 @@
+             {location.pathname.startsWith('/account') && (
+                 <SubNavigation>
+                     <div>
++                        <div id="notur-slot-account.subnav.before" style={{ display: 'contents' }}></div>
+                         {routes.account
+                             .filter((route) => !!route.name)
+                             .map(({ path, name, exact = false }) => (
+@@ -25,9 +27,15 @@
+                                     {name}
+                                 </NavLink>
+                             ))}
++                        <div id="notur-slot-account.subnav" style={{ display: 'contents' }}></div>
++                        <div id="notur-slot-account.subnav.after" style={{ display: 'contents' }}></div>
                      </div>
                  </SubNavigation>
              )}
-+            {/* [Notur] Slot containers */}
-+            <div id="notur-slot-account.subnav" style={{ display: 'contents' }}></div>
 +            {location.pathname.startsWith('/account') && (
 +                <div id="notur-slot-account.header" style={{ display: 'contents' }}></div>
 +            )}
@@ -21,7 +32,7 @@
              <TransitionRouter>
                  <React.Suspense fallback={<Spinner centered />}>
                      <Switch location={location}>
-@@ -39,6 +43,14 @@
+@@ -39,12 +47,23 @@
                                  <Component />
                              </Route>
                          ))}
@@ -36,7 +47,8 @@
                          <Route path={'*'}>
                              <NotFound />
                          </Route>
-@@ -51,6 +59,9 @@
+                     </Switch>
+                 </React.Suspense>
              </TransitionRouter>
 +            {location.pathname.startsWith('/account') && (
 +                <div id="notur-slot-account.footer" style={{ display: 'contents' }}></div>

@@ -113,7 +113,8 @@
                     "type": "object",
                     "properties": {
                         "mode": { "type": "string" },
-                        "class": { "type": "string" }
+                        "class": { "type": "string" },
+                        "className": { "type": "string" }
                     }
                 },
                 "slots": {
@@ -149,13 +150,22 @@
                     "type": "array",
                     "items": {
                         "type": "object",
-                        "required": ["id", "label", "command", "cron"],
+                        "required": ["id", "label", "command"],
                         "properties": {
                             "id": { "type": "string" },
                             "label": { "type": "string" },
                             "description": { "type": "string" },
                             "command": { "type": "string" },
                             "cron": { "type": "string" },
+                            "schedule": {
+                                "type": "object",
+                                "properties": {
+                                    "type": { "type": "string" },
+                                    "at": { "type": "string" },
+                                    "day": { "type": "string" },
+                                    "interval": { "type": "integer" }
+                                }
+                            },
                             "timezone": { "type": "string" },
                             "without_overlapping": { "type": "boolean" },
                             "on_one_server": { "type": "boolean" },

@@ -6,6 +6,11 @@
 
 @section('content-header')
     <h1>Extensions<small>Manage Notur extensions</small></h1>
+    <div class="pull-right" style="margin-top: -35px;">
+        <a href="{{ route('admin.notur.diagnostics') }}" class="btn btn-default btn-sm">
+            <i class="fa fa-stethoscope"></i> Diagnostics
+        </a>
+    </div>
     <ol class="breadcrumb">
         <li><a href="{{ route('admin.index') }}">Admin</a></li>
         <li class="active">Extensions</li>

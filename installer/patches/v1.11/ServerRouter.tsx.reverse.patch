@@ -1,25 +1,33 @@
---- a/resources/scripts/routers/ServerRouter.tsx	2026-02-02 21:46:42
-+++ b/resources/scripts/routers/ServerRouter.tsx	2026-02-02 21:44:15
+--- a/resources/scripts/routers/ServerRouter.tsx
++++ b/resources/scripts/routers/ServerRouter.tsx
 @@ -20,7 +20,6 @@
  import ConflictStateRenderer from '@/components/server/ConflictStateRenderer';
  import PermissionRoute from '@/components/elements/PermissionRoute';
  import routes from '@/routers/routes';
 -import { getNoturRoutes } from '@/routers/routes';
-
+ 
  export default () => {
      const match = useRouteMatch<{ id: string }>();
-@@ -99,10 +98,6 @@
+@@ -77,7 +76,6 @@
+                     <CSSTransition timeout={150} classNames={'fade'} appear in>
+                         <SubNavigation>
+                             <div>
+-                                <div id="notur-slot-server.subnav.before" style={{ display: 'contents' }}></div>
+                                 {routes.server
+                                     .filter((route) => !!route.name)
+                                     .map((route) =>
+@@ -99,10 +97,7 @@
+                                         <FontAwesomeIcon icon={faExternalLinkAlt} />
                                      </a>
                                  )}
+-                                <div id="notur-slot-server.subnav" style={{ display: 'contents' }}></div>
+-                                <div id="notur-slot-server.subnav.after" style={{ display: 'contents' }}></div>
                              </div>
--                            {/* [Notur] Server sub-navigation slot */}
--                            <div id="notur-slot-server.subnav" style={{ display: 'contents' }}></div>
--                            {/* [Notur] Server header slot */}
 -                            <div id="notur-slot-server.header" style={{ display: 'contents' }}></div>
                          </SubNavigation>
                      </CSSTransition>
                      <InstallListener />
-@@ -119,10 +116,6 @@
+@@ -121,16 +116,11 @@
                                              </Spinner.Suspense>
                                          </PermissionRoute>
                                      ))}
@@ -30,7 +38,6 @@
                                      <Route path={'*'} component={NotFound} />
                                  </Switch>
                              </TransitionRouter>
-@@ -133,7 +129,6 @@
                          </ErrorBoundary>
                      )}
 -                    <div id="notur-slot-server.footer" style={{ display: 'contents' }}></div>

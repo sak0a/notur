@@ -1,0 +1,25 @@
+--- a/resources/scripts/components/dashboard/ServerRow.tsx
++++ b/resources/scripts/components/dashboard/ServerRow.tsx
+@@ -95,14 +95,10 @@
+                     <FontAwesomeIcon icon={faServer} />
+                 </div>
+                 <div>
+-                    <div id="notur-slot-dashboard.serverrow.name.before" style={{ display: 'contents' }}></div>
+                     <p css={tw`text-lg break-words`}>{server.name}</p>
+-                    <div id="notur-slot-dashboard.serverrow.name.after" style={{ display: 'contents' }}></div>
+-                    <div id="notur-slot-dashboard.serverrow.description.before" style={{ display: 'contents' }}></div>
+                     {!!server.description && (
+                         <p css={tw`text-sm text-neutral-300 break-words line-clamp-2`}>{server.description}</p>
+                     )}
+-                    <div id="notur-slot-dashboard.serverrow.description.after" style={{ display: 'contents' }}></div>
+                 </div>
+             </div>
+             <div css={tw`flex-1 ml-4 lg:block lg:col-span-2 hidden`}>
+@@ -120,7 +116,6 @@
+                 </div>
+             </div>
+             <div css={tw`hidden col-span-7 lg:col-span-4 sm:flex items-baseline justify-center`}>
+-                <div id="notur-slot-dashboard.serverrow.limits" style={{ display: 'contents' }}></div>
+                 {!stats || isSuspended ? (
+                     isSuspended ? (
+                         <div css={tw`flex-1 text-center`}>

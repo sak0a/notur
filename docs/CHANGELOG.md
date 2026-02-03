@@ -29,7 +29,7 @@ All notable changes to the Notur Extension Library are documented here.
 ## Phase 3: Frontend Slots + SDK
 
 ### Added
-- **All slot renderers** -- Expanded slot set (23 total) including headers/footers, console/file manager slots, and dashboard server list slots.
+- **All slot renderers** -- Expanded slot set (65 total) including headers/footers, console/file manager slots, and dashboard server list slots.
 - **Additional React patches** -- `DashboardContainer.tsx`, `ServerConsoleContainer.tsx`, `FileManagerContainer.tsx`, and navigation/router updates to expose the new slot containers.
 - **Bridge hooks** -- `useSlot(slotId)` for reactive slot subscriptions, `useExtensionApi({ extensionId })` for scoped HTTP client with CSRF handling, `useExtensionState(extensionId, initialState)` for shared cross-component state.
 - **Theme system** -- CSS custom property extraction from the live Pterodactyl DOM. Three-strategy approach: mapped `--ptero-*` variables, computed style probes on known elements, and stylesheet scanning. `ThemeProvider` wiring with 25 default CSS custom properties.

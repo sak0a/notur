@@ -1,35 +1,30 @@
---- a/resources/scripts/components/server/console/ServerConsoleContainer.tsx	2026-02-03 00:00:00
-+++ b/resources/scripts/components/server/console/ServerConsoleContainer.tsx	2026-02-03 00:00:00
-@@ -43,8 +43,6 @@
-                     <Can action={['control.start', 'control.stop', 'control.restart']} matchAny>
-                         <PowerButtons className={'flex sm:justify-end space-x-2'} />
-                     </Can>
--                    {/* [Notur] Terminal power buttons extension slot */}
--                    <div id="notur-slot-server.terminal.buttons" style={{ display: 'contents' }}></div>
-                 </div>
-             </div>
-             <div className={'grid grid-cols-4 gap-2 sm:gap-4 mb-4'}>
-@@ -29,7 +29,6 @@
-             {(isNodeUnderMaintenance || isInstalling || isTransferring) && (
-                 <Alert type={'warning'} className={'mb-4'}>
-                     {isNodeUnderMaintenance
-                         ? 'The node of this server is currently under maintenance and all actions are unavailable.'
-                         : isInstalling
-                         ? 'This server is currently running its installation process and most actions are unavailable.'
+--- a/resources/scripts/components/server/console/ServerConsoleContainer.tsx
++++ b/resources/scripts/components/server/console/ServerConsoleContainer.tsx
+@@ -32,7 +32,6 @@
                          : 'This server is currently being transferred to another node and all actions are unavailable.'}
                  </Alert>
              )}
 -            <div id="notur-slot-server.console.header" style={{ display: 'contents' }}></div>
              <div className={'grid grid-cols-4 gap-4 mb-4'}>
-@@ -56,11 +56,7 @@
-             <div className={'grid grid-cols-4 gap-2 sm:gap-4 mb-4'}>
-                 <div className={'flex col-span-4 lg:col-span-3'}>
-                     <Spinner.Suspense>
+                 <div className={'hidden sm:block sm:col-span-2 lg:col-span-3 pr-4'}>
+                     <h1 className={'font-header text-2xl text-gray-50 leading-relaxed line-clamp-1'}>{name}</h1>
+@@ -41,8 +40,6 @@
+                 <div className={'col-span-4 sm:col-span-2 lg:col-span-1 self-end'}>
+                     <Can action={['control.start', 'control.stop', 'control.restart']} matchAny>
+                         <PowerButtons className={'flex sm:justify-end space-x-2'} />
+-                        {/* [Notur] Terminal power buttons extension slot */}
+-                        <div id="notur-slot-server.terminal.buttons" style={{ display: 'contents' }}></div>
+                     </Can>
+                 </div>
+             </div>
+@@ -52,19 +49,13 @@
                          <Console />
                      </Spinner.Suspense>
                  </div>
 -                <div className={'col-span-4 lg:col-span-1 order-last lg:order-none flex flex-col gap-4'}>
+-                    <div id="notur-slot-server.console.info.before" style={{ display: 'contents' }}></div>
 -                    <ServerDetailsBlock />
+-                    <div id="notur-slot-server.console.info.after" style={{ display: 'contents' }}></div>
 -                    <div id="notur-slot-server.console.sidebar" style={{ display: 'contents' }}></div>
 -                </div>
 +                <ServerDetailsBlock className={'col-span-4 lg:col-span-1 order-last lg:order-none'} />
@@ -41,3 +36,5 @@
              </div>
 -            <div id="notur-slot-server.console.footer" style={{ display: 'contents' }}></div>
              <Features enabled={eggFeatures} />
+         </ServerContentBlock>
+     );

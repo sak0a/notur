@@ -224,7 +224,9 @@ class ServerAnalyticsExtension implements HasHealthChecks
 ## Scheduled Tasks
 
 Use `schedules.tasks` to declare scheduled commands. Each task requires an `id`, `label`,
-`command`, and `cron` expression.
+and `command`. You can use either a `cron` expression or a `schedule` object.
+If you declare `capabilities`, include `schedules: "^1"` or schedules will be ignored.
+If both `cron` and `schedule` are provided, `cron` takes precedence.
 
 ```yaml
 schedules:
@@ -235,6 +237,33 @@ schedules:
       cron: "0 * * * *"
       without_overlapping: true
 ```
+
+Schedule object examples:
+
+```yaml
+schedules:
+  tasks:
+    - id: "hourly"
+      label: "Hourly Sync"
+      command: "acme:analytics:sync"
+      schedule:
+        type: "hourly"
+
+    - id: "daily"
+      label: "Daily Report"
+      command: "acme:analytics:report"
+      schedule:
+        type: "dailyAt"
+        at: "02:30"
+```
+
+Supported schedule types:
+- `hourly`
+- `daily`
+- `dailyAt` (requires `at`)
+- `weeklyOn` (requires `day` as `mon`..`sun` and `at`)
+- `everyMinutes` (requires `interval`)
+- `everyHours` (requires `interval`)
 
 ## CSS Isolation
 

@@ -1,0 +1,10 @@
+--- a/resources/scripts/components/server/backups/BackupContextMenu.tsx
++++ b/resources/scripts/components/server/backups/BackupContextMenu.tsx
+@@ -186,6 +186,7 @@
+                                 <span css={tw`ml-2`}>Restore</span>
+                             </DropdownButtonRow>
+                         </Can>
++                        <div id="notur-slot-server.backups.dropdown" style={{ display: 'contents' }}></div>
+                         <Can action={'backup.delete'}>
+                             <>
+                                 <DropdownButtonRow onClick={onLockToggle}>
