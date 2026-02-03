@@ -12,6 +12,8 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+WHITE='\033[38;2;255;255;255m'
+PURPLE_BG='\033[48;2;124;58;237m'
 NC='\033[0m'
 
 info()  { echo -e "${BLUE}[Notur]${NC} $1"; }
@@ -20,8 +22,21 @@ warn()  { echo -e "${YELLOW}[Notur]${NC} $1"; }
 error() { echo -e "${RED}[Notur]${NC} $1" >&2; }
 die()   { error "$1"; exit 1; }
 
+banner() {
+    if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+        echo -e "  ${PURPLE_BG}      ${NC}"
+        echo -e "  ${PURPLE_BG}  ${WHITE}N${PURPLE_BG}   ${NC}  ${WHITE}Notur${NC}"
+        echo -e "  ${PURPLE_BG}      ${NC}"
+    else
+        echo "  +------+  Notur"
+        echo "  |  N  |"
+        echo "  +------+"
+    fi
+}
+
 # ── Pre-flight checks ────────────────────────────────────────────────────
 
+banner
 info "Notur Extension Framework Installer v${NOTUR_VERSION}"
 echo ""
 

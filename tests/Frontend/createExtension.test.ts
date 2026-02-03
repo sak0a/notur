@@ -1,16 +1,12 @@
 import { createExtension } from '../../sdk/src/createExtension';
 
 // Mock the window.__NOTUR__ API
-const mockRegisterSlot = jest.fn();
-const mockRegisterRoute = jest.fn();
 const mockRegisterExtension = jest.fn();
 const mockRegisterDestroyCallback = jest.fn();
 
 beforeEach(() => {
     (window as any).__NOTUR__ = {
         registry: {
-            registerSlot: mockRegisterSlot,
-            registerRoute: mockRegisterRoute,
             registerExtension: mockRegisterExtension,
             registerDestroyCallback: mockRegisterDestroyCallback,
         },
@@ -33,11 +29,15 @@ describe('createExtension', () => {
             slots: [{ slot: 'navbar', component: DummyComponent, order: 5 }],
         });
 
-        expect(mockRegisterSlot).toHaveBeenCalledWith(
+        expect(mockRegisterExtension).toHaveBeenCalledWith(
             expect.objectContaining({
-                slot: 'navbar',
-                extensionId: 'test/ext',
-                order: 5,
+                slots: expect.arrayContaining([
+                    expect.objectContaining({
+                        slot: 'navbar',
+                        extensionId: 'test/ext',
+                        order: 5,
+                    }),
+                ]),
             }),
         );
     });
@@ -51,7 +51,8 @@ describe('createExtension', () => {
             ],
         });
 
-        expect(mockRegisterSlot).toHaveBeenCalledTimes(2);
+        const call = mockRegisterExtension.mock.calls[0]?.[0];
+        expect(call?.slots).toHaveLength(2);
     });
 
     it('registers routes with the registry', () => {
@@ -60,11 +61,14 @@ describe('createExtension', () => {
             routes: [{ area: 'server', path: '/stats', name: 'Stats', component: DummyComponent }],
         });
 
-        expect(mockRegisterRoute).toHaveBeenCalledWith(
-            'server',
+        expect(mockRegisterExtension).toHaveBeenCalledWith(
             expect.objectContaining({
-                path: '/stats',
-                extensionId: 'test/ext',
+                routes: expect.arrayContaining([
+                    expect.objectContaining({
+                        path: '/stats',
+                        extensionId: 'test/ext',
+                    }),
+                ]),
             }),
         );
     });
@@ -151,8 +155,6 @@ describe('createExtension', () => {
             config: { id: 'test/ext', name: 'Test', version: '1.0.0' },
         });
 
-        expect(mockRegisterSlot).not.toHaveBeenCalled();
-        expect(mockRegisterRoute).not.toHaveBeenCalled();
         expect(mockRegisterExtension).toHaveBeenCalledWith(
             expect.objectContaining({
                 slots: [],

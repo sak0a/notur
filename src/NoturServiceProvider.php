@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Notur;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Console\Events\CommandStarting;
 use Notur\Features\FeatureRegistry;
 use Notur\Console\Commands\BuildCommand;
 use Notur\Console\Commands\DevCommand;
@@ -22,6 +24,7 @@ use Notur\Console\Commands\UninstallCommand;
 use Notur\Console\Commands\UpdateCommand;
 use Notur\Console\Commands\ValidateCommand;
 use Notur\Support\ActivityLogger;
+use Notur\Support\ConsoleBanner;
 
 class NoturServiceProvider extends ServiceProvider
 {
@@ -97,6 +100,17 @@ class NoturServiceProvider extends ServiceProvider
                 ValidateCommand::class,
                 UninstallCommand::class,
             ]);
+
+            Event::listen(CommandStarting::class, function (CommandStarting $event): void {
+                $name = $event->command;
+                if (!is_string($name) || !str_starts_with($name, 'notur:')) {
+                    return;
+                }
+
+                if ($event->output) {
+                    ConsoleBanner::render($event->output);
+                }
+            });
         }
 
         // Register routes for extension API
