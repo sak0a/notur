@@ -53,7 +53,7 @@ RUN git clone --depth 1 --branch ${PANEL_VERSION} \
 WORKDIR /var/www/pterodactyl
 
 # Install panel PHP dependencies
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
 # Install panel frontend dependencies and build (panel uses yarn)
 RUN npm install -g yarn \
