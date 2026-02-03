@@ -311,21 +311,16 @@ In `config/notur.php`:
 
 ### Generating Keys
 
-Ed25519 keys can be generated with PHP's sodium extension:
+Generate a keypair with the built-in command (hex-encoded keys):
 
-```php
-$keypair = sodium_crypto_sign_keypair();
-$secretKey = sodium_crypto_sign_secretkey($keypair);
-$publicKey = sodium_crypto_sign_publickey($keypair);
-
-echo "Secret key: " . base64_encode($secretKey) . "\n";
-echo "Public key: " . base64_encode($publicKey) . "\n";
+```bash
+php artisan notur:keygen
 ```
 
 Store the public key in your panel's `.env`:
 
 ```
-NOTUR_PUBLIC_KEY=base64-encoded-public-key-here
+NOTUR_PUBLIC_KEY=hex-encoded-public-key-here
 ```
 
 ### Signing Archives

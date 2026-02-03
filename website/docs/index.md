@@ -5,6 +5,9 @@ hero:
   name: Notur
   text: Extension Framework for Pterodactyl Panel
   tagline: Add analytics, custom pages, dashboard widgets, and more — without forking the panel.
+  badge:
+    text: v1.0.0 · Stable
+    type: info
   actions:
     - theme: brand
       text: Get Started
@@ -30,3 +33,7 @@ features:
     title: Registry & Distribution
     details: Discover and install extensions from a GitHub-backed registry. Package your own extensions as .notur archives.
 ---
+
+::: info v1.0.0 (Stable)
+Released 2026-02-03. See the [Changelog](/reference/changelog) and [Roadmap](/reference/roadmap).
+:::

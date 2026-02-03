@@ -8,11 +8,9 @@ All notable changes to the Notur Extension Library are documented here.
 - **E2E test suite** -- Docker-based end-to-end testing with Pterodactyl Panel, MySQL, and the hello-world extension. Covers install, enable, routes, disable, and remove lifecycle. (`docker/e2e/`, `tests/E2E/`, `.github/workflows/e2e.yml`)
 - **Compatibility matrix testing** -- CI now tests PHP 8.2/8.3 with both MySQL 8.0 and MariaDB 10.6, and frontend builds on Node 18, 20, and 22. Unit tests run separately from integration tests to enable proper DB-dependent testing.
 - **Documentation site** -- Comprehensive documentation for administrators (`docs/ADMIN-GUIDE.md`), PHP API reference (`docs/API-REFERENCE.md`), frontend SDK reference (`docs/FRONTEND-SDK.md`), registry documentation (`docs/REGISTRY.md`), and this changelog.
-
-### Not Yet Implemented
-- Signature verification (Ed25519 on `.notur` archives)
-- Admin Blade UI (extension management page)
-- Theme extensions (full theme override support)
+- **Signature verification** -- Ed25519 signatures for `.notur` archives with `notur.require_signatures` enforcement, `notur:keygen`, and `notur:export --sign`.
+- **Admin Blade UI** -- Extension management page with list, enable/disable, install/remove, and detail views.
+- **Theme extensions** -- CSS variable overrides and Blade view overrides from extension manifests.
 
 ---
 

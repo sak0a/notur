@@ -16,6 +16,7 @@ export default defineConfig({
       { text: 'Extensions', link: '/extensions/guide' },
       { text: 'Admin', link: '/admin/guide' },
       { text: 'Changelog', link: '/reference/changelog' },
+      { text: 'Roadmap', link: '/reference/roadmap' },
     ],
 
     sidebar: [
@@ -46,6 +47,7 @@ export default defineConfig({
         text: 'Reference',
         items: [
           { text: 'Changelog', link: '/reference/changelog' },
+          { text: 'Roadmap', link: '/reference/roadmap' },
         ],
       },
     ],
