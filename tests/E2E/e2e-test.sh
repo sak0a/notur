@@ -53,7 +53,7 @@ http_body() {
 
 mysql_query() {
     local query="$1"
-    mysql --ssl-mode=DISABLED -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" "$DB_DATABASE" \
+    mysql --ssl=0 -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" "$DB_DATABASE" \
         -N -B -e "$query" 2>/dev/null || echo ""
 }
 

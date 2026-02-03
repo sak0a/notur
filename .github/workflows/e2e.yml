@@ -169,14 +169,14 @@ jobs:
             php artisan migrate --path=vendor/notur/notur/database/migrations --force 2>&1
 
             # Verify Notur tables exist
-            TABLES=$(mysql --ssl-mode=DISABLED -h db -P 3306 -u pterodactyl -ppterodactyl panel -e "SHOW TABLES LIKE 'notur_%';" 2>/tmp/mysql-check.err || true)
+            TABLES=$(mysql --ssl=0 -h db -P 3306 -u pterodactyl -ppterodactyl panel -e "SHOW TABLES LIKE 'notur_%';" 2>/tmp/mysql-check.err || true)
             if ! echo "$TABLES" | grep -q "notur_"; then
               echo "Notur tables missing after migration"
               if [ -s /tmp/mysql-check.err ]; then
                 echo "MySQL error output:"
                 cat /tmp/mysql-check.err
               fi
-              mysql --ssl-mode=DISABLED -h db -P 3306 -u pterodactyl -ppterodactyl panel -e "SHOW TABLES;" 2>/dev/null || true
+              mysql --ssl=0 -h db -P 3306 -u pterodactyl -ppterodactyl panel -e "SHOW TABLES;" 2>/dev/null || true
               exit 1
             fi
 
