@@ -46,22 +46,59 @@ jobs:
           done
           echo "MySQL is ready"
 
-          # Setup panel (APP_KEY is set via docker-compose environment)
+          # Install Notur into the panel
           docker compose exec -T app bash -c '
             cd /var/www/pterodactyl
-            php artisan migrate --force 2>&1 || true
-          '
 
-          # Install Notur
-          docker compose exec -T app bash -c '
-            cd /var/www/pterodactyl
-            mkdir -p vendor/notur/notur
-            cp -r /opt/notur/* vendor/notur/notur/ 2>/dev/null || true
-            bash vendor/notur/notur/installer/install.sh /var/www/pterodactyl 2>&1 || {
-              php artisan migrate --force 2>&1
-              mkdir -p notur/extensions public/notur/extensions
-              echo "{\"extensions\":{}}" > notur/extensions.json
-            }
+            # Install from Packagist
+            composer require notur/notur --no-interaction 2>&1
+
+            # Inject Notur scripts into Blade layout
+            SCRIPTS_BLADE="resources/views/layouts/scripts.blade.php"
+            WRAPPER_BLADE="resources/views/templates/wrapper.blade.php"
+            if [ -f "${SCRIPTS_BLADE}" ]; then
+              TARGET_BLADE="${SCRIPTS_BLADE}"
+            elif [ -f "${WRAPPER_BLADE}" ]; then
+              TARGET_BLADE="${WRAPPER_BLADE}"
+            fi
+
+            if [ -n "${TARGET_BLADE:-}" ] && ! grep -q "notur::scripts" "${TARGET_BLADE}"; then
+              echo "" >> "${TARGET_BLADE}"
+              echo "@include(\"notur::scripts\")" >> "${TARGET_BLADE}"
+            fi
+
+            # Apply React source patches
+            PATCH_DIR="vendor/notur/notur/installer/patches/v1.11"
+            if [ -d "${PATCH_DIR}" ]; then
+              for patch in "${PATCH_DIR}"/*.patch; do
+                [ -f "${patch}" ] || continue
+                PATCH_NAME=$(basename "${patch}")
+                # Skip reverse patches
+                echo "${PATCH_NAME}" | grep -q "reverse" && continue
+                echo "Applying patch: ${PATCH_NAME}"
+                patch --dry-run -p1 < "${patch}" &>/dev/null && patch -p1 < "${patch}" || echo "Skipping: ${PATCH_NAME}"
+              done
+            fi
+
+            # Rebuild frontend with patches applied
+            yarn install --frozen-lockfile 2>&1 || npm install 2>&1
+            yarn run build:production 2>&1 || true
+
+            # Set up Notur directories and copy bridge
+            mkdir -p notur/extensions public/notur/extensions
+            BRIDGE_JS="vendor/notur/notur/bridge/dist/bridge.js"
+            if [ -f "${BRIDGE_JS}" ]; then
+              cp "${BRIDGE_JS}" public/notur/bridge.js
+            fi
+
+            # Initialize extensions.json
+            [ -f notur/extensions.json ] || echo "{\"extensions\":{}}" > notur/extensions.json
+
+            # Run migrations
+            php artisan migrate --force 2>&1
+
+            # Fix permissions
+            chown -R www-data:www-data storage bootstrap/cache notur public/notur 2>/dev/null || true
           '
 
           # Install test extension

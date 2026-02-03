@@ -24,8 +24,7 @@ module.exports = {
             },
         ],
     },
-    externals: {
-        react: 'React',
-        'react-dom': 'ReactDOM',
-    },
+    // React and ReactDOM are bundled into the bridge and exposed as globals
+    // so that extension bundles (which declare them as externals) can use them.
+    // This avoids requiring the host panel to expose React on window.
 };
