@@ -46,6 +46,12 @@ http_status() {
     curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" 2>/dev/null || echo "000"
 }
 
+http_status_json() {
+    local url="$1"
+    curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+        -H "Accept: application/json" "$url" 2>/dev/null || echo "000"
+}
+
 http_body() {
     local url="$1"
     curl -s --max-time 10 "$url" 2>/dev/null || echo ""
@@ -150,7 +156,7 @@ echo ""
 echo "Test Group: Extension Routes"
 echo "----------------------------"
 
-GREET_STATUS=$(http_status "${APP_URL}/api/client/notur/notur/hello-world/greet")
+GREET_STATUS=$(http_status_json "${APP_URL}/api/client/notur/notur/hello-world/greet")
 if [ "$GREET_STATUS" = "200" ] || [ "$GREET_STATUS" = "401" ] || [ "$GREET_STATUS" = "403" ]; then
     # 401/403 is acceptable -- it means the route exists but requires auth
     assert_pass "Hello-world /greet endpoint responds (HTTP ${GREET_STATUS})"
@@ -158,7 +164,7 @@ else
     assert_fail "Hello-world /greet endpoint responds" "Got: ${GREET_STATUS}"
 fi
 
-GREET_NAME_STATUS=$(http_status "${APP_URL}/api/client/notur/notur/hello-world/greet/World")
+GREET_NAME_STATUS=$(http_status_json "${APP_URL}/api/client/notur/notur/hello-world/greet/World")
 if [ "$GREET_NAME_STATUS" = "200" ] || [ "$GREET_NAME_STATUS" = "401" ] || [ "$GREET_NAME_STATUS" = "403" ]; then
     assert_pass "Hello-world /greet/{name} endpoint responds (HTTP ${GREET_NAME_STATUS})"
 else
