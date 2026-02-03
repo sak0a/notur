@@ -132,6 +132,18 @@ See [docs/EXTENSIONS.md](docs/EXTENSIONS.md) for the full guide.
 
 Quick start:
 
+```bash
+php artisan notur:new acme/server-analytics
+```
+
+### Preset Definitions
+
+- `standard`: frontend + API routes (default)
+- `backend`: API routes only
+- `full`: frontend + API routes + admin UI + migrations + tests
+- `minimal`: backend-only scaffolding with no routes or frontend
+
+Manual steps:
 1. Create an `extension.yaml` manifest
 2. Implement `ExtensionInterface` in PHP
 3. Build a frontend bundle using `@notur/sdk`

@@ -518,9 +518,18 @@ All commands are prefixed with `notur:` in Artisan.
 | `notur:disable` | `notur:disable {extension}` | Disable an extension without removing files |
 | `notur:list` | `notur:list [--enabled] [--disabled]` | List installed extensions |
 | `notur:update` | `notur:update {extension?} [--check]` | Update one or all extensions |
-| `notur:new` | `notur:new {id} [--path=]` | Scaffold a new extension from templates |
+| `notur:new` | `notur:new {id} [--path=] [--preset=] [--with-api-routes|--no-api-routes] [--with-admin-routes|--no-admin-routes] [--with-frontend|--no-frontend] [--with-admin|--no-admin] [--with-migrations|--no-migrations] [--with-tests|--no-tests]` | Scaffold a new extension from templates |
 | `notur:dev` | `notur:dev {path} [--link]` | Link a local extension for development |
 | `notur:export` | `notur:export {path?} [--output=] [--sign]` | Export extension as `.notur` archive |
 | `notur:build` | `notur:build` | Build extension frontend assets |
 | `notur:registry:sync` | `notur:registry:sync [--search=] [--force]` | Sync or search the extension registry |
 | `notur:uninstall` | `notur:uninstall [--confirm]` | Completely remove Notur from the panel |
+
+### Preset Definitions
+
+For `notur:new`:
+
+- `standard`: frontend + API routes (default)
+- `backend`: API routes only
+- `full`: frontend + API routes + admin UI + migrations + tests
+- `minimal`: backend-only scaffolding with no routes or frontend

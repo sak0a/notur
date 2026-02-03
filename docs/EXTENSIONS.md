@@ -19,13 +19,42 @@ acme-server-analytics/
 ├── database/
 │   └── migrations/
 │       └── 2024_01_01_000001_create_analytics_table.php
-└── resources/
-    └── frontend/
+    └── resources/
+        └── frontend/
         ├── src/
         │   └── index.tsx       # Frontend entry — calls createExtension()
         └── dist/
             └── extension.js    # Pre-built bundle (shipped with extension)
 ```
+
+## Scaffold with CLI (Optional)
+
+You can scaffold a new extension with the Notur CLI:
+
+```bash
+php artisan notur:new acme/server-analytics
+```
+
+### Preset Definitions
+
+- `standard`: frontend + API routes (default)
+- `backend`: API routes only
+- `full`: frontend + API routes + admin UI + migrations + tests
+- `minimal`: backend-only scaffolding with no routes or frontend
+
+### Examples
+```bash
+php artisan notur:new acme/server-analytics --preset=backend
+php artisan notur:new acme/server-analytics --preset=full
+```
+
+Feature toggles:
+```bash
+php artisan notur:new acme/server-analytics --with-api-routes
+php artisan notur:new acme/server-analytics --with-admin-routes
+php artisan notur:new acme/server-analytics --with-admin --with-migrations --with-tests
+```
+Admin UI scaffolding is separate from admin routes; add `--with-admin-routes` to expose admin endpoints.
 
 ## Step 1: Create extension.yaml
 

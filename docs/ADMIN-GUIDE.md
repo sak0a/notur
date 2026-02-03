@@ -178,9 +178,30 @@ php artisan notur:new acme/my-extension
 
 # Specify output directory
 php artisan notur:new acme/my-extension --path=/home/user/extensions
+
+# Use presets (full includes admin UI, migrations, tests)
+php artisan notur:new acme/my-extension --preset=backend
+php artisan notur:new acme/my-extension --preset=full
+php artisan notur:new acme/my-extension --preset=standard
+php artisan notur:new acme/my-extension --preset=minimal
+
+# Toggle features explicitly
+php artisan notur:new acme/my-extension --with-api-routes
+php artisan notur:new acme/my-extension --no-api-routes
+php artisan notur:new acme/my-extension --with-admin-routes
+php artisan notur:new acme/my-extension --no-admin-routes
+php artisan notur:new acme/my-extension --no-admin --no-migrations --no-tests
+php artisan notur:new acme/my-extension --with-admin --with-migrations --with-tests
 ```
 
-The extension ID must be in `vendor/name` format using lowercase alphanumeric characters and hyphens.
+#### Preset Definitions
+
+- `standard`: frontend + API routes (default)
+- `backend`: API routes only
+- `full`: frontend + API routes + admin UI + migrations + tests
+- `minimal`: backend-only scaffolding with no routes or frontend
+
+The extension ID must be in `vendor/name` format using lowercase alphanumeric characters and hyphens. The default preset is `standard`.
 
 ### Exporting Extensions
 
