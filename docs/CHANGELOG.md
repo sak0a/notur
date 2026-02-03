@@ -2,7 +2,7 @@
 
 All notable changes to the Notur Extension Library are documented here.
 
-## [Unreleased] - Phase 5 (In Progress)
+## [1.0.0] - 2026-02-03
 
 ### Added
 - **E2E test suite** -- Docker-based end-to-end testing with Pterodactyl Panel, MySQL, and the hello-world extension. Covers install, enable, routes, disable, and remove lifecycle. (`docker/e2e/`, `tests/E2E/`, `.github/workflows/e2e.yml`)

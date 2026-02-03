@@ -1,35 +1,35 @@
 {
-    "name": "notur",
-    "version": "1.0.0",
-    "description": "Notur Extension Library - Bridge Runtime & SDK",
-    "private": true,
-    "workspaces": [
-        "bridge",
-        "sdk"
-    ],
-    "scripts": {
-        "build:bridge": "bunx webpack-cli --mode production --config bridge/webpack.config.js",
-        "build:sdk": "cd sdk && bunx tsc",
-        "build": "bun run build:bridge && bun run build:sdk",
-        "dev:bridge": "bunx webpack-cli --mode development --watch --config bridge/webpack.config.js",
-        "test:frontend": "jest --config tests/Frontend/jest.config.js"
-    },
-    "devDependencies": {
-        "@testing-library/jest-dom": "^6.0.0",
-        "@testing-library/react": "^12.1.5",
-        "@types/jest": "^30.0.0",
-        "@types/react": "^16.14.0",
-        "@types/react-dom": "^16.9.0",
-        "jest": "^29.7.0",
-        "jest-environment-jsdom": "^30.2.0",
-        "ts-jest": "^29.1.0",
-        "ts-loader": "^9.5.0",
-        "typescript": "^5.3.0",
-        "webpack": "^5.90.0",
-        "webpack-cli": "^6.0.0"
-    },
-    "peerDependencies": {
-        "react": "^16.14.0",
-        "react-dom": "^16.14.0"
-    }
+  "name": "notur",
+  "version": "1.0.0",
+  "description": "Notur Extension Library - Bridge Runtime & SDK",
+  "private": true,
+  "workspaces": [
+    "bridge",
+    "sdk"
+  ],
+  "scripts": {
+    "build:bridge": "bunx webpack-cli --mode production --config bridge/webpack.config.js",
+    "build:sdk": "cd sdk && bunx tsc",
+    "build": "bun run build:bridge && bun run build:sdk",
+    "dev:bridge": "bunx webpack-cli --mode development --watch --config bridge/webpack.config.js",
+    "test:frontend": "jest --config tests/Frontend/jest.config.js"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^12.1.5",
+    "@types/jest": "^30.0.0",
+    "@types/react": "^16.14.0",
+    "@types/react-dom": "^16.9.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "ts-jest": "^29.1.0",
+    "ts-loader": "^9.5.0",
+    "typescript": "^5.3.0",
+    "webpack": "^5.90.0",
+    "webpack-cli": "^6.0.0"
+  },
+  "peerDependencies": {
+    "react": "^16.14.0",
+    "react-dom": "^16.14.0"
+  }
 }
