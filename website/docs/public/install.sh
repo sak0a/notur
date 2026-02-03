@@ -12,4 +12,4 @@ BRANCH="master"
 INSTALLER_URL="https://raw.githubusercontent.com/${REPO}/refs/heads/${BRANCH}/installer/install.sh"
 
 echo "[Notur] Fetching installer from ${REPO}..."
-curl -sSL "$INSTALLER_URL" | bash
+curl -sSL "$INSTALLER_URL" | bash -s -- "$@"

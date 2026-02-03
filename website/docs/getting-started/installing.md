@@ -5,10 +5,10 @@
 The easiest way to install Notur into a Pterodactyl Panel:
 
 ```bash
-bash installer/install.sh /var/www/pterodactyl
+curl -sSL https://docs.notur.site/install.sh | bash -s -- /var/www/pterodactyl
 ```
 
-This performs all steps below automatically.
+Replace `/var/www/pterodactyl` with your panel root path if different. This performs all steps below automatically.
 
 ## Manual Installation
 

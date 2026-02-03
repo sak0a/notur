@@ -24,7 +24,7 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 
 ```bash
 # Option 1: Automated installer
-bash installer/install.sh /path/to/pterodactyl
+curl -sSL https://docs.notur.site/install.sh | bash -s -- /path/to/pterodactyl
 
 # Option 2: Manual
 cd /path/to/pterodactyl

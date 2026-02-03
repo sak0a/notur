@@ -32,10 +32,10 @@ Ensure your panel is fully installed and working before adding Notur. Back up yo
 ### Automated Installation (Recommended)
 
 ```bash
-bash installer/install.sh /var/www/pterodactyl
+curl -sSL https://docs.notur.site/install.sh | bash -s -- /var/www/pterodactyl
 ```
 
-The installer performs the following steps automatically:
+Replace `/var/www/pterodactyl` with your panel root path if different. The installer performs the following steps automatically:
 
 1. Validates PHP version and panel installation
 2. Runs `composer require notur/notur`
@@ -299,7 +299,7 @@ cd /var/www/pterodactyl
 composer update notur/notur
 
 # Re-apply patches if needed (the installer handles this)
-bash vendor/notur/notur/installer/install.sh /var/www/pterodactyl
+curl -sSL https://docs.notur.site/install.sh | bash -s -- /var/www/pterodactyl
 
 # Rebuild frontend
 bun run build:production
