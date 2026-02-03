@@ -5,6 +5,9 @@ FROM php:8.2-fpm
 ARG NODE_VERSION=20
 ARG PANEL_VERSION=v1.11.7
 
+# Work around OpenSSL 3 compatibility issues in Node 17+ for webpack builds.
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
 # System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
