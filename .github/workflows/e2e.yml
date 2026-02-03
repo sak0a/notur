@@ -49,6 +49,7 @@ jobs:
           # Install Notur into the panel using current branch code
           docker compose exec -T app bash -c '
             cd /var/www/pterodactyl
+            set -euo pipefail
             export NODE_OPTIONS=--openssl-legacy-provider
 
             # Install from current branch via path repository (tests latest code, not Packagist)
@@ -148,8 +149,14 @@ jobs:
             # Initialize extensions.json
             [ -f notur/extensions.json ] || echo "{\"extensions\":{}}" > notur/extensions.json
 
-            # Run migrations
+            # Ensure package discovery + routes are registered
+            php artisan package:discover --ansi 2>&1 || true
+            php artisan config:clear 2>&1 || true
+            php artisan route:clear 2>&1 || true
+
+            # Run migrations (core + Notur package explicitly)
             php artisan migrate --force 2>&1
+            php artisan migrate --path=vendor/notur/notur/database/migrations --force 2>&1
 
             # Fix permissions
             chown -R www-data:www-data storage bootstrap/cache notur public/notur 2>/dev/null || true
@@ -158,12 +165,21 @@ jobs:
           # Install test extension
           docker compose exec -T app bash -c '
             cd /var/www/pterodactyl
+            set -euo pipefail
             mkdir -p notur/extensions/notur/hello-world
             cp -r /opt/notur/examples/hello-world/* notur/extensions/notur/hello-world/
             echo "{\"extensions\":{\"notur/hello-world\":{\"enabled\":true,\"version\":\"1.0.0\"}}}" > notur/extensions.json
             mkdir -p public/notur/extensions/notur/hello-world
             cp notur/extensions/notur/hello-world/resources/frontend/dist/hello-world.js \
                public/notur/extensions/notur/hello-world/hello-world.js 2>/dev/null || true
+
+            # Refresh caches and ensure Notur migrations are applied
+            php artisan config:clear 2>/dev/null || true
+            php artisan route:clear 2>/dev/null || true
+            php artisan cache:clear 2>/dev/null || true
+            php artisan migrate --path=vendor/notur/notur/database/migrations --force 2>&1
+
+            chown -R www-data:www-data notur public/notur 2>/dev/null || true
           '
 
           # Run tests
