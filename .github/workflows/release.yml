@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.2.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate version format
+        run: |
+          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "::error::Invalid version format. Use semver (e.g., 1.2.0 or 1.2.0-beta.1)"
+            exit 1
+          fi
+
+      - name: Check tag does not already exist
+        run: |
+          if git rev-parse "v${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "::error::Tag v${{ inputs.version }} already exists"
+            exit 1
+          fi
+
+      - name: Update version in config/notur.php
+        run: |
+          sed -i "s/'version' => '[^']*'/'version' => '${{ inputs.version }}'/" config/notur.php
+
+      - name: Update version in package.json (root)
+        run: |
+          jq --arg v "${{ inputs.version }}" '.version = $v' package.json > tmp.json && mv tmp.json package.json
+
+      - name: Update version in bridge/package.json
+        run: |
+          jq --arg v "${{ inputs.version }}" '.version = $v' bridge/package.json > tmp.json && mv tmp.json bridge/package.json
+
+      - name: Update version in sdk/package.json
+        run: |
+          jq --arg v "${{ inputs.version }}" '.version = $v' sdk/package.json > tmp.json && mv tmp.json sdk/package.json
+
+      - name: Update version in installer/install.sh
+        run: |
+          sed -i "s/NOTUR_VERSION=\"[^\"]*\"/NOTUR_VERSION=\"${{ inputs.version }}\"/" installer/install.sh
+
+      - name: Update CHANGELOG.md
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          sed -i "s/## \[Unreleased\].*/## [${{ inputs.version }}] - $DATE/" docs/CHANGELOG.md
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: release v${{ inputs.version }}"
+
+      - name: Create tag
+        run: git tag "v${{ inputs.version }}"
+
+      - name: Push changes and tag
+        run: |
+          git push origin HEAD
+          git push origin "v${{ inputs.version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ inputs.version }}"
+          name: "v${{ inputs.version }}"
+          generate_release_notes: true
+          prerelease: ${{ inputs.prerelease }}

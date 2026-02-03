@@ -3,6 +3,12 @@
     "description": "Extension framework for Pterodactyl Panel v1",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/sak0a/notur",
+    "keywords": ["pterodactyl", "extensions", "plugins", "panel", "laravel"],
+    "support": {
+        "issues": "https://github.com/sak0a/notur/issues",
+        "source": "https://github.com/sak0a/notur"
+    },
     "authors": [
         {
             "name": "Notur Contributors"

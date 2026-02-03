@@ -1,0 +1,21 @@
+{
+    "$schema": "./schema/registry-index.schema.json",
+    "version": "1.0.0",
+    "generated_at": "2026-02-03T00:00:00Z",
+    "extensions": [
+        {
+            "id": "notur/hello-world",
+            "name": "Hello World",
+            "description": "Minimal example extension demonstrating Notur's slot registration, API routes, and frontend components.",
+            "version": "1.0.0",
+            "author": "Notur Team",
+            "license": "MIT",
+            "repository": "https://github.com/sak0a/hello-world",
+            "tags": ["example", "starter"],
+            "compatibility": {
+                "notur": ">=1.0.0",
+                "pterodactyl": "1.11.*"
+            }
+        }
+    ]
+}

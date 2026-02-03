@@ -42,7 +42,9 @@ export class PluginRegistry {
     private slotRegistrations: Map<string, SlotRegistration[]> = new Map();
     private routeRegistrations: RouteRegistration[] = [];
     private themeRegistrations: ThemeRegistration[] = [];
+    private destroyCallbacks: Map<string, () => void> = new Map();
     private listeners: Map<string, Array<() => void>> = new Map();
+    private eventBusListeners: Map<string, Array<(data?: unknown) => void>> = new Map();
 
     /**
      * Register a component into a slot.
@@ -104,6 +106,53 @@ export class PluginRegistry {
     }
 
     /**
+     * Register an onDestroy callback for an extension.
+     */
+    registerDestroyCallback(extensionId: string, callback: () => void): void {
+        this.destroyCallbacks.set(extensionId, callback);
+    }
+
+    /**
+     * Unregister an extension, calling its destroy callback and removing
+     * all associated slot, route, and theme registrations.
+     */
+    unregisterExtension(extensionId: string): void {
+        // Call destroy callback if one exists
+        const destroyCb = this.destroyCallbacks.get(extensionId);
+        if (destroyCb) {
+            try {
+                destroyCb();
+            } catch (e) {
+                console.error(`[Notur] Extension ${extensionId} destroy error:`, e);
+            }
+        }
+
+        // Remove from extensions map
+        this.extensions.delete(extensionId);
+
+        // Remove slot registrations for this extension
+        for (const [slotId, registrations] of this.slotRegistrations.entries()) {
+            const filtered = registrations.filter(r => r.extensionId !== extensionId);
+            if (filtered.length !== registrations.length) {
+                this.slotRegistrations.set(slotId, filtered);
+                this.emit('slot:' + slotId);
+            }
+        }
+
+        // Remove route registrations for this extension
+        this.routeRegistrations = this.routeRegistrations.filter(r => r.extensionId !== extensionId);
+
+        // Remove theme registrations for this extension
+        this.themeRegistrations = this.themeRegistrations.filter(r => r.extensionId !== extensionId);
+
+        // Remove the destroy callback
+        this.destroyCallbacks.delete(extensionId);
+
+        this.emit('extension:unregistered');
+        this.emit('change');
+    }
+
+    /**
      * Get all registrations for a slot, sorted by order.
      */
     getSlot(slotId: SlotId): SlotRegistration[] {
@@ -159,6 +208,36 @@ export class PluginRegistry {
         const listeners = this.listeners.get(event) || [];
         listeners.push(callback);
         this.listeners.set(event, listeners);
+
+        return () => {
+            const idx = listeners.indexOf(callback);
+            if (idx >= 0) listeners.splice(idx, 1);
+        };
+    }
+
+    /**
+     * Emit an event on the inter-extension event bus.
+     * Extensions use this to broadcast messages to other extensions.
+     */
+    emitEvent(event: string, data?: unknown): void {
+        const listeners = this.eventBusListeners.get(event) || [];
+        for (const listener of listeners) {
+            try {
+                listener(data);
+            } catch (e) {
+                console.error(`[Notur] Error in event bus listener for "${event}":`, e);
+            }
+        }
+    }
+
+    /**
+     * Subscribe to an event on the inter-extension event bus.
+     * Returns an unsubscribe function.
+     */
+    onEvent(event: string, callback: (data?: unknown) => void): () => void {
+        const listeners = this.eventBusListeners.get(event) || [];
+        listeners.push(callback);
+        this.eventBusListeners.set(event, listeners);
 
         return () => {
             const idx = listeners.indexOf(callback);

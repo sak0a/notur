@@ -54,11 +54,14 @@ export function useExtensionApi<T = any>({ extensionId, baseUrl }: UseExtensionA
     });
 
     const mountedRef = useRef(true);
+    const controllersRef = useRef<Set<AbortController>>(new Set());
 
     useEffect(() => {
         mountedRef.current = true;
         return () => {
             mountedRef.current = false;
+            controllersRef.current.forEach(c => c.abort());
+            controllersRef.current.clear();
         };
     }, []);
 
@@ -69,6 +72,9 @@ export function useExtensionApi<T = any>({ extensionId, baseUrl }: UseExtensionA
             if (mountedRef.current) {
                 setState(prev => ({ ...prev, loading: true, error: null }));
             }
+
+            const controller = new AbortController();
+            controllersRef.current.add(controller);
 
             try {
                 const url = `${apiBase}${path.startsWith('/') ? path : '/' + path}`;
@@ -93,6 +99,7 @@ export function useExtensionApi<T = any>({ extensionId, baseUrl }: UseExtensionA
                     ...options,
                     headers,
                     credentials: 'same-origin',
+                    signal: controller.signal,
                 });
 
                 if (!response.ok) {
@@ -125,11 +132,17 @@ export function useExtensionApi<T = any>({ extensionId, baseUrl }: UseExtensionA
                 }
                 return data;
             } catch (error: any) {
+                if (error.name === 'AbortError') {
+                    return null as any;
+                }
+
                 const message = error.message || 'Unknown error';
                 if (mountedRef.current) {
                     setState(prev => ({ ...prev, loading: false, error: message }));
                 }
                 throw error;
+            } finally {
+                controllersRef.current.delete(controller);
             }
         },
         [apiBase],

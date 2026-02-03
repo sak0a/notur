@@ -47,6 +47,11 @@ export function createExtension(definition: ExtensionDefinition): void {
         routes: routes.map(r => ({ ...r, extensionId: config.id })),
     });
 
+    // Register destroy callback
+    if (onDestroy) {
+        api.registry.registerDestroyCallback(config.id, onDestroy);
+    }
+
     // Run init callback
     if (onInit) {
         try {

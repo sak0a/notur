@@ -32,6 +32,7 @@ export default defineConfig({
           { text: 'Creating Extensions', link: '/extensions/guide' },
           { text: 'PHP API Reference', link: '/extensions/api-reference' },
           { text: 'Frontend SDK', link: '/extensions/frontend-sdk' },
+          { text: 'Extension Registry', link: '/extensions/registry' },
         ],
       },
       {

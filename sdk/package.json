@@ -5,9 +5,26 @@
     "main": "dist/index.js",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sak0a/notur.git",
+        "directory": "sdk"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "keywords": [
+        "notur",
+        "pterodactyl",
+        "extension",
+        "plugin",
+        "sdk"
+    ],
     "files": [
         "dist/",
-        "webpack.extension.config.js"
+        "webpack.extension.config.js",
+        "templates/"
     ],
     "scripts": {
         "build": "tsc",

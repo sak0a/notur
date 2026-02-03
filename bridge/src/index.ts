@@ -2,11 +2,13 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { PluginRegistry } from './PluginRegistry';
 import { SlotRenderer, InlineSlot } from './SlotRenderer';
+import { RouteRenderer, useRoutes } from './RouteRenderer';
 import { SLOT_IDS, SLOT_DEFINITIONS, SlotId } from './slots/SlotDefinitions';
 import { useSlot } from './hooks/useSlot';
 import { useExtensionApi } from './hooks/useExtensionApi';
 import { useExtensionState } from './hooks/useExtensionState';
 import { ThemeProvider, useNoturTheme } from './theme/ThemeProvider';
+import { createDevTools } from './DevTools';
 import {
     DEFAULT_CSS_VARIABLES,
     applyCssVariables,
@@ -21,17 +23,23 @@ declare global {
             slots: Record<string, any>;
             extensions: Array<{ id: string; bundle?: string; styles?: string }>;
             routes: any[];
+            unregisterExtension: (id: string) => void;
+            emitEvent: (event: string, data?: unknown) => void;
+            onEvent: (event: string, callback: (data?: unknown) => void) => () => void;
             SlotRenderer: typeof SlotRenderer;
             InlineSlot: typeof InlineSlot;
+            RouteRenderer: typeof RouteRenderer;
             hooks: {
                 useSlot: typeof useSlot;
                 useExtensionApi: typeof useExtensionApi;
                 useExtensionState: typeof useExtensionState;
                 useNoturTheme: typeof useNoturTheme;
+                useRoutes: typeof useRoutes;
             };
             ThemeProvider: typeof ThemeProvider;
             SLOT_IDS: typeof SLOT_IDS;
             SLOT_DEFINITIONS: typeof SLOT_DEFINITIONS;
+            debug: ReturnType<typeof createDevTools>;
         };
     }
 }
@@ -163,23 +171,31 @@ function init(): void {
         console.warn('[Notur] Failed to extract panel theme variables:', e);
     }
 
+    const debug = createDevTools(registry);
+
     // Expose the full Notur API
     window.__NOTUR__ = {
         ...existing,
         version: existing.version || '1.0.0',
         registry,
         routes: [],
+        unregisterExtension: (id: string) => registry.unregisterExtension(id),
+        emitEvent: (event: string, data?: unknown) => registry.emitEvent(event, data),
+        onEvent: (event: string, callback: (data?: unknown) => void) => registry.onEvent(event, callback),
         SlotRenderer,
         InlineSlot,
+        RouteRenderer,
         hooks: {
             useSlot,
             useExtensionApi,
             useExtensionState,
             useNoturTheme,
+            useRoutes,
         },
         ThemeProvider,
         SLOT_IDS,
         SLOT_DEFINITIONS,
+        debug,
     };
 
     console.log(`[Notur] Bridge runtime v${window.__NOTUR__.version} initialized`);
@@ -215,9 +231,11 @@ export {
     PluginRegistry,
     SlotRenderer,
     InlineSlot,
+    RouteRenderer,
     useSlot,
     useExtensionApi,
     useExtensionState,
+    useRoutes,
     ThemeProvider,
     useNoturTheme,
     SLOT_IDS,

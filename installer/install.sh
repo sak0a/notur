@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Notur Extension Framework Installer
-# Usage: curl -sSL https://notur.site/install | bash
+# Usage: curl -sSL https://docs.notur.site/install.sh | bash
 #   or:  bash install.sh [/path/to/pterodactyl]
 
 NOTUR_VERSION="1.0.0"
