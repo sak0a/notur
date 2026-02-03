@@ -7,17 +7,19 @@ namespace Notur;
 use Composer\Autoload\ClassLoader;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Notur\Contracts\ExtensionInterface;
 use Notur\Contracts\HasBladeViews;
 use Notur\Contracts\HasCommands;
 use Notur\Contracts\HasEventListeners;
 use Notur\Contracts\HasFrontendSlots;
+use Notur\Contracts\HasHealthChecks;
 use Notur\Contracts\HasMiddleware;
 use Notur\Contracts\HasMigrations;
-use Notur\Contracts\HasRoutes;
+use Notur\Features\ExtensionContext;
+use Notur\Features\FeatureRegistry;
 use Notur\Models\InstalledExtension;
+use Notur\Support\HealthCheckNormalizer;
 use Notur\Support\ThemeCompiler;
 use RuntimeException;
 
@@ -35,14 +37,21 @@ class ExtensionManager
     /** @var array<string, array<string, mixed>> */
     private array $frontendRoutes = [];
 
+    /** @var array<string, HasHealthChecks> */
+    private array $healthCheckProviders = [];
+
     private bool $booted = false;
+    private FeatureRegistry $featureRegistry;
 
     public function __construct(
         private readonly Application $app,
         private readonly DependencyResolver $resolver,
         private readonly PermissionBroker $permissionBroker,
         private ?ThemeCompiler $themeCompiler = null,
-    ) {}
+        ?FeatureRegistry $featureRegistry = null,
+    ) {
+        $this->featureRegistry = $featureRegistry ?? FeatureRegistry::defaults();
+    }
 
     /**
      * Boot all enabled extensions in dependency order.
@@ -148,13 +157,20 @@ class ExtensionManager
             );
         }
 
+        $context = new ExtensionContext(
+            id: $id,
+            extension: $extension,
+            manifest: $manifest,
+            path: $extPath,
+            app: $this->app,
+            manager: $this,
+        );
+
         // Register phase
         $extension->register();
 
-        // Register routes
-        if ($extension instanceof HasRoutes) {
-            $this->registerRoutes($id, $extension, $extPath);
-        }
+        // Feature registration (post-register, pre-boot)
+        $this->featureRegistry->register($context);
 
         // Register commands
         if ($extension instanceof HasCommands && $this->app->runningInConsole()) {
@@ -210,38 +226,10 @@ class ExtensionManager
         // Boot phase
         $extension->boot();
 
+        // Feature boot (post-extension boot)
+        $this->featureRegistry->boot($context);
+
         $this->extensions[$id] = $extension;
-    }
-
-    private function registerRoutes(string $id, HasRoutes $extension, string $extPath): void
-    {
-        $routeFiles = $extension->getRouteFiles();
-
-        foreach ($routeFiles as $group => $file) {
-            $filePath = $extPath . '/' . ltrim($file, '/');
-
-            if (!file_exists($filePath)) {
-                continue;
-            }
-
-            $prefix = match ($group) {
-                'api-client' => "api/client/notur/{$id}",
-                'admin' => "admin/notur/{$id}",
-                'web' => "notur/{$id}",
-                default => "notur/{$id}",
-            };
-
-            $middleware = match ($group) {
-                'api-client' => ['api', 'client-api', 'throttle:api.client'],
-                'admin' => ['web', 'admin'],
-                'web' => ['web'],
-                default => ['web'],
-            };
-
-            Route::prefix($prefix)
-                ->middleware($middleware)
-                ->group($filePath);
-        }
     }
 
     /**
@@ -278,6 +266,30 @@ class ExtensionManager
     public function getFrontendSlots(): array
     {
         return $this->frontendSlots;
+    }
+
+    /**
+     * Register a health check provider for an extension.
+     */
+    public function registerHealthCheckProvider(string $id, HasHealthChecks $provider): void
+    {
+        $this->healthCheckProviders[$id] = $provider;
+    }
+
+    /**
+     * Get normalized health check results for an extension.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getHealthChecks(string $id): array
+    {
+        $provider = $this->healthCheckProviders[$id] ?? null;
+
+        if (!$provider instanceof HasHealthChecks) {
+            return [];
+        }
+
+        return HealthCheckNormalizer::normalize($provider->getHealthChecks());
     }
 
     /**

@@ -12,6 +12,9 @@ Route::prefix('admin/notur')
         Route::get('/slots', [ExtensionAdminController::class, 'slots'])
             ->name('admin.notur.slots');
 
+        Route::get('/diagnostics', [ExtensionAdminController::class, 'diagnostics'])
+            ->name('admin.notur.diagnostics');
+
         Route::get('/extensions/{extensionId}', [ExtensionAdminController::class, 'show'])
             ->name('admin.notur.extensions.show')
             ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');

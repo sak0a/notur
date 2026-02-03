@@ -170,6 +170,19 @@ class SchemaValidator
             }
         }
 
+        // Check additionalProperties for object maps
+        if (isset($schema['additionalProperties']) && is_array($schema['additionalProperties'])) {
+            $additional = $schema['additionalProperties'];
+            if (isset($additional['type']) && is_array($data)) {
+                foreach ($data as $key => $value) {
+                    $propPath = "{$path}.{$key}";
+                    if (!self::checkScalarType($value, $additional['type'])) {
+                        $errors[] = "{$propPath}: expected {$additional['type']}";
+                    }
+                }
+            }
+        }
+
         return $errors;
     }
 

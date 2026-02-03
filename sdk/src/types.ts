@@ -4,6 +4,11 @@ export interface ExtensionConfig {
     version: string;
 }
 
+export interface CssIsolationConfig {
+    mode: 'root-class';
+    className?: string;
+}
+
 export interface SlotConfig {
     slot: string;
     component: React.ComponentType<any>;
@@ -26,6 +31,7 @@ export interface ExtensionDefinition {
     config: ExtensionConfig;
     slots?: SlotConfig[];
     routes?: RouteConfig[];
+    cssIsolation?: CssIsolationConfig | boolean;
     onInit?: () => void;
     onDestroy?: () => void;
 }
@@ -38,6 +44,7 @@ export interface SlotRegistration {
     label?: string;
     icon?: string;
     permission?: string;
+    scopeClass?: string;
 }
 
 export interface RouteRegistration {
@@ -48,6 +55,7 @@ export interface RouteRegistration {
     component: React.ComponentType<any>;
     icon?: string;
     permission?: string;
+    scopeClass?: string;
 }
 
 export interface NoturApi {
@@ -55,7 +63,7 @@ export interface NoturApi {
     registry: {
         registerSlot: (registration: Omit<SlotRegistration, 'extensionId'> & { extensionId?: string }) => void;
         registerRoute: (area: RouteRegistration['area'], route: Omit<RouteRegistration, 'extensionId' | 'area'> & { extensionId?: string }) => void;
-        registerExtension: (ext: { id: string; name: string; version: string; slots: SlotRegistration[]; routes: RouteRegistration[]; theme?: { variables: Record<string, string>; priority?: number } }) => void;
+        registerExtension: (ext: { id: string; name: string; version: string; slots: SlotRegistration[]; routes: RouteRegistration[]; theme?: { variables: Record<string, string>; priority?: number }; cssIsolation?: CssIsolationConfig }) => void;
         registerDestroyCallback: (extensionId: string, callback: () => void) => void;
         unregisterExtension: (extensionId: string) => void;
         getSlot: (slotId: string) => SlotRegistration[];
@@ -85,6 +93,7 @@ export interface NoturApi {
     };
     SLOT_IDS: Record<string, string>;
     unregisterExtension: (id: string) => void;
+    extensions?: Array<{ id: string; bundle?: string; styles?: string; cssIsolation?: CssIsolationConfig }>;
 }
 
 /**

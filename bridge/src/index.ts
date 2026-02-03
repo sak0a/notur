@@ -39,7 +39,7 @@ declare global {
             version: string;
             registry: PluginRegistry;
             slots: Record<string, any>;
-            extensions: Array<{ id: string; bundle?: string; styles?: string }>;
+            extensions: Array<{ id: string; bundle?: string; styles?: string; cssIsolation?: { mode: 'root-class'; className?: string } }>;
             routes: any[];
             unregisterExtension: (id: string) => void;
             emitEvent: (event: string, data?: unknown) => void;
@@ -58,6 +58,15 @@ declare global {
             SLOT_IDS: typeof SLOT_IDS;
             SLOT_DEFINITIONS: typeof SLOT_DEFINITIONS;
             debug: ReturnType<typeof createDevTools>;
+            diagnostics: {
+                errors: Array<{
+                    extensionId: string;
+                    message: string;
+                    stack?: string;
+                    componentStack?: string;
+                    time: string;
+                }>;
+            };
         };
     }
 }
@@ -215,6 +224,7 @@ function init(): void {
         SLOT_IDS,
         SLOT_DEFINITIONS,
         debug,
+        diagnostics: existing.diagnostics || { errors: [] },
     };
 
     console.log(`[Notur] Bridge runtime v${window.__NOTUR__.version} initialized`);

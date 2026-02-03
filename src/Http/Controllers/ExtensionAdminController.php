@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Notur\ExtensionManager;
+use Notur\Models\ExtensionActivity;
 use Notur\Models\ExtensionSetting;
 use Notur\Models\InstalledExtension;
 use Notur\Support\RegistryClient;
@@ -83,6 +84,25 @@ class ExtensionAdminController extends Controller
         // Gather dependencies
         $dependencies = $manifest['dependencies'] ?? [];
 
+        // Gather health checks
+        $healthDefinitions = $manifest['health']['checks'] ?? [];
+        if (!is_array($healthDefinitions)) {
+            $healthDefinitions = [];
+        }
+        $healthResults = $this->manager->getHealthChecks($extensionId);
+        $healthResultMap = [];
+        foreach ($healthResults as $result) {
+            if (!empty($result['id'])) {
+                $healthResultMap[$result['id']] = $result;
+            }
+        }
+
+        // Gather scheduled tasks
+        $scheduleTasks = $manifest['schedules']['tasks'] ?? [];
+        if (!is_array($scheduleTasks)) {
+            $scheduleTasks = [];
+        }
+
         // Gather frontend slot registrations
         $slotRegistrations = [];
         $slotsByExtension = $this->manager->getFrontendSlots();
@@ -118,6 +138,10 @@ class ExtensionAdminController extends Controller
         }
 
         $adminRouteFile = $manifest['backend']['routes']['admin'] ?? null;
+        $activityLogs = ExtensionActivity::where('extension_id', $extensionId)
+            ->latest()
+            ->limit(50)
+            ->get();
 
         return view('notur::admin.extension-detail', [
             'extension' => $extension,
@@ -130,6 +154,11 @@ class ExtensionAdminController extends Controller
             'slotRegistrations' => $slotRegistrations,
             'adminRoutes' => $adminRoutes,
             'adminRouteFile' => $adminRouteFile,
+            'activityLogs' => $activityLogs,
+            'healthDefinitions' => $healthDefinitions,
+            'healthResults' => $healthResults,
+            'healthResultMap' => $healthResultMap,
+            'scheduleTasks' => $scheduleTasks,
         ]);
     }
 
@@ -175,6 +204,14 @@ class ExtensionAdminController extends Controller
             'usage' => $usage,
             'unknown' => $unknown,
         ]);
+    }
+
+    /**
+     * Show the frontend diagnostics page.
+     */
+    public function diagnostics(): View
+    {
+        return view('notur::admin.diagnostics');
     }
 
     /**

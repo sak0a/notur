@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Notur;
 
 use Illuminate\Support\ServiceProvider;
+use Notur\Features\FeatureRegistry;
 use Notur\Console\Commands\BuildCommand;
 use Notur\Console\Commands\DevCommand;
 use Notur\Console\Commands\DisableCommand;
@@ -19,6 +20,7 @@ use Notur\Console\Commands\RemoveCommand;
 use Notur\Console\Commands\UninstallCommand;
 use Notur\Console\Commands\UpdateCommand;
 use Notur\Console\Commands\ValidateCommand;
+use Notur\Support\ActivityLogger;
 
 class NoturServiceProvider extends ServiceProvider
 {
@@ -30,12 +32,17 @@ class NoturServiceProvider extends ServiceProvider
 
         $this->app->singleton(MigrationManager::class);
 
+        $this->app->singleton(FeatureRegistry::class, function () {
+            return FeatureRegistry::defaults();
+        });
+
         $this->app->singleton(ExtensionManager::class, function ($app) {
             return new ExtensionManager(
                 $app,
                 $app->make(DependencyResolver::class),
                 $app->make(PermissionBroker::class),
                 $app->make(Support\ThemeCompiler::class),
+                $app->make(FeatureRegistry::class),
             );
         });
 
@@ -50,6 +57,8 @@ class NoturServiceProvider extends ServiceProvider
         $this->app->singleton(Support\SignatureVerifier::class);
 
         $this->app->singleton(Support\ThemeCompiler::class);
+
+        $this->app->singleton(ActivityLogger::class);
     }
 
     public function boot(): void
@@ -93,6 +102,9 @@ class NoturServiceProvider extends ServiceProvider
         // Boot extension manager
         $this->app->make(ExtensionManager::class)->boot();
 
+        // Register activity log listeners
+        $this->app->make(ActivityLogger::class)->registerListeners();
+
         // Share frontend data with views
         $this->shareFrontendData();
     }
@@ -123,6 +135,20 @@ class NoturServiceProvider extends ServiceProvider
 
                 if ($styles = $manifest->getFrontendStyles()) {
                     $asset['styles'] = "/notur/extensions/{$id}/{$styles}";
+                }
+
+                $cssIsolation = $manifest->getFrontendCssIsolation();
+                if (!empty($cssIsolation)) {
+                    $allowCssIsolation = $manifest->hasCapabilitiesDeclared()
+                        ? $manifest->isCapabilityEnabled('css_isolation', 1)
+                        : true;
+
+                    if ($allowCssIsolation) {
+                        if (isset($cssIsolation['class']) && !isset($cssIsolation['className'])) {
+                            $cssIsolation['className'] = $cssIsolation['class'];
+                        }
+                        $asset['cssIsolation'] = $cssIsolation;
+                    }
                 }
 
                 $extensionAssets[] = $asset;

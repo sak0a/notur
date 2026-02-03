@@ -6,6 +6,7 @@ namespace Notur\Console\Commands;
 
 use Illuminate\Console\Command;
 use Notur\Events\ExtensionInstalled;
+use Notur\Events\ExtensionUpdated;
 use Notur\ExtensionManager;
 use Notur\ExtensionManifest;
 use Notur\MigrationManager;
@@ -133,6 +134,7 @@ class InstallCommand extends Command
             $this->error("Extension '{$extensionId}' is already installed. Use --force to overwrite.");
             return 1;
         }
+        $previousVersion = $existing?->version;
 
         $targetPath = ExtensionPath::base($extensionId);
 
@@ -193,7 +195,11 @@ class InstallCommand extends Command
         );
 
         // Fire event
-        ExtensionInstalled::dispatch($extensionId, $manifest->getVersion());
+        if ($previousVersion !== null && $previousVersion !== $manifest->getVersion()) {
+            ExtensionUpdated::dispatch($extensionId, $previousVersion, $manifest->getVersion());
+        } else {
+            ExtensionInstalled::dispatch($extensionId, $manifest->getVersion());
+        }
 
         // Clear caches
         $this->call('cache:clear');

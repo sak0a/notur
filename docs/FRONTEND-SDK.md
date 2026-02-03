@@ -46,10 +46,34 @@ interface ExtensionDefinition {
     config: ExtensionConfig;
     slots?: SlotConfig[];
     routes?: RouteConfig[];
+    cssIsolation?: CssIsolationConfig | boolean;
     onInit?: () => void;
     onDestroy?: () => void;
 }
 ```
+
+### CSS Isolation
+
+Enable the root-class CSS isolation helper by setting `cssIsolation`:
+
+```tsx
+createExtension({
+    config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
+    cssIsolation: true, // uses the default class: notur-ext--acme-analytics
+    slots: [/* ... */],
+});
+```
+
+You can also pass an explicit class name:
+
+```tsx
+createExtension({
+    config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
+    cssIsolation: { mode: 'root-class', className: 'notur-ext--acme-analytics' },
+});
+```
+
+If `frontend.css_isolation` is declared in `extension.yaml`, the SDK will pick it up automatically.
 
 ### Full Example
 
@@ -149,6 +173,15 @@ interface RouteConfig {
     component: React.ComponentType<any>;         // Page component
     icon?: string;                               // Icon for nav item
     permission?: string;                         // Required permission
+}
+```
+
+### `CssIsolationConfig`
+
+```typescript
+interface CssIsolationConfig {
+    mode: 'root-class';
+    className?: string;
 }
 ```
 

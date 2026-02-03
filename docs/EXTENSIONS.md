@@ -83,6 +83,12 @@ requires:
   pterodactyl: "^1.11"
   php: "^8.2"
 
+capabilities:
+  routes: "^1"
+  health: "^1"
+  schedules: "^1"
+  css_isolation: "^1"
+
 entrypoint: "Acme\\ServerAnalytics\\ServerAnalyticsExtension"
 
 autoload:
@@ -99,6 +105,8 @@ backend:
 
 frontend:
   bundle: "resources/frontend/dist/extension.js"
+  css_isolation:
+    mode: "root-class"
   slots:
     server.subnav:
       label: "Analytics"
@@ -131,6 +139,22 @@ admin:
         type: "boolean"
         default: true
         public: true
+
+health:
+  checks:
+    - id: "db"
+      label: "Database"
+      description: "Checks analytics database connectivity."
+      severity: "critical"
+
+schedules:
+  tasks:
+    - id: "sync"
+      label: "Sync Analytics"
+      description: "Syncs analytics data every hour."
+      command: "acme:analytics:sync"
+      cron: "0 * * * *"
+      without_overlapping: true
 ```
 
 ### Admin Settings Schema
@@ -153,6 +177,76 @@ Optional field properties:
 - `input` (e.g. `text`, `email`, `password`, `url`, `color`)
 - `options` (for `select`, list of `{ value, label }`)
 - `public` (expose to frontend via `useExtensionConfig`)
+
+## Capabilities
+
+Capabilities declare which Notur features your extension opts into. Each capability is versioned
+using a major-only constraint (e.g. `^1`, `1`, `>=1`). If the `capabilities` section is present,
+any capability not explicitly listed is treated as disabled.
+
+Common capability IDs:
+- `routes` — backend route registration
+- `health` — health check reporting
+- `schedules` — scheduled tasks
+- `css_isolation` — frontend CSS isolation helper
+
+## Health Checks
+
+Use `health.checks` to declare check metadata, and implement `HasHealthChecks` to return results.
+
+```yaml
+health:
+  checks:
+    - id: "db"
+      label: "Database"
+      description: "Checks analytics database connectivity."
+      severity: "critical"
+```
+
+```php
+use Notur\Contracts\HasHealthChecks;
+
+class ServerAnalyticsExtension implements HasHealthChecks
+{
+    public function getHealthChecks(): array
+    {
+        return [
+            [
+                'id' => 'db',
+                'status' => 'ok',
+                'message' => 'Database reachable',
+            ],
+        ];
+    }
+}
+```
+
+## Scheduled Tasks
+
+Use `schedules.tasks` to declare scheduled commands. Each task requires an `id`, `label`,
+`command`, and `cron` expression.
+
+```yaml
+schedules:
+  tasks:
+    - id: "sync"
+      label: "Sync Analytics"
+      command: "acme:analytics:sync"
+      cron: "0 * * * *"
+      without_overlapping: true
+```
+
+## CSS Isolation
+
+Use `frontend.css_isolation` to enable the root-class scoping helper. When enabled, Notur wraps
+each rendered component in a root element with a class like `notur-ext--vendor-name`.
+
+```yaml
+frontend:
+  css_isolation:
+    mode: "root-class"
+    class: "notur-ext--acme-analytics" # optional override
+```
 
 ## Step 2: Implement the PHP Entrypoint
 

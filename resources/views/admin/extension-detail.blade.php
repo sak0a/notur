@@ -191,6 +191,140 @@
         </div>
     </div>
 
+    @if(!empty($healthDefinitions) || !empty($healthResults))
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-info">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Health Checks</h3>
+                    </div>
+                    <div class="box-body">
+                        @if(!empty($healthDefinitions))
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 180px;">Check</th>
+                                        <th style="width: 120px;">Status</th>
+                                        <th style="width: 120px;">Severity</th>
+                                        <th>Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($healthDefinitions as $definition)
+                                        @php
+                                            $checkId = $definition['id'] ?? '';
+                                            $result = $healthResultMap[$checkId] ?? null;
+                                            $status = $result['status'] ?? 'unknown';
+                                            $statusClass = match ($status) {
+                                                'ok' => 'label-success',
+                                                'warning' => 'label-warning',
+                                                'error' => 'label-danger',
+                                                default => 'label-default',
+                                            };
+                                        @endphp
+                                        <tr>
+                                            <td>
+                                                <strong>{{ $definition['label'] ?? $checkId }}</strong>
+                                                @if(!empty($definition['description']))
+                                                    <br><small class="text-muted">{{ $definition['description'] }}</small>
+                                                @endif
+                                            </td>
+                                            <td><span class="label {{ $statusClass }}">{{ $status }}</span></td>
+                                            <td>{{ $definition['severity'] ?? 'normal' }}</td>
+                                            <td>{{ $result['message'] ?? 'Not reported' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        @else
+                            <p class="text-muted">No health checks declared in the manifest.</p>
+                        @endif
+
+                        @if(!empty($healthResults))
+                            @php
+                                $unknownResults = array_filter($healthResults, function ($result) use ($healthResultMap, $healthDefinitions) {
+                                    $id = $result['id'] ?? null;
+                                    if (!$id) return false;
+                                    foreach ($healthDefinitions as $definition) {
+                                        if (($definition['id'] ?? null) === $id) {
+                                            return false;
+                                        }
+                                    }
+                                    return true;
+                                });
+                            @endphp
+                            @if(!empty($unknownResults))
+                                <h4>Undeclared Results</h4>
+                                <ul class="list-group">
+                                    @foreach($unknownResults as $result)
+                                        <li class="list-group-item">
+                                            <strong>{{ $result['id'] }}</strong>
+                                            <span class="label label-default" style="margin-left: 8px;">{{ $result['status'] ?? 'unknown' }}</span>
+                                            @if(!empty($result['message']))
+                                                <br><small class="text-muted">{{ $result['message'] }}</small>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if(!empty($scheduleTasks))
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-warning">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Scheduled Tasks</h3>
+                    </div>
+                    <div class="box-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 200px;">Task</th>
+                                    <th style="width: 140px;">Cron</th>
+                                    <th style="width: 160px;">Command</th>
+                                    <th style="width: 140px;">Flags</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($scheduleTasks as $task)
+                                    @php
+                                        $flags = [];
+                                        if (!empty($task['without_overlapping'])) $flags[] = 'no-overlap';
+                                        if (!empty($task['on_one_server'])) $flags[] = 'one-server';
+                                        if (!empty($task['run_in_maintenance'])) $flags[] = 'maintenance';
+                                        if (isset($task['enabled']) && $task['enabled'] === false) $flags[] = 'disabled';
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <strong>{{ $task['label'] ?? $task['id'] ?? 'Unnamed task' }}</strong>
+                                        </td>
+                                        <td><code>{{ $task['cron'] ?? '—' }}</code></td>
+                                        <td><code>{{ $task['command'] ?? '—' }}</code></td>
+                                        <td>
+                                            @if(!empty($flags))
+                                                {{ implode(', ', $flags) }}
+                                            @else
+                                                <span class="text-muted">none</span>
+                                            @endif
+                                        </td>
+                                        <td>{{ $task['description'] ?? '—' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if(!empty($settingsSchema['fields']))
         <div class="row">
             <div class="col-md-8">
@@ -305,6 +439,45 @@
             </div>
         </div>
     @endif
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="box box-default">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Activity Log</h3>
+                </div>
+                <div class="box-body">
+                    @if($activityLogs->isNotEmpty())
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 160px;">Timestamp</th>
+                                    <th style="width: 120px;">Action</th>
+                                    <th>Summary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($activityLogs as $log)
+                                    <tr>
+                                        <td>{{ $log->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</td>
+                                        <td><span class="label label-default">{{ $log->action }}</span></td>
+                                        <td>
+                                            {{ $log->summary ?? '—' }}
+                                            @if(!empty($log->context))
+                                                <br><small class="text-muted">{{ json_encode($log->context) }}</small>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p class="text-muted">No activity logged yet.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="row">
         {{-- Frontend Slots --}}

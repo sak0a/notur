@@ -8,6 +8,7 @@ export interface SlotRegistration {
     label?: string;
     icon?: string;
     permission?: string;
+    scopeClass?: string;
 }
 
 export interface RouteRegistration {
@@ -18,6 +19,12 @@ export interface RouteRegistration {
     component: React.ComponentType<any>;
     icon?: string;
     permission?: string;
+    scopeClass?: string;
+}
+
+export interface CssIsolation {
+    mode: 'root-class';
+    className?: string;
 }
 
 export interface ThemeRegistration {
@@ -35,6 +42,7 @@ export interface ExtensionRegistration {
     slots: SlotRegistration[];
     routes: RouteRegistration[];
     theme?: Omit<ThemeRegistration, 'extensionId'>;
+    cssIsolation?: CssIsolation;
 }
 
 export class PluginRegistry {
@@ -90,12 +98,14 @@ export class PluginRegistry {
     registerExtension(ext: ExtensionRegistration): void {
         this.extensions.set(ext.id, ext);
 
+        const scopeClass = this.resolveScopeClass(ext);
+
         for (const slot of ext.slots) {
-            this.registerSlot({ ...slot, extensionId: ext.id });
+            this.registerSlot({ ...slot, extensionId: ext.id, scopeClass });
         }
 
         for (const route of ext.routes) {
-            this.registerRoute(route.area, { ...route, extensionId: ext.id });
+            this.registerRoute(route.area, { ...route, extensionId: ext.id, scopeClass });
         }
 
         if (ext.theme) {
@@ -254,5 +264,18 @@ export class PluginRegistry {
                 console.error(`[Notur] Error in registry listener for "${event}":`, e);
             }
         }
+    }
+
+    private resolveScopeClass(ext: ExtensionRegistration): string | undefined {
+        if (!ext.cssIsolation || ext.cssIsolation.mode !== 'root-class') {
+            return undefined;
+        }
+
+        if (ext.cssIsolation.className) {
+            return ext.cssIsolation.className;
+        }
+
+        const slug = ext.id.replace(/[^a-z0-9\-]/gi, '-');
+        return `notur-ext--${slug}`;
     }
 }

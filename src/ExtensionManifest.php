@@ -111,6 +111,30 @@ class ExtensionManifest
         return $this->data['dependencies'] ?? [];
     }
 
+    public function hasCapabilitiesDeclared(): bool
+    {
+        return array_key_exists('capabilities', $this->data);
+    }
+
+    public function getCapabilities(): array
+    {
+        return $this->data['capabilities'] ?? [];
+    }
+
+    public function isCapabilityEnabled(string $capabilityId, int $majorVersion, bool $defaultIfMissing = false): bool
+    {
+        if (!$this->hasCapabilitiesDeclared()) {
+            return $defaultIfMissing;
+        }
+
+        $capabilities = $this->getCapabilities();
+        if (!isset($capabilities[$capabilityId])) {
+            return false;
+        }
+
+        return \Notur\Support\CapabilityMatcher::matches((string) $capabilities[$capabilityId], $majorVersion);
+    }
+
     public function getAutoload(): array
     {
         return $this->data['autoload'] ?? [];
@@ -169,6 +193,11 @@ class ExtensionManifest
     public function getFrontendStyles(): string
     {
         return $this->data['frontend']['styles'] ?? '';
+    }
+
+    public function getFrontendCssIsolation(): array
+    {
+        return $this->data['frontend']['css_isolation'] ?? [];
     }
 
     public function getFrontendSlots(): array

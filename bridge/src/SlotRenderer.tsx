@@ -57,14 +57,21 @@ export class SlotRenderer extends React.Component<SlotRendererProps, SlotRendere
                 extensionId: reg.extensionId,
                 ...componentProps,
             });
+            const scoped = reg.scopeClass
+                ? React.createElement(
+                      'div',
+                      { className: reg.scopeClass, 'data-notur-extension': reg.extensionId },
+                      content,
+                  )
+                : content;
             const wrapped =
                 slotId === SLOT_IDS.DASHBOARD_WIDGETS
                     ? React.createElement(
                           'div',
                           { className: 'notur-surface notur-surface--card notur-surface--widget' },
-                          content,
+                          scoped,
                       )
-                    : content;
+                    : scoped;
             return React.createElement(
                 SlotErrorBoundary,
                 { key: `${reg.extensionId}-${index}`, extensionId: reg.extensionId },
@@ -107,14 +114,21 @@ export function InlineSlot({
                 extensionId: reg.extensionId,
                 ...componentProps,
             });
+            const scoped = reg.scopeClass
+                ? React.createElement(
+                      'div',
+                      { className: reg.scopeClass, 'data-notur-extension': reg.extensionId },
+                      content,
+                  )
+                : content;
             const wrapped =
                 slotId === SLOT_IDS.DASHBOARD_WIDGETS
                     ? React.createElement(
                           'div',
                           { className: 'notur-surface notur-surface--card notur-surface--widget' },
-                          content,
+                          scoped,
                       )
-                    : content;
+                    : scoped;
             return React.createElement(
                 SlotErrorBoundary,
                 { key: `${reg.extensionId}-${index}`, extensionId: reg.extensionId },

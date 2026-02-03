@@ -12,6 +12,12 @@ requires:
   pterodactyl: "^1.11"
   php: "^8.2"
 
+capabilities:
+  routes: "^1"
+  health: "^1"
+  schedules: "^1"
+  css_isolation: "^1"
+
 entrypoint: "{{namespace}}\\{{className}}"
 
 autoload:
@@ -26,4 +32,12 @@ backend:
 
 frontend:
   bundle: "resources/frontend/dist/extension.js"
+  css_isolation:
+    mode: "root-class"
   slots: {}
+
+health:
+  checks: []
+
+schedules:
+  tasks: []

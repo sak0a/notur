@@ -6,6 +6,8 @@ namespace Notur\Support;
 
 final class SlotDefinitions
 {
+    private const JSON_PATH = __DIR__ . '/../../bridge/src/slots/slot-definitions.json';
+
     /**
      * Canonical slot definitions used by the admin UI.
      *
@@ -15,6 +17,11 @@ final class SlotDefinitions
      */
     public static function all(): array
     {
+        $fromJson = self::loadFromJson();
+        if ($fromJson !== null) {
+            return $fromJson;
+        }
+
         return [
             ['id' => 'navbar', 'type' => 'portal', 'description' => 'Top navigation bar'],
             ['id' => 'navbar.left', 'type' => 'portal', 'description' => 'Navbar left area (near logo)'],
@@ -52,5 +59,27 @@ final class SlotDefinitions
             $map[$def['id']] = $def;
         }
         return $map;
+    }
+
+    /**
+     * @return array<int, array{id: string, type: string, description: string}>|null
+     */
+    private static function loadFromJson(): ?array
+    {
+        if (!file_exists(self::JSON_PATH)) {
+            return null;
+        }
+
+        $content = file_get_contents(self::JSON_PATH);
+        if ($content === false) {
+            return null;
+        }
+
+        $data = json_decode($content, true);
+        if (!is_array($data)) {
+            return null;
+        }
+
+        return $data;
     }
 }

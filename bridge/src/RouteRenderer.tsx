@@ -85,13 +85,21 @@ export class RouteRenderer extends React.Component<RouteRendererProps, RouteRend
         for (const route of routes) {
             if (this.matchRoute(route)) {
                 const Component = route.component;
+                const content = React.createElement(Component, {
+                    extensionId: route.extensionId,
+                    currentPath,
+                });
+                const scoped = route.scopeClass
+                    ? React.createElement(
+                          'div',
+                          { className: route.scopeClass, 'data-notur-extension': route.extensionId },
+                          content,
+                      )
+                    : content;
                 return React.createElement(
                     'div',
                     { className: 'notur-surface notur-surface--page notur-surface--route' },
-                    React.createElement(Component, {
-                        extensionId: route.extensionId,
-                        currentPath,
-                    }),
+                    scoped,
                 );
             }
         }

@@ -1,6 +1,8 @@
 /**
  * Predefined slot IDs injected into the Pterodactyl panel during Notur install.
  */
+import slotDefinitions from './slot-definitions.json';
+
 export const SLOT_IDS = {
     /** Top navigation bar */
     NAVBAR: 'navbar',
@@ -80,28 +82,4 @@ export interface SlotDefinition {
     description: string;
 }
 
-export const SLOT_DEFINITIONS: SlotDefinition[] = [
-    { id: SLOT_IDS.NAVBAR, type: 'portal', description: 'Top navigation bar' },
-    { id: SLOT_IDS.NAVBAR_LEFT, type: 'portal', description: 'Navbar left area (near logo)' },
-    { id: SLOT_IDS.SERVER_SUBNAV, type: 'nav', description: 'Server sub-navigation' },
-    { id: SLOT_IDS.SERVER_HEADER, type: 'portal', description: 'Server header area' },
-    { id: SLOT_IDS.SERVER_PAGE, type: 'route', description: 'Server area page' },
-    { id: SLOT_IDS.SERVER_FOOTER, type: 'portal', description: 'Server footer area' },
-    { id: SLOT_IDS.SERVER_TERMINAL_BUTTONS, type: 'portal', description: 'Terminal power buttons' },
-    { id: SLOT_IDS.SERVER_CONSOLE_HEADER, type: 'portal', description: 'Console page header' },
-    { id: SLOT_IDS.SERVER_CONSOLE_SIDEBAR, type: 'portal', description: 'Console sidebar area' },
-    { id: SLOT_IDS.SERVER_CONSOLE_FOOTER, type: 'portal', description: 'Console page footer' },
-    { id: SLOT_IDS.SERVER_FILES_ACTIONS, type: 'portal', description: 'File manager toolbar' },
-    { id: SLOT_IDS.SERVER_FILES_HEADER, type: 'portal', description: 'File manager header' },
-    { id: SLOT_IDS.SERVER_FILES_FOOTER, type: 'portal', description: 'File manager footer' },
-    { id: SLOT_IDS.DASHBOARD_HEADER, type: 'portal', description: 'Dashboard header area' },
-    { id: SLOT_IDS.DASHBOARD_WIDGETS, type: 'portal', description: 'Dashboard widgets' },
-    { id: SLOT_IDS.DASHBOARD_SERVERLIST_BEFORE, type: 'portal', description: 'Dashboard server list (before)' },
-    { id: SLOT_IDS.DASHBOARD_SERVERLIST_AFTER, type: 'portal', description: 'Dashboard server list (after)' },
-    { id: SLOT_IDS.DASHBOARD_FOOTER, type: 'portal', description: 'Dashboard footer area' },
-    { id: SLOT_IDS.DASHBOARD_PAGE, type: 'route', description: 'Dashboard page' },
-    { id: SLOT_IDS.ACCOUNT_HEADER, type: 'portal', description: 'Account header area' },
-    { id: SLOT_IDS.ACCOUNT_PAGE, type: 'route', description: 'Account page' },
-    { id: SLOT_IDS.ACCOUNT_FOOTER, type: 'portal', description: 'Account footer area' },
-    { id: SLOT_IDS.ACCOUNT_SUBNAV, type: 'nav', description: 'Account sub-navigation' },
-];
+export const SLOT_DEFINITIONS: SlotDefinition[] = slotDefinitions as SlotDefinition[];

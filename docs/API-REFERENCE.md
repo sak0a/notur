@@ -166,6 +166,30 @@ interface HasCommands
 }
 ```
 
+### `HasHealthChecks`
+
+Expose health check results for the admin UI.
+
+```php
+namespace Notur\Contracts;
+
+interface HasHealthChecks
+{
+    /**
+     * Return health check results for this extension.
+     *
+     * Each entry should include:
+     * - id (string)
+     * - status: ok|warning|error|unknown
+     * - message (optional)
+     * - details (optional)
+     *
+     * @return array<int|string, array<string, mixed>>
+     */
+    public function getHealthChecks(): array;
+}
+```
+
 **Example:**
 
 ```php
@@ -465,6 +489,7 @@ Notur dispatches events during extension lifecycle operations. You can listen fo
 | Event Class | When Dispatched | Payload |
 |---|---|---|
 | `Notur\Events\ExtensionInstalled` | After an extension is installed | `string $extensionId` |
+| `Notur\Events\ExtensionUpdated` | After an extension is updated | `string $extensionId`, `string $fromVersion`, `string $toVersion` |
 | `Notur\Events\ExtensionEnabled` | After an extension is enabled | `string $extensionId` |
 | `Notur\Events\ExtensionDisabled` | After an extension is disabled | `string $extensionId` |
 | `Notur\Events\ExtensionRemoved` | After an extension is removed | `string $extensionId` |
@@ -499,6 +524,21 @@ The `Notur\Models\InstalledExtension` Eloquent model represents a row in the `no
 | `name` | `string` | Human-readable name |
 | `version` | `string` | Installed version |
 | `enabled` | `bool` | Whether the extension is active |
+
+---
+
+### `ExtensionActivity`
+
+The `Notur\Models\ExtensionActivity` model represents entries in the `notur_activity_logs` table.
+
+**Key attributes:**
+
+| Attribute | Type | Description |
+|---|---|---|
+| `extension_id` | `string` | Extension ID |
+| `action` | `string` | Action name (installed, updated, enabled, disabled, removed) |
+| `summary` | `string` | Human-readable summary |
+| `context` | `array` | Optional structured context |
 
 ---
 

@@ -30,6 +30,17 @@ export class SlotErrorBoundary extends React.Component<SlotErrorBoundaryProps, S
             error,
             errorInfo.componentStack,
         );
+
+        const notur = (window as any).__NOTUR__;
+        if (notur?.diagnostics?.errors) {
+            notur.diagnostics.errors.push({
+                extensionId: this.props.extensionId,
+                message: error.message || String(error),
+                stack: error.stack,
+                componentStack: errorInfo.componentStack,
+                time: new Date().toISOString(),
+            });
+        }
     }
 
     render(): React.ReactNode {
