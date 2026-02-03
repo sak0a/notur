@@ -43,7 +43,7 @@ jobs:
         run: ./vendor/bin/phpunit --testsuite Unit
 
   php-integration-tests:
-    name: PHP ${{ matrix.php }} / ${{ matrix.database }} Integration
+    name: PHP ${{ matrix.php }} / ${{ matrix.database.type }} Integration
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
