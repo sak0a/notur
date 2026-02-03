@@ -1,0 +1,46 @@
+--- a/resources/scripts/routers/DashboardRouter.tsx	2026-02-02 21:48:26
++++ b/resources/scripts/routers/DashboardRouter.tsx	2026-02-02 21:48:42
+@@ -8,6 +8,7 @@
+ import { useLocation } from 'react-router';
+ import Spinner from '@/components/elements/Spinner';
+ import routes from '@/routers/routes';
++import { getNoturRoutes } from '@/routers/routes';
+
+ export default () => {
+     const location = useLocation();
+@@ -28,6 +29,9 @@
+                     </div>
+                 </SubNavigation>
+             )}
++            {/* [Notur] Slot containers */}
++            <div id="notur-slot-account.subnav" style={{ display: 'contents' }}></div>
++            {location.pathname.startsWith('/account') && (
++                <div id="notur-slot-account.header" style={{ display: 'contents' }}></div>
++            )}
++            <div id="notur-slot-dashboard.widgets"></div>
+             <TransitionRouter>
+                 <React.Suspense fallback={<Spinner centered />}>
+                     <Switch location={location}>
+@@ -39,6 +43,14 @@
+                                 <Component />
+                             </Route>
+                         ))}
++                        {/* [Notur] Extension dashboard routes */}
++                        {getNoturRoutes('dashboard').map((route: any, i: number) => (
++                            <Route key={`notur-dash-${i}`} {...route} />
++                        ))}
++                        {/* [Notur] Extension account routes */}
++                        {getNoturRoutes('account').map((route: any, i: number) => (
++                            <Route key={`notur-acct-${i}`} {...route} />
++                        ))}
+                         <Route path={'*'}>
+                             <NotFound />
+                         </Route>
+@@ -51,6 +59,9 @@
+             </TransitionRouter>
++            {location.pathname.startsWith('/account') && (
++                <div id="notur-slot-account.footer" style={{ display: 'contents' }}></div>
++            )}
+         </>
+     );
+ };

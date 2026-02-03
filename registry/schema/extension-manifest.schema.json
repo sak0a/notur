@@ -117,6 +117,33 @@
             "properties": {
                 "views": {
                     "type": "object"
+                },
+                "settings": {
+                    "type": "object",
+                    "properties": {
+                        "title": { "type": "string" },
+                        "description": { "type": "string" },
+                        "fields": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": ["key"],
+                                "properties": {
+                                    "key": { "type": "string" },
+                                    "label": { "type": "string" },
+                                    "type": { "type": "string" },
+                                    "required": { "type": "boolean" },
+                                    "default": {},
+                                    "help": { "type": "string" },
+                                    "description": { "type": "string" },
+                                    "placeholder": { "type": "string" },
+                                    "input": { "type": "string" },
+                                    "public": { "type": "boolean" },
+                                    "options": { "type": "array" }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

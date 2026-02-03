@@ -229,8 +229,29 @@ Notur includes an admin UI accessible at `/admin/notur` (when the Admin Blade UI
 - Install extensions from the registry via a search interface
 - Remove extensions with confirmation
 - View extension logs and error details
+- Configure extension settings (when the extension exposes an admin settings schema)
+- Browse the slot catalog and see registered slot usage
+- Inspect admin routes and slot registrations per extension
 
 Note: The Admin UI is a Phase 5 feature currently under development. CLI management is the fully supported approach.
+
+### Extension Detail Page
+
+Each extension has a detail page with contextual diagnostics, including:
+- Settings form (if the extension defines `admin.settings`)
+- Registered frontend slots and slot metadata
+- Admin routes registered for the extension
+- Manifest and migration summaries
+
+### Settings Preview (JSON)
+
+For debugging settings schemas and values, Notur exposes a JSON preview endpoint:
+
+```
+GET /admin/notur/extensions/{extension-id}/settings/preview
+```
+
+You can access this quickly from the extension detail page via the “Preview JSON” button.
 
 ## Configuration
 

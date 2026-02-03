@@ -1,0 +1,26 @@
+--- a/resources/scripts/routers/routes.ts	2026-02-02 21:45:32
++++ b/resources/scripts/routers/routes.ts	2026-02-02 21:44:15
+@@ -1,5 +1,4 @@
+ import React, { lazy } from 'react';
+-import type { RouteProps } from 'react-router-dom';
+ import ServerConsole from '@/components/server/console/ServerConsoleContainer';
+ import DatabasesContainer from '@/components/server/databases/DatabasesContainer';
+ import ScheduleContainer from '@/components/server/schedules/ScheduleContainer';
+@@ -143,17 +142,3 @@
+         },
+     ],
+ } as Routes;
+-
+-// [Notur] Merge extension routes at runtime
+-export function getNoturRoutes(area: string): RouteProps[] {
+-    const notur = (window as any).__NOTUR__;
+-    if (!notur?.registry) return [];
+-
+-    return notur.registry.getRoutes(area).map((route: any) => ({
+-        path: route.path,
+-        exact: true,
+-        render: () => React.createElement(route.component, {
+-            extensionId: route.extensionId,
+-        }),
+-    }));
+-}

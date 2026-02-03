@@ -119,11 +119,35 @@ fi
 
 info "Step 3/6: Applying React source patches..."
 
-PATCH_DIR="$(dirname "$(realpath "$0")")/patches/v1.11"
+# Detect panel version
+detect_panel_version() {
+    local version=""
+    if [ -f "${PANEL_DIR}/composer.lock" ]; then
+        version=$(grep -A1 '"name": "pterodactyl/panel"' "${PANEL_DIR}/composer.lock" | grep '"version"' | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/' || echo "")
+    fi
+    if [ -z "$version" ] && [ -f "${PANEL_DIR}/config/app.php" ]; then
+        version=$(grep "'version'" "${PANEL_DIR}/config/app.php" | head -1 | sed "s/.*'version'.*'\([^']*\)'.*/\1/" || echo "")
+    fi
+    echo "$version"
+}
+
+PANEL_VERSION=$(detect_panel_version)
+info "Detected panel version: ${PANEL_VERSION:-unknown}"
+
+# Map to patch directory (1.11.x → v1.11, 1.12.x → v1.12)
+case "$PANEL_VERSION" in
+    1.12.*) PATCH_VERSION="v1.12" ;;
+    1.11.*) PATCH_VERSION="v1.11" ;;
+    *)      PATCH_VERSION="v1.11" ; warn "Unknown version, defaulting to v1.11 patches" ;;
+esac
+
+info "Using patch set: ${PATCH_VERSION}"
+
+PATCH_DIR="$(dirname "$(realpath "$0")")/patches/${PATCH_VERSION}"
 
 if [ ! -d "${PATCH_DIR}" ]; then
     # Patches may be in the Composer vendor directory
-    PATCH_DIR="${PANEL_DIR}/vendor/notur/notur/installer/patches/v1.11"
+    PATCH_DIR="${PANEL_DIR}/vendor/notur/notur/installer/patches/${PATCH_VERSION}"
 fi
 
 if [ -d "${PATCH_DIR}" ]; then

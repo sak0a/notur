@@ -194,6 +194,28 @@ frontend:
 admin:
   views:
     settings: "resources/views/admin/settings.blade.php"
+  settings:
+    title: "Settings"
+    description: "Configure analytics behavior"
+    fields:
+      - key: "api_key"
+        label: "API Key"
+        type: "string"
+        required: true
+        help: "Used to authenticate with the analytics service."
+      - key: "mode"
+        label: "Mode"
+        type: "select"
+        options:
+          - value: "fast"
+            label: "Fast"
+          - value: "safe"
+            label: "Safe"
+      - key: "enabled"
+        label: "Enable Extension"
+        type: "boolean"
+        default: true
+        public: true
 ```
 
 ---

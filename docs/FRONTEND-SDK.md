@@ -422,6 +422,7 @@ const AdminPanel: React.FC = () => {
 - Returns `true` if the user's permissions include the exact permission string.
 - Returns `false` if not on a server page (no server context).
 
+
 ---
 
 ## Slot System
@@ -693,4 +694,32 @@ export type { ExtensionConfig, SlotConfig, RouteConfig, ExtensionDefinition, Not
 export { useServerContext } from './hooks/useServerContext';
 export { useUserContext } from './hooks/useUserContext';
 export { usePermission } from './hooks/usePermission';
+export { useExtensionConfig } from './hooks/useExtensionConfig';
+```
+
+### `useExtensionConfig(extensionId: string, options?): { config, loading, error, refresh }`
+
+Fetches public settings declared in `extension.yaml` under `admin.settings` with `public: true`.
+
+```tsx
+import { useExtensionConfig } from '@notur/sdk';
+
+const AnalyticsWidget: React.FC = () => {
+    const { config, loading, error } = useExtensionConfig('acme/server-analytics');
+
+    if (loading) return <p>Loading settings...</p>;
+    if (error) return <p>Failed to load settings: {error}</p>;
+
+    return <p>Mode: {config.mode ?? 'default'}</p>;
+};
+```
+
+Options:
+- `baseUrl` (string): override the API base URL (default `/api/client/notur`)
+- `initial` (object): initial settings value before fetch completes
+- `pollInterval` (number): refresh interval in milliseconds (enables live reload)
+
+Live reload example:
+```tsx
+const { config } = useExtensionConfig('acme/server-analytics', { pollInterval: 5000 });
 ```

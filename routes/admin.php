@@ -9,8 +9,19 @@ Route::prefix('admin/notur')
         Route::get('/extensions', [ExtensionAdminController::class, 'index'])
             ->name('admin.notur.extensions');
 
+        Route::get('/slots', [ExtensionAdminController::class, 'slots'])
+            ->name('admin.notur.slots');
+
         Route::get('/extensions/{extensionId}', [ExtensionAdminController::class, 'show'])
             ->name('admin.notur.extensions.show')
+            ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');
+
+        Route::post('/extensions/{extensionId}/settings', [ExtensionAdminController::class, 'updateSettings'])
+            ->name('admin.notur.extensions.settings')
+            ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');
+
+        Route::get('/extensions/{extensionId}/settings/preview', [ExtensionAdminController::class, 'settingsPreview'])
+            ->name('admin.notur.extensions.settings.preview')
             ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');
 
         Route::post('/extensions/install', [ExtensionAdminController::class, 'install'])

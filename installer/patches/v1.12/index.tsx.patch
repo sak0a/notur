@@ -1,0 +1,14 @@
+--- a/resources/scripts/index.tsx	2026-02-02 00:00:00
++++ b/resources/scripts/index.tsx	2026-02-02 00:00:00
+@@ -1,5 +1,11 @@
+ import React from 'react';
+ import ReactDOM from 'react-dom';
++
++// [Notur] Expose React and ReactDOM as globals so the bridge runtime
++// and extension bundles can share the same React instance.
++(window as any).React = React;
++(window as any).ReactDOM = ReactDOM;
++
+ import App from '@/components/App';
+ import { setConfig } from 'react-hot-loader';
+

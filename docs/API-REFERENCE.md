@@ -354,6 +354,17 @@ Route::post('/settings', [StatsController::class, 'updateSettings']);
 
 ---
 
+## Notur Client Endpoints
+
+Notur exposes a small client API for frontend tooling:
+
+- `GET /api/client/notur/slots` — slot registrations for all enabled extensions
+- `GET /api/client/notur/extensions` — extension metadata for all enabled extensions
+- `GET /api/client/notur/extensions/{extension-id}/settings` — public settings (fields with `public: true`)
+- `GET /api/client/notur/config` — Notur config for the bridge runtime
+
+---
+
 ## Permission System
 
 Extensions can define custom permissions in their `extension.yaml`:
@@ -519,6 +530,7 @@ All commands are prefixed with `notur:` in Artisan.
 | `notur:list` | `notur:list [--enabled] [--disabled]` | List installed extensions |
 | `notur:update` | `notur:update {extension?} [--check]` | Update one or all extensions |
 | `notur:new` | `notur:new {id} [--path=] [--preset=] [--with-api-routes|--no-api-routes] [--with-admin-routes|--no-admin-routes] [--with-frontend|--no-frontend] [--with-admin|--no-admin] [--with-migrations|--no-migrations] [--with-tests|--no-tests]` | Scaffold a new extension from templates |
+| `notur:validate` | `notur:validate {path?} [--strict]` | Validate an extension manifest and settings schema |
 | `notur:dev` | `notur:dev {path} [--link]` | Link a local extension for development |
 | `notur:export` | `notur:export {path?} [--output=] [--sign]` | Export extension as `.notur` archive |
 | `notur:build` | `notur:build` | Build extension frontend assets |

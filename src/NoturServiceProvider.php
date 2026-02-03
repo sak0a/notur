@@ -18,6 +18,7 @@ use Notur\Console\Commands\RegistrySyncCommand;
 use Notur\Console\Commands\RemoveCommand;
 use Notur\Console\Commands\UninstallCommand;
 use Notur\Console\Commands\UpdateCommand;
+use Notur\Console\Commands\ValidateCommand;
 
 class NoturServiceProvider extends ServiceProvider
 {
@@ -81,6 +82,7 @@ class NoturServiceProvider extends ServiceProvider
                 KeygenCommand::class,
                 RegistrySyncCommand::class,
                 NewCommand::class,
+                ValidateCommand::class,
                 UninstallCommand::class,
             ]);
         }

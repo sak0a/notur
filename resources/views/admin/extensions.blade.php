@@ -179,6 +179,11 @@
             <div class="box box-primary">
                 <div class="box-header with-border">
                     <h3 class="box-title">Installed Extensions</h3>
+                    <div class="box-tools pull-right">
+                        <a href="{{ route('admin.notur.slots') }}" class="btn btn-xs btn-default">
+                            <i class="fa fa-th"></i> Slots
+                        </a>
+                    </div>
                 </div>
                 <div class="box-body table-responsive no-padding">
                     @if($extensions->isEmpty())

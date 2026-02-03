@@ -56,6 +56,16 @@ php artisan notur:new acme/server-analytics --with-admin --with-migrations --wit
 ```
 Admin UI scaffolding is separate from admin routes; add `--with-admin-routes` to expose admin endpoints.
 
+Validate your extension manifest and settings schema:
+```bash
+php artisan notur:validate /path/to/your-extension
+```
+
+Strict mode (treat warnings as errors):
+```bash
+php artisan notur:validate /path/to/your-extension --strict
+```
+
 ## Step 1: Create extension.yaml
 
 ```yaml
@@ -97,7 +107,52 @@ frontend:
     dashboard.widgets:
       component: "AnalyticsWidget"
       order: 10
+
+admin:
+  settings:
+    title: "Settings"
+    description: "Configure analytics behavior"
+    fields:
+      - key: "api_key"
+        label: "API Key"
+        type: "string"
+        required: true
+        help: "Used to authenticate with the analytics service."
+      - key: "mode"
+        label: "Mode"
+        type: "select"
+        options:
+          - value: "fast"
+            label: "Fast"
+          - value: "safe"
+            label: "Safe"
+      - key: "enabled"
+        label: "Enable Extension"
+        type: "boolean"
+        default: true
+        public: true
 ```
+
+### Admin Settings Schema
+
+Settings defined under `admin.settings` are rendered in the Notur admin UI and persisted per extension.
+
+Supported field types:
+- `string`
+- `text`
+- `number`
+- `boolean`
+- `select`
+
+Optional field properties:
+- `label`
+- `required`
+- `default`
+- `help` (or `description`)
+- `placeholder`
+- `input` (e.g. `text`, `email`, `password`, `url`, `color`)
+- `options` (for `select`, list of `{ value, label }`)
+- `public` (expose to frontend via `useExtensionConfig`)
 
 ## Step 2: Implement the PHP Entrypoint
 

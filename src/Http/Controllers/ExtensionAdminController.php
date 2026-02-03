@@ -8,10 +8,14 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Notur\ExtensionManager;
+use Notur\Models\ExtensionSetting;
 use Notur\Models\InstalledExtension;
 use Notur\Support\RegistryClient;
+use Notur\Support\SlotDefinitions;
 
 class ExtensionAdminController extends Controller
 {
@@ -54,6 +58,8 @@ class ExtensionAdminController extends Controller
     {
         $extension = InstalledExtension::where('extension_id', $extensionId)->firstOrFail();
         $manifest = $extension->manifest ?? [];
+        $settingsSchema = $this->buildSettingsSchema($manifest);
+        $settingsValues = $this->loadSettingsValues($extensionId, $settingsSchema['fields']);
 
         // Gather migration status
         $migrationStatus = [];
@@ -77,12 +83,219 @@ class ExtensionAdminController extends Controller
         // Gather dependencies
         $dependencies = $manifest['dependencies'] ?? [];
 
+        // Gather frontend slot registrations
+        $slotRegistrations = [];
+        $slotsByExtension = $this->manager->getFrontendSlots();
+        if (isset($slotsByExtension[$extensionId]) && is_array($slotsByExtension[$extensionId])) {
+            foreach ($slotsByExtension[$extensionId] as $slotId => $slotConfig) {
+                $slotRegistrations[] = [
+                    'slot' => $slotId,
+                    'component' => is_array($slotConfig) ? ($slotConfig['component'] ?? null) : null,
+                    'label' => is_array($slotConfig) ? ($slotConfig['label'] ?? null) : null,
+                    'icon' => is_array($slotConfig) ? ($slotConfig['icon'] ?? null) : null,
+                    'order' => is_array($slotConfig) ? ($slotConfig['order'] ?? null) : null,
+                    'permission' => is_array($slotConfig) ? ($slotConfig['permission'] ?? null) : null,
+                ];
+            }
+        }
+
+        // Gather admin routes
+        $adminRoutes = [];
+        $adminPrefix = "admin/notur/{$extensionId}";
+        foreach (Route::getRoutes() as $route) {
+            $uri = $route->uri();
+            if (!str_starts_with($uri, $adminPrefix)) {
+                continue;
+            }
+
+            $methods = array_values(array_diff($route->methods(), ['HEAD']));
+            $adminRoutes[] = [
+                'methods' => $methods,
+                'uri' => '/' . $uri,
+                'name' => $route->getName(),
+                'action' => $route->getActionName(),
+            ];
+        }
+
+        $adminRouteFile = $manifest['backend']['routes']['admin'] ?? null;
+
         return view('notur::admin.extension-detail', [
             'extension' => $extension,
             'manifest' => $manifest,
             'migrationStatus' => $migrationStatus,
             'permissions' => $permissions,
             'dependencies' => $dependencies,
+            'settingsSchema' => $settingsSchema,
+            'settingsValues' => $settingsValues,
+            'slotRegistrations' => $slotRegistrations,
+            'adminRoutes' => $adminRoutes,
+            'adminRouteFile' => $adminRouteFile,
+        ]);
+    }
+
+    /**
+     * Show the slot metadata/preview page.
+     */
+    public function slots(): View
+    {
+        $definitions = SlotDefinitions::all();
+        $definitionMap = SlotDefinitions::map();
+        $registrations = $this->manager->getFrontendSlots();
+        $usage = [];
+        $unknown = [];
+
+        foreach ($definitions as $def) {
+            $usage[$def['id']] = [];
+        }
+
+        foreach ($registrations as $extensionId => $slots) {
+            if (!is_array($slots)) {
+                continue;
+            }
+
+            foreach ($slots as $slotId => $slotConfig) {
+                $entry = [
+                    'extensionId' => $extensionId,
+                    'component' => is_array($slotConfig) ? ($slotConfig['component'] ?? null) : null,
+                    'label' => is_array($slotConfig) ? ($slotConfig['label'] ?? null) : null,
+                    'order' => is_array($slotConfig) ? ($slotConfig['order'] ?? null) : null,
+                    'permission' => is_array($slotConfig) ? ($slotConfig['permission'] ?? null) : null,
+                ];
+
+                if (isset($definitionMap[$slotId])) {
+                    $usage[$slotId][] = $entry;
+                } else {
+                    $unknown[$slotId][] = $entry;
+                }
+            }
+        }
+
+        return view('notur::admin.slots', [
+            'definitions' => $definitions,
+            'usage' => $usage,
+            'unknown' => $unknown,
+        ]);
+    }
+
+    /**
+     * Save extension settings from the admin UI.
+     */
+    public function updateSettings(Request $request, string $extensionId): RedirectResponse
+    {
+        $extension = InstalledExtension::where('extension_id', $extensionId)->firstOrFail();
+        $manifest = $extension->manifest ?? [];
+        $schema = $this->buildSettingsSchema($manifest);
+        $fields = $schema['fields'];
+
+        if (empty($fields)) {
+            return redirect()
+                ->back()
+                ->with('error', 'This extension does not define any settings.');
+        }
+
+        $errors = [];
+        $valuesToSave = [];
+        $settingsInput = $request->input('settings', []);
+        if (!is_array($settingsInput)) {
+            $settingsInput = [];
+        }
+
+        foreach ($fields as $field) {
+            $key = $field['key'];
+            $type = $field['type'];
+
+            if ($type === 'boolean') {
+                $value = !empty($settingsInput[$key]);
+            } else {
+                $value = $settingsInput[$key] ?? null;
+            }
+
+            if (($value === null || $value === '') && $field['required'] && $type !== 'boolean') {
+                $errors[$key] = 'This field is required.';
+                continue;
+            }
+
+            if ($type === 'number') {
+                if ($value === null || $value === '') {
+                    $value = null;
+                } elseif (!is_numeric($value)) {
+                    $errors[$key] = 'This field must be a number.';
+                    continue;
+                } else {
+                    $value = $value + 0;
+                }
+            }
+
+            if ($type === 'select') {
+                $optionValues = array_map(
+                    static fn ($option) => (string) $option['value'],
+                    $field['options'] ?? [],
+                );
+
+                if ($value === null || $value === '') {
+                    $value = null;
+                } elseif (!in_array((string) $value, $optionValues, true)) {
+                    $errors[$key] = 'Invalid selection.';
+                    continue;
+                }
+            }
+
+            if ($type === 'string' || $type === 'text') {
+                if ($value !== null) {
+                    $value = (string) $value;
+                }
+            }
+
+            $valuesToSave[$key] = $value;
+        }
+
+        if (!empty($errors)) {
+            return redirect()
+                ->back()
+                ->withErrors($errors)
+                ->withInput();
+        }
+
+        foreach ($valuesToSave as $key => $value) {
+            if ($value === null || $value === '') {
+                ExtensionSetting::where('extension_id', $extensionId)
+                    ->where('key', $key)
+                    ->delete();
+                continue;
+            }
+
+            ExtensionSetting::setValue($extensionId, $key, $value);
+        }
+
+        return redirect()
+            ->back()
+            ->with('success', 'Settings saved.');
+    }
+
+    /**
+     * Preview the settings schema and current values for an extension.
+     */
+    public function settingsPreview(string $extensionId): JsonResponse
+    {
+        $extension = InstalledExtension::where('extension_id', $extensionId)->first();
+        if (!$extension) {
+            return response()->json(['message' => 'Extension not found.'], 404);
+        }
+
+        $manifest = $extension->manifest ?? [];
+        $schema = $this->buildSettingsSchema($manifest);
+        $values = $this->loadSettingsValues($extensionId, $schema['fields']);
+
+        return response()->json([
+            'data' => [
+                'extension' => [
+                    'id' => $extension->extension_id,
+                    'name' => $extension->name,
+                    'version' => $extension->version,
+                ],
+                'schema' => $schema,
+                'values' => $values,
+            ],
         ]);
     }
 
@@ -171,5 +384,114 @@ class ExtensionAdminController extends Controller
         return redirect()
             ->route('admin.notur.extensions')
             ->with('success', "Extension '{$extensionId}' has been disabled.");
+    }
+
+    private function buildSettingsSchema(array $manifest): array
+    {
+        $settings = $manifest['admin']['settings'] ?? [];
+        if (!is_array($settings)) {
+            $settings = [];
+        }
+
+        $fieldsRaw = $settings['fields'] ?? [];
+        if (!is_array($fieldsRaw)) {
+            $fieldsRaw = [];
+        }
+
+        $fields = [];
+
+        foreach ($fieldsRaw as $field) {
+            if (!is_array($field)) {
+                continue;
+            }
+
+            $key = $field['key'] ?? '';
+            if (!is_string($key) || $key === '') {
+                continue;
+            }
+
+            $type = $field['type'] ?? 'string';
+            if (!in_array($type, ['string', 'text', 'boolean', 'number', 'select'], true)) {
+                $type = 'string';
+            }
+
+            $fields[] = [
+                'key' => $key,
+                'label' => $field['label'] ?? $this->labelFromKey($key),
+                'type' => $type,
+                'required' => (bool) ($field['required'] ?? false),
+                'default' => $field['default'] ?? null,
+                'help' => $field['help'] ?? ($field['description'] ?? null),
+                'placeholder' => $field['placeholder'] ?? null,
+                'options' => $this->normalizeOptions($field['options'] ?? []),
+                'input' => $field['input'] ?? null,
+                'public' => (bool) ($field['public'] ?? false),
+            ];
+        }
+
+        return [
+            'title' => $settings['title'] ?? 'Settings',
+            'description' => $settings['description'] ?? null,
+            'fields' => $fields,
+        ];
+    }
+
+    private function loadSettingsValues(string $extensionId, array $fields): array
+    {
+        $values = [];
+
+        foreach ($fields as $field) {
+            $key = $field['key'];
+            $default = $field['default'] ?? null;
+            $values[$key] = ExtensionSetting::getValue($extensionId, $key, $default);
+        }
+
+        return $values;
+    }
+
+    private function normalizeOptions(mixed $options): array
+    {
+        if (!is_array($options)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        if (array_is_list($options)) {
+            foreach ($options as $option) {
+                if (is_array($option)) {
+                    $value = $option['value'] ?? null;
+                    if ($value === null) {
+                        continue;
+                    }
+                    $normalized[] = [
+                        'value' => (string) $value,
+                        'label' => (string) ($option['label'] ?? $value),
+                    ];
+                } else {
+                    $normalized[] = [
+                        'value' => (string) $option,
+                        'label' => (string) $option,
+                    ];
+                }
+            }
+
+            return $normalized;
+        }
+
+        foreach ($options as $value => $label) {
+            $normalized[] = [
+                'value' => (string) $value,
+                'label' => (string) $label,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private function labelFromKey(string $key): string
+    {
+        $label = str_replace(['.', '-', '_'], ' ', $key);
+        return ucwords($label);
     }
 }

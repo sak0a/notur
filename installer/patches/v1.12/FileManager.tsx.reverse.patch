@@ -1,0 +1,25 @@
+--- a/resources/scripts/components/server/files/FileManagerContainer.tsx	2026-02-03 00:00:00
++++ b/resources/scripts/components/server/files/FileManagerContainer.tsx	2026-02-03 00:00:00
+@@ -76,8 +76,6 @@
+                     <Can action={'file.create'}>
+                         <div className={style.manager_actions}>
+                             <FileManagerStatus />
+-                            {/* [Notur] File manager toolbar extension slot */}
+-                            <div id="notur-slot-server.files.actions" style={{ display: 'contents' }}></div>
+                             <NewDirectoryButton />
+                             <UploadButton />
+                             <NavLink to={`/server/${id}/files/new${window.location.hash}`}>
+@@ -90,7 +89,6 @@
+             </ErrorBoundary>
+-            <div id="notur-slot-server.files.header" style={{ display: 'contents' }}></div>
+             {!files ? (
+                 <Spinner size={'large'} centered />
+             ) : (
+@@ -121,7 +119,6 @@
+                     )}
+                 </>
+             )}
+-            <div id="notur-slot-server.files.footer" style={{ display: 'contents' }}></div>
+         </ServerContentBlock>
+     );
+ };
