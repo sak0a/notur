@@ -51,6 +51,8 @@ jobs:
             cd /var/www/pterodactyl
 
             # Install from current branch via path repository (tests latest code, not Packagist)
+            git config --global --add safe.directory /opt/notur
+            composer config platform.php 8.2.30 --no-interaction
             composer config repositories.notur path /opt/notur --no-interaction
             composer require notur/notur:@dev --no-interaction 2>&1
 
@@ -111,6 +113,7 @@ jobs:
               echo "Bridge runtime missing; building..."
               if [ -d "vendor/notur/notur/bridge" ]; then
                 cd vendor/notur/notur/bridge
+                export NODE_OPTIONS=--openssl-legacy-provider
                 bun install --frozen-lockfile 2>&1 || npm install 2>&1
                 if ! bun run build 2>&1; then
                   if ! bunx webpack --mode production 2>&1; then
