@@ -57,7 +57,7 @@ jobs:
             composer config platform.php 8.2.30 --no-interaction
             composer config audit.block-insecure false --no-interaction
             composer config audit.ignore "PKSA-8qx3-n5y5-vvnd,PKSA-w7xr-vk7n-rstm" --no-interaction
-            composer config repositories.notur '{"type":"path","url":"/opt/notur","options":{"symlink":false}}' --no-interaction
+            composer config repositories.notur "{\"type\":\"path\",\"url\":\"/opt/notur\",\"options\":{\"symlink\":false}}" --no-interaction
             if ! COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_DISABLE_AUDIT=1 composer require notur/notur:@dev --no-interaction --with-all-dependencies 2>&1; then
               echo "Composer require failed. Retrying once with verbose output..."
               COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_DISABLE_AUDIT=1 composer require notur/notur:@dev --no-interaction --with-all-dependencies -vvv
