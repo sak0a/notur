@@ -124,8 +124,7 @@ function mountThemeRoot(registry: PluginRegistry): void {
 
     const element = React.createElement(
         ThemeProvider,
-        { registry },
-        null, // No visible children — just syncs CSS vars
+        { registry, children: null }, // No visible children — just syncs CSS vars
     );
 
     ReactDOM.render(element, mountPoint);

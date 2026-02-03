@@ -31,10 +31,7 @@ class MigrationManager
                 continue;
             }
 
-            require_once $file;
-
-            $class = $this->resolveMigrationClass($migrationName);
-            $instance = new $class();
+            $instance = $this->resolveMigration($file, $migrationName);
 
             DB::transaction(function () use ($instance) {
                 $instance->up();
@@ -67,10 +64,7 @@ class MigrationManager
             $file = $migrationsPath . '/' . $record->migration . '.php';
 
             if (file_exists($file)) {
-                require_once $file;
-
-                $class = $this->resolveMigrationClass($record->migration);
-                $instance = new $class();
+                $instance = $this->resolveMigration($file, $record->migration);
 
                 DB::transaction(function () use ($instance) {
                     $instance->down();
@@ -128,10 +122,19 @@ class MigrationManager
         return ($max ?? 0) + 1;
     }
 
-    private function resolveMigrationClass(string $migrationName): string
+    private function resolveMigration(string $file, string $migrationName): object
     {
-        // Remove date prefix and convert to StudlyCase
+        $result = require $file;
+
+        // Anonymous class migrations return an instance directly
+        if (is_object($result)) {
+            return $result;
+        }
+
+        // Named class: resolve from filename (remove date prefix, convert to StudlyCase)
         $name = preg_replace('/^\d{4}_\d{2}_\d{2}_\d{6}_/', '', $migrationName);
-        return str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
+        $class = str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
+
+        return new $class();
     }
 }

@@ -8,10 +8,10 @@
         "sdk"
     ],
     "scripts": {
-        "build:bridge": "cd bridge && webpack --mode production",
-        "build:sdk": "cd sdk && tsc",
+        "build:bridge": "bunx webpack-cli --mode production --config bridge/webpack.config.js",
+        "build:sdk": "cd sdk && bunx tsc",
         "build": "bun run build:bridge && bun run build:sdk",
-        "dev:bridge": "cd bridge && webpack --mode development --watch",
+        "dev:bridge": "bunx webpack-cli --mode development --watch --config bridge/webpack.config.js",
         "test:frontend": "jest --config tests/Frontend/jest.config.js"
     },
     "devDependencies": {

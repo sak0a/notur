@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3']
+        php: ['8.3', '8.4']
 
     steps:
       - uses: actions/checkout@v4
@@ -120,7 +120,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['18', '20', '22']
+        node: ['20', '22']
 
     steps:
       - uses: actions/checkout@v4
@@ -158,10 +158,26 @@ jobs:
       - name: Clone Pterodactyl Panel
         run: git clone --depth 1 https://github.com/pterodactyl/panel.git /tmp/pterodactyl-panel
 
-      - name: Verify patches apply
+      - name: Verify forward patches apply
         run: |
           cd /tmp/pterodactyl-panel
           for patch in $GITHUB_WORKSPACE/installer/patches/v1.11/*.patch; do
+            [[ "$(basename "$patch")" == *.reverse.patch ]] && continue
+            echo "Testing: $(basename $patch)"
+            patch --dry-run -p1 < "$patch"
+            echo ""
+          done
+
+      - name: Verify reverse patches apply
+        run: |
+          cd /tmp/pterodactyl-panel
+          # Apply forward patches first so reverse patches have something to reverse
+          for patch in $GITHUB_WORKSPACE/installer/patches/v1.11/*.patch; do
+            [[ "$(basename "$patch")" == *.reverse.patch ]] && continue
+            patch -p1 < "$patch"
+          done
+          for patch in $GITHUB_WORKSPACE/installer/patches/v1.11/*.reverse.patch; do
+            [ -f "$patch" ] || continue
             echo "Testing: $(basename $patch)"
             patch --dry-run -p1 < "$patch"
             echo ""
