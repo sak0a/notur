@@ -232,7 +232,7 @@ class ExtensionManager
             };
 
             $middleware = match ($group) {
-                'api-client' => ['client-api'],
+                'api-client' => ['api', 'client-api', 'throttle:api.client'],
                 'admin' => ['web', 'admin'],
                 'web' => ['web'],
                 default => ['web'],
