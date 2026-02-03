@@ -146,6 +146,7 @@ The update command checks the registry for newer versions and reinstalls them wi
 ### Syncing the Registry
 
 The registry is a remote index of available extensions. Sync it to keep your local cache current.
+Cache expiry is controlled by `notur.registry_cache_ttl` (seconds) in `config/notur.php`.
 
 ```bash
 # Sync registry (respects cache TTL of 1 hour)
@@ -153,6 +154,9 @@ php artisan notur:registry:sync
 
 # Force a fresh fetch
 php artisan notur:registry:sync --force
+
+# Show cache status (age, size, extensions)
+php artisan notur:registry:status
 
 # Search the registry
 php artisan notur:registry:sync --search "analytics"
@@ -168,6 +172,12 @@ php artisan notur:dev /path/to/my-extension
 
 # Use symlink mode
 php artisan notur:dev /path/to/my-extension --link
+
+# Watch frontend bundle and rebuild on changes
+php artisan notur:dev /path/to/my-extension --watch
+
+# Also watch the Notur bridge runtime
+php artisan notur:dev /path/to/my-extension --watch --watch-bridge
 ```
 
 ### Scaffolding New Extensions

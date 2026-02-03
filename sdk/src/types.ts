@@ -9,13 +9,47 @@ export interface CssIsolationConfig {
     className?: string;
 }
 
+export interface SlotRenderContext {
+    path: string;
+    area: 'server' | 'dashboard' | 'account' | 'admin' | 'auth' | 'other';
+    isServer: boolean;
+    isDashboard: boolean;
+    isAccount: boolean;
+    isAdmin: boolean;
+    isAuth: boolean;
+    permissions: string[] | null;
+}
+
+export interface SlotRenderWhen {
+    area?: SlotRenderContext['area'];
+    areas?: Array<SlotRenderContext['area']>;
+    path?: string | string[];
+    pathStartsWith?: string | string[];
+    pathIncludes?: string | string[];
+    pathMatches?: string | RegExp;
+    permission?: string | string[];
+    server?: boolean;
+    dashboard?: boolean;
+    account?: boolean;
+    admin?: boolean;
+    auth?: boolean;
+}
+
+export type SlotRenderCondition =
+    | boolean
+    | SlotRenderWhen
+    | ((context: SlotRenderContext) => boolean);
+
 export interface SlotConfig {
     slot: string;
     component: React.ComponentType<any>;
     order?: number;
+    priority?: number;
     label?: string;
     icon?: string;
     permission?: string;
+    props?: Record<string, any>;
+    when?: SlotRenderCondition;
 }
 
 export interface RouteConfig {
@@ -41,10 +75,13 @@ export interface SlotRegistration {
     slot: string;
     component: React.ComponentType<any>;
     order?: number;
+    priority?: number;
     label?: string;
     icon?: string;
     permission?: string;
     scopeClass?: string;
+    props?: Record<string, any>;
+    when?: SlotRenderCondition;
 }
 
 export interface RouteRegistration {

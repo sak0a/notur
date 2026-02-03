@@ -553,6 +553,7 @@ The Notur config file (`config/notur.php`) exposes the following keys:
 | `require_signatures` | `bool` | `false` | Require Ed25519 signatures on `.notur` archives |
 | `registry_url` | `string` | `'https://raw.githubusercontent.com/notur/registry/main'` | Remote registry base URL |
 | `registry_cache_path` | `string` | `storage_path('notur/registry-cache.json')` | Local registry cache file |
+| `registry_cache_ttl` | `int` | `3600` | Registry cache TTL in seconds (0 disables expiry) |
 | `public_key` | `string` | `env('NOTUR_PUBLIC_KEY', '')` | Ed25519 public key for signature verification |
 
 ---
@@ -571,10 +572,11 @@ All commands are prefixed with `notur:` in Artisan.
 | `notur:update` | `notur:update {extension?} [--check]` | Update one or all extensions |
 | `notur:new` | `notur:new {id} [--path=] [--preset=] [--with-api-routes|--no-api-routes] [--with-admin-routes|--no-admin-routes] [--with-frontend|--no-frontend] [--with-admin|--no-admin] [--with-migrations|--no-migrations] [--with-tests|--no-tests]` | Scaffold a new extension from templates |
 | `notur:validate` | `notur:validate {path?} [--strict]` | Validate an extension manifest and settings schema |
-| `notur:dev` | `notur:dev {path} [--link]` | Link a local extension for development |
+| `notur:dev` | `notur:dev {path} [--link] [--watch] [--watch-bridge]` | Link a local extension for development |
 | `notur:export` | `notur:export {path?} [--output=] [--sign]` | Export extension as `.notur` archive |
 | `notur:build` | `notur:build` | Build extension frontend assets |
 | `notur:registry:sync` | `notur:registry:sync [--search=] [--force]` | Sync or search the extension registry |
+| `notur:registry:status` | `notur:registry:status [--json]` | Show registry cache status |
 | `notur:uninstall` | `notur:uninstall [--confirm]` | Completely remove Notur from the panel |
 
 ### Preset Definitions

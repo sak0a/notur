@@ -50,7 +50,9 @@ export function createDevTools(registry: PluginRegistry): DevToolsApi {
                 if (regs.length > 0) {
                     console.group(`  ${id} (${regs.length} components)`);
                     for (const reg of regs) {
-                        console.log(`    [${reg.order ?? 0}] ${reg.extensionId} — ${reg.component.displayName || reg.component.name || 'Anonymous'}`);
+                        const priority = reg.priority ?? 0;
+                        const order = reg.order ?? 0;
+                        console.log(`    [p${priority} o${order}] ${reg.extensionId} — ${reg.component.displayName || reg.component.name || 'Anonymous'}`);
                     }
                     console.groupEnd();
                 }

@@ -514,6 +514,7 @@
                                     <th>Slot</th>
                                     <th>Component</th>
                                     <th>Order</th>
+                                    <th>Priority</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -526,8 +527,15 @@
                                             @else
                                                 <span class="text-muted">N/A</span>
                                             @endif
+                                            @if(!empty($slot['props']))
+                                                <br><small class="text-muted">props: {{ \Illuminate\Support\Str::limit(json_encode($slot['props']), 80) }}</small>
+                                            @endif
+                                            @if(!empty($slot['when']))
+                                                <br><small class="text-muted">when: {{ \Illuminate\Support\Str::limit(json_encode($slot['when']), 80) }}</small>
+                                            @endif
                                         </td>
                                         <td>{{ $slot['order'] ?? '-' }}</td>
+                                        <td>{{ $slot['priority'] ?? '-' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

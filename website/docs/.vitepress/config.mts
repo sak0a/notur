@@ -53,7 +53,7 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/notur/notur' },
+      { icon: 'github', link: 'https://github.com/sak0a/notur' },
     ],
 
     search: {
@@ -61,12 +61,12 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: 'https://github.com/notur/notur/edit/main/website/docs/:path',
+      pattern: 'https://github.com/sak0a/notur/edit/master/website/docs/:path',
     },
 
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2024-present Notur Contributors',
+      copyright: 'Copyright © 2026-present Notur Contributors, a project by sak0a',
     },
   },
 

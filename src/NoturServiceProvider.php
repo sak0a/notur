@@ -15,6 +15,7 @@ use Notur\Console\Commands\InstallCommand;
 use Notur\Console\Commands\KeygenCommand;
 use Notur\Console\Commands\ListCommand;
 use Notur\Console\Commands\NewCommand;
+use Notur\Console\Commands\RegistryStatusCommand;
 use Notur\Console\Commands\RegistrySyncCommand;
 use Notur\Console\Commands\RemoveCommand;
 use Notur\Console\Commands\UninstallCommand;
@@ -50,6 +51,7 @@ class NoturServiceProvider extends ServiceProvider
             return new Support\RegistryClient(
                 client: new \GuzzleHttp\Client(),
                 registryUrl: config('notur.registry_url', 'https://raw.githubusercontent.com/notur/registry/main'),
+                cacheTtl: (int) config('notur.registry_cache_ttl', 3600),
                 cachePath: config('notur.registry_cache_path'),
             );
         });
@@ -90,6 +92,7 @@ class NoturServiceProvider extends ServiceProvider
                 ExportCommand::class,
                 KeygenCommand::class,
                 RegistrySyncCommand::class,
+                RegistryStatusCommand::class,
                 NewCommand::class,
                 ValidateCommand::class,
                 UninstallCommand::class,

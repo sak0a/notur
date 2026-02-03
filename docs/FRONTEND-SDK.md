@@ -157,11 +157,16 @@ interface SlotConfig {
     slot: string;                          // Slot ID (see Slot System below)
     component: React.ComponentType<any>;   // React component to render
     order?: number;                        // Render order (lower = first, default: 0)
+    priority?: number;                     // Priority (higher renders earlier, default: 0)
     label?: string;                        // Display label (for nav slots)
     icon?: string;                         // Icon name (for nav slots)
     permission?: string;                   // Required permission
+    props?: Record<string, any>;           // Static props passed to the component
+    when?: SlotRenderCondition;            // Conditional render rules
 }
 ```
+
+Slots are sorted by `priority` (higher first), then by `order` (lower first).
 
 ### `RouteConfig`
 
@@ -216,6 +221,33 @@ Access it via:
 import { getNoturApi } from '@notur/sdk';
 
 const api = getNoturApi();  // throws if bridge.js hasn't loaded yet
+```
+
+### Conditional Slot Rendering
+
+Use the `when` field on a slot to control when it renders. It supports:
+
+- `area` / `areas`: `'server' | 'dashboard' | 'account' | 'admin' | 'auth' | 'other'`
+- `server`, `dashboard`, `account`, `admin`, `auth`: boolean flags
+- `path` or `pathStartsWith`: string or array of strings
+- `pathIncludes`: string or array of strings
+- `pathMatches`: RegExp or regex string
+- `permission`: string or array of strings (uses server permissions when available)
+
+```typescript
+slots: [
+    {
+        slot: 'server.subnav',
+        component: AnalyticsNav,
+        when: { server: true, permission: 'analytics.view' },
+    },
+    {
+        slot: 'dashboard.widgets',
+        component: DashboardWidget,
+        when: { pathStartsWith: '/dashboard' },
+        props: { compact: true },
+    },
+]
 ```
 
 ---

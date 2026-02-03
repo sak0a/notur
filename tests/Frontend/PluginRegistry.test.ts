@@ -41,6 +41,21 @@ describe('PluginRegistry', () => {
             expect(slots[2].extensionId).toBe('a');
         });
 
+        it('sorts slots by priority then order', () => {
+            const comp1 = () => React.createElement('div', null, '1');
+            const comp2 = () => React.createElement('div', null, '2');
+            const comp3 = () => React.createElement('div', null, '3');
+
+            registry.registerSlot({ extensionId: 'a', slot: 'navbar' as any, component: comp1, priority: 10, order: 50 });
+            registry.registerSlot({ extensionId: 'b', slot: 'navbar' as any, component: comp2, priority: 5, order: 1 });
+            registry.registerSlot({ extensionId: 'c', slot: 'navbar' as any, component: comp3, priority: 10, order: 5 });
+
+            const slots = registry.getSlot('navbar' as any);
+            expect(slots[0].extensionId).toBe('c');
+            expect(slots[1].extensionId).toBe('a');
+            expect(slots[2].extensionId).toBe('b');
+        });
+
         it('notifies listeners on slot registration', () => {
             const listener = jest.fn();
             registry.on('slot:dashboard.widgets', listener);

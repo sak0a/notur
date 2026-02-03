@@ -52,6 +52,12 @@
                                                     @if(!empty($entry['component']))
                                                         <span class="label label-default">{{ $entry['component'] }}</span>
                                                     @endif
+                                                    @if(isset($entry['priority']))
+                                                        <span class="label label-primary">p{{ $entry['priority'] ?? 0 }}</span>
+                                                    @endif
+                                                    @if(isset($entry['order']))
+                                                        <span class="label label-default">o{{ $entry['order'] ?? 0 }}</span>
+                                                    @endif
                                                     @if(!empty($entry['label']))
                                                         <small class="text-muted">{{ $entry['label'] }}</small>
                                                     @endif
@@ -88,6 +94,12 @@
                                         <code>{{ $entry['extensionId'] }}</code>
                                         @if(!empty($entry['component']))
                                             <span class="label label-default">{{ $entry['component'] }}</span>
+                                        @endif
+                                        @if(isset($entry['priority']))
+                                            <span class="label label-primary">p{{ $entry['priority'] ?? 0 }}</span>
+                                        @endif
+                                        @if(isset($entry['order']))
+                                            <span class="label label-default">o{{ $entry['order'] ?? 0 }}</span>
                                         @endif
                                         @if(!empty($entry['label']))
                                             <small class="text-muted">{{ $entry['label'] }}</small>

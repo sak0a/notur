@@ -1,14 +1,48 @@
 import { SlotId } from './slots/SlotDefinitions';
 
+export interface SlotRenderContext {
+    path: string;
+    area: 'server' | 'dashboard' | 'account' | 'admin' | 'auth' | 'other';
+    isServer: boolean;
+    isDashboard: boolean;
+    isAccount: boolean;
+    isAdmin: boolean;
+    isAuth: boolean;
+    permissions: string[] | null;
+}
+
+export interface SlotRenderWhen {
+    area?: SlotRenderContext['area'];
+    areas?: Array<SlotRenderContext['area']>;
+    path?: string | string[];
+    pathStartsWith?: string | string[];
+    pathIncludes?: string | string[];
+    pathMatches?: string | RegExp;
+    permission?: string | string[];
+    server?: boolean;
+    dashboard?: boolean;
+    account?: boolean;
+    admin?: boolean;
+    auth?: boolean;
+}
+
+export type SlotRenderCondition =
+    | boolean
+    | SlotRenderWhen
+    | ((context: SlotRenderContext) => boolean);
+
 export interface SlotRegistration {
     extensionId: string;
     slot: SlotId;
     component: React.ComponentType<any>;
     order?: number;
+    priority?: number;
     label?: string;
     icon?: string;
     permission?: string;
     scopeClass?: string;
+    props?: Record<string, any>;
+    when?: SlotRenderCondition;
 }
 
 export interface RouteRegistration {
@@ -61,12 +95,25 @@ export class PluginRegistry {
         const reg: SlotRegistration = {
             extensionId: registration.extensionId || 'unknown',
             order: 0,
+            priority: 0,
             ...registration,
         };
 
         const existing = this.slotRegistrations.get(reg.slot) || [];
         existing.push(reg);
-        existing.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        existing.sort((a, b) => {
+            const priorityDiff = (b.priority ?? 0) - (a.priority ?? 0);
+            if (priorityDiff !== 0) {
+                return priorityDiff;
+            }
+
+            const orderDiff = (a.order ?? 0) - (b.order ?? 0);
+            if (orderDiff !== 0) {
+                return orderDiff;
+            }
+
+            return (a.extensionId || '').localeCompare(b.extensionId || '');
+        });
         this.slotRegistrations.set(reg.slot, existing);
 
         this.emit('slot:' + reg.slot);

@@ -210,6 +210,10 @@ class RegistryClient
         // Support both wrapped (fetched_at + registry) and unwrapped formats
         if (isset($cacheData['fetched_at'], $cacheData['registry'])) {
             if (!$ignoreExpiry) {
+                if ($this->cacheTtl <= 0) {
+                    return $cacheData['registry'];
+                }
+
                 $fetchedAt = strtotime($cacheData['fetched_at']);
                 if ($fetchedAt !== false && (time() - $fetchedAt) > $this->cacheTtl) {
                     return null; // Cache expired
@@ -245,6 +249,23 @@ class RegistryClient
             if ($cached !== null) {
                 $this->index = $cached;
                 return $this->index;
+            }
+
+            try {
+                $this->syncToCache($cachePath);
+                $cached = $this->loadFromCache($cachePath, ignoreExpiry: true);
+                if ($cached !== null) {
+                    $this->index = $cached;
+                    return $this->index;
+                }
+            } catch (\Throwable $e) {
+                $stale = $this->loadFromCache($cachePath, ignoreExpiry: true);
+                if ($stale !== null) {
+                    $this->index = $stale;
+                    return $this->index;
+                }
+
+                throw $e;
             }
         }
 

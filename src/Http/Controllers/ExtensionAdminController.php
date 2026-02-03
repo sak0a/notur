@@ -114,7 +114,10 @@ class ExtensionAdminController extends Controller
                     'label' => is_array($slotConfig) ? ($slotConfig['label'] ?? null) : null,
                     'icon' => is_array($slotConfig) ? ($slotConfig['icon'] ?? null) : null,
                     'order' => is_array($slotConfig) ? ($slotConfig['order'] ?? null) : null,
+                    'priority' => is_array($slotConfig) ? ($slotConfig['priority'] ?? null) : null,
                     'permission' => is_array($slotConfig) ? ($slotConfig['permission'] ?? null) : null,
+                    'props' => is_array($slotConfig) ? ($slotConfig['props'] ?? null) : null,
+                    'when' => is_array($slotConfig) ? ($slotConfig['when'] ?? null) : null,
                 ];
             }
         }
@@ -183,13 +186,16 @@ class ExtensionAdminController extends Controller
             }
 
             foreach ($slots as $slotId => $slotConfig) {
-                $entry = [
-                    'extensionId' => $extensionId,
-                    'component' => is_array($slotConfig) ? ($slotConfig['component'] ?? null) : null,
-                    'label' => is_array($slotConfig) ? ($slotConfig['label'] ?? null) : null,
-                    'order' => is_array($slotConfig) ? ($slotConfig['order'] ?? null) : null,
-                    'permission' => is_array($slotConfig) ? ($slotConfig['permission'] ?? null) : null,
-                ];
+                    $entry = [
+                        'extensionId' => $extensionId,
+                        'component' => is_array($slotConfig) ? ($slotConfig['component'] ?? null) : null,
+                        'label' => is_array($slotConfig) ? ($slotConfig['label'] ?? null) : null,
+                        'order' => is_array($slotConfig) ? ($slotConfig['order'] ?? null) : null,
+                        'priority' => is_array($slotConfig) ? ($slotConfig['priority'] ?? null) : null,
+                        'permission' => is_array($slotConfig) ? ($slotConfig['permission'] ?? null) : null,
+                        'props' => is_array($slotConfig) ? ($slotConfig['props'] ?? null) : null,
+                        'when' => is_array($slotConfig) ? ($slotConfig['when'] ?? null) : null,
+                    ];
 
                 if (isset($definitionMap[$slotId])) {
                     $usage[$slotId][] = $entry;
@@ -212,6 +218,69 @@ class ExtensionAdminController extends Controller
     public function diagnostics(): View
     {
         return view('notur::admin.diagnostics');
+    }
+
+    /**
+     * Show the extension health overview page.
+     */
+    public function health(): View
+    {
+        $extensions = InstalledExtension::all();
+        $healthData = [];
+
+        foreach ($extensions as $extension) {
+            $manifest = $extension->manifest ?? [];
+            $healthDefinitions = $manifest['health']['checks'] ?? [];
+            if (!is_array($healthDefinitions)) {
+                $healthDefinitions = [];
+            }
+
+            $healthResults = $this->manager->getHealthChecks($extension->extension_id);
+            $healthResultMap = [];
+            foreach ($healthResults as $result) {
+                if (!empty($result['id'])) {
+                    $healthResultMap[$result['id']] = $result;
+                }
+            }
+
+            $statusCounts = [
+                'ok' => 0,
+                'warning' => 0,
+                'error' => 0,
+                'unknown' => 0,
+            ];
+            $criticalFailures = 0;
+
+            foreach ($healthDefinitions as $definition) {
+                $checkId = $definition['id'] ?? null;
+                if (!$checkId) {
+                    continue;
+                }
+
+                $result = $healthResultMap[$checkId] ?? null;
+                $status = $result['status'] ?? 'unknown';
+                $statusCounts[$status] = ($statusCounts[$status] ?? 0) + 1;
+
+                $severity = strtolower((string) ($definition['severity'] ?? ''));
+                if ($severity === 'critical' && in_array($status, ['warning', 'error'], true)) {
+                    $criticalFailures++;
+                }
+            }
+
+            $healthData[] = [
+                'extension' => $extension,
+                'manifest' => $manifest,
+                'healthDefinitions' => $healthDefinitions,
+                'healthResults' => $healthResults,
+                'healthResultMap' => $healthResultMap,
+                'statusCounts' => $statusCounts,
+                'criticalFailures' => $criticalFailures,
+            ];
+        }
+
+        return view('notur::admin.health', [
+            'healthData' => $healthData,
+        ]);
     }
 
     /**
