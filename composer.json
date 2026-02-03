@@ -22,7 +22,7 @@
         "illuminate/routing": "^10.0 || ^11.0",
         "illuminate/events": "^10.0 || ^11.0",
         "illuminate/view": "^10.0 || ^11.0",
-        "symfony/yaml": "^7.0",
+        "symfony/yaml": "^6.2 || ^7.0",
         "guzzlehttp/guzzle": "^7.0"
     },
     "require-dev": {
