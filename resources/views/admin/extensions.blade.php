@@ -68,6 +68,113 @@
                 </div>
             </div>
 
+            {{-- Search Registry --}}
+            <div class="box box-info">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Search Registry</h3>
+                    <div class="box-tools pull-right">
+                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="box-body">
+                    <form action="{{ route('admin.notur.extensions') }}" method="GET">
+                        <div class="row">
+                            <div class="col-md-10">
+                                <div class="form-group">
+                                    <label for="registry_search">Search</label>
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="registry_search"
+                                        name="q"
+                                        value="{{ $registryQuery ?? '' }}"
+                                        placeholder="Search by name, ID, tag, or description"
+                                    >
+                                    <p class="help-block">Results come from the Notur registry index.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-2" style="padding-top: 25px;">
+                                <button type="submit" class="btn btn-info btn-block">
+                                    <i class="fa fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    @if(!empty($registryError))
+                        <div class="alert alert-danger" style="margin-top: 15px;">
+                            Registry search failed: {{ $registryError }}
+                        </div>
+                    @endif
+
+                    @if(!empty($registryQuery))
+                        @if(empty($registryResults))
+                            <div class="callout callout-info" style="margin-top: 15px;">
+                                <p>No registry results found for <strong>{{ $registryQuery }}</strong>.</p>
+                            </div>
+                        @else
+                            <div class="table-responsive" style="margin-top: 10px;">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Extension</th>
+                                            <th>ID</th>
+                                            <th>Latest</th>
+                                            <th>Description</th>
+                                            <th>Tags</th>
+                                            <th class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($registryResults as $result)
+                                            @php
+                                                $resultId = $result['id'] ?? '';
+                                                $resultTags = $result['tags'] ?? [];
+                                                $resultVersion = $result['latest_version'] ?? ($result['version'] ?? 'N/A');
+                                            @endphp
+                                            <tr>
+                                                <td>{{ $result['name'] ?? 'Unnamed Extension' }}</td>
+                                                <td><code>{{ $resultId }}</code></td>
+                                                <td>{{ $resultVersion }}</td>
+                                                <td>
+                                                    @if(!empty($result['description']))
+                                                        <small>{{ \Illuminate\Support\Str::limit($result['description'], 80) }}</small>
+                                                    @else
+                                                        <small class="text-muted">No description</small>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if(!empty($resultTags))
+                                                        @foreach($resultTags as $tag)
+                                                            <span class="label label-default">{{ $tag }}</span>
+                                                        @endforeach
+                                                    @else
+                                                        <small class="text-muted">None</small>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    @if(!empty($installedIds) && in_array($resultId, $installedIds, true))
+                                                        <span class="label label-success">Installed</span>
+                                                    @else
+                                                        <form action="{{ route('admin.notur.extensions.install') }}" method="POST" style="display: inline;">
+                                                            @csrf
+                                                            <input type="hidden" name="registry_id" value="{{ $resultId }}">
+                                                            <button type="submit" class="btn btn-xs btn-success" title="Install">
+                                                                <i class="fa fa-download"></i> Install
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    @endif
+                </div>
+            </div>
+
             {{-- Installed Extensions --}}
             <div class="box box-primary">
                 <div class="box-header with-border">

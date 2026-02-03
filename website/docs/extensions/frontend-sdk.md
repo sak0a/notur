@@ -485,7 +485,7 @@ All Notur theme variables are prefixed with `--notur-`. Extensions should use th
 | `--notur-primary` | `#0967d2` | Primary accent color |
 | `--notur-primary-light` | `#47a3f3` | Light primary |
 | `--notur-primary-dark` | `#03449e` | Dark primary |
-| `--notur-secondary` | `#616e7c` | Secondary color |
+| `--notur-secondary` | `#7c8b9a` | Secondary color |
 | `--notur-success` | `#27ab83` | Success / positive |
 | `--notur-danger` | `#e12d39` | Danger / destructive |
 | `--notur-warning` | `#f7c948` | Warning |
@@ -495,26 +495,36 @@ All Notur theme variables are prefixed with `--notur-`. Extensions should use th
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `--notur-bg-primary` | `#1f2933` | Primary background |
-| `--notur-bg-secondary` | `#323f4b` | Secondary background (cards, inputs) |
-| `--notur-bg-tertiary` | `#3e4c59` | Tertiary background (hover states) |
+| `--notur-bg-primary` | `#0b0d10` | Primary background |
+| `--notur-bg-secondary` | `rgba(17, 19, 24, 0.68)` | Secondary background (cards, inputs) |
+| `--notur-bg-tertiary` | `rgba(25, 28, 35, 0.8)` | Tertiary background (hover states) |
 
 #### Text
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `--notur-text-primary` | `#f5f7fa` | Primary text |
-| `--notur-text-secondary` | `#cbd2d9` | Secondary text |
-| `--notur-text-muted` | `#9aa5b1` | Muted / placeholder text |
+| `--notur-text-primary` | `#f1f5f9` | Primary text |
+| `--notur-text-secondary` | `#cbd5e1` | Secondary text |
+| `--notur-text-muted` | `#94a3b8` | Muted / placeholder text |
 
 #### Borders and Radius
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `--notur-border` | `#3e4c59` | Border color |
-| `--notur-radius-sm` | `4px` | Small border radius |
-| `--notur-radius-md` | `8px` | Medium border radius |
-| `--notur-radius-lg` | `12px` | Large border radius |
+| `--notur-border` | `rgba(148, 163, 184, 0.18)` | Border color |
+| `--notur-radius-sm` | `6px` | Small border radius |
+| `--notur-radius-md` | `12px` | Medium border radius |
+| `--notur-radius-lg` | `18px` | Large border radius |
+
+#### Glass Effects
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `--notur-glass-bg` | `rgba(17, 19, 24, 0.55)` | Glass surface background |
+| `--notur-glass-border` | `rgba(255, 255, 255, 0.12)` | Glass border |
+| `--notur-glass-highlight` | `rgba(255, 255, 255, 0.06)` | Subtle highlight for glass edges |
+| `--notur-glass-shadow` | `0 16px 40px rgba(0, 0, 0, 0.55)` | Soft depth shadow |
+| `--notur-glass-blur` | `16px` | Backdrop blur amount |
 
 #### Typography
 
@@ -527,10 +537,12 @@ All Notur theme variables are prefixed with `--notur-`. Extensions should use th
 
 ```css
 .my-widget {
-    background: var(--notur-bg-secondary);
+    background: var(--notur-glass-bg, var(--notur-bg-secondary));
     color: var(--notur-text-primary);
-    border: 1px solid var(--notur-border);
-    border-radius: var(--notur-radius-md);
+    border: 1px solid var(--notur-glass-border, var(--notur-border));
+    border-radius: var(--notur-radius-lg);
+    box-shadow: var(--notur-glass-shadow, 0 12px 30px rgba(0, 0, 0, 0.35));
+    backdrop-filter: blur(var(--notur-glass-blur, 12px));
     font-family: var(--notur-font-sans);
     padding: 1rem;
 }

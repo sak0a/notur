@@ -3,7 +3,17 @@ import { createExtension } from '@notur/sdk';
 
 const ExampleWidget: React.FC<{ extensionId: string }> = ({ extensionId }) => {
     return (
-        <div style={{ padding: '1rem', background: 'var(--notur-bg-secondary)', borderRadius: 'var(--notur-radius-md)' }}>
+        <div
+            style={{
+                padding: '1rem',
+                background: 'var(--notur-glass-bg, var(--notur-bg-secondary))',
+                border: '1px solid var(--notur-glass-border, var(--notur-border))',
+                borderRadius: 'var(--notur-radius-lg)',
+                boxShadow: 'var(--notur-glass-shadow, 0 12px 30px rgba(0, 0, 0, 0.35))',
+                backdropFilter: 'blur(var(--notur-glass-blur, 12px))',
+                WebkitBackdropFilter: 'blur(var(--notur-glass-blur, 12px))',
+            }}
+        >
             <h3 style={{ color: 'var(--notur-text-primary)' }}>
                 {{displayName}}
             </h3>
