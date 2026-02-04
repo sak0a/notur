@@ -1,4 +1,4 @@
-# PHP API Reference
+# Notur PHP API Reference
 
 This document covers all PHP contracts, interfaces, services, and systems available to extension developers.
 
@@ -163,6 +163,30 @@ interface HasCommands
      * @return array<class-string>
      */
     public function getCommands(): array;
+}
+```
+
+### `HasHealthChecks`
+
+Expose health check results for the admin UI.
+
+```php
+namespace Notur\Contracts;
+
+interface HasHealthChecks
+{
+    /**
+     * Return health check results for this extension.
+     *
+     * Each entry should include:
+     * - id (string)
+     * - status: ok|warning|error|unknown
+     * - message (optional)
+     * - details (optional)
+     *
+     * @return array<int|string, array<string, mixed>>
+     */
+    public function getHealthChecks(): array;
 }
 ```
 
@@ -354,6 +378,17 @@ Route::post('/settings', [StatsController::class, 'updateSettings']);
 
 ---
 
+## Notur Client Endpoints
+
+Notur exposes a small client API for frontend tooling:
+
+- `GET /api/client/notur/slots` — slot registrations for all enabled extensions
+- `GET /api/client/notur/extensions` — extension metadata for all enabled extensions
+- `GET /api/client/notur/extensions/{extension-id}/settings` — public settings (fields with `public: true`)
+- `GET /api/client/notur/config` — Notur config for the bridge runtime
+
+---
+
 ## Permission System
 
 Extensions can define custom permissions in their `extension.yaml`:
@@ -454,6 +489,7 @@ Notur dispatches events during extension lifecycle operations. You can listen fo
 | Event Class | When Dispatched | Payload |
 |---|---|---|
 | `Notur\Events\ExtensionInstalled` | After an extension is installed | `string $extensionId` |
+| `Notur\Events\ExtensionUpdated` | After an extension is updated | `string $extensionId`, `string $fromVersion`, `string $toVersion` |
 | `Notur\Events\ExtensionEnabled` | After an extension is enabled | `string $extensionId` |
 | `Notur\Events\ExtensionDisabled` | After an extension is disabled | `string $extensionId` |
 | `Notur\Events\ExtensionRemoved` | After an extension is removed | `string $extensionId` |
@@ -491,6 +527,21 @@ The `Notur\Models\InstalledExtension` Eloquent model represents a row in the `no
 
 ---
 
+### `ExtensionActivity`
+
+The `Notur\Models\ExtensionActivity` model represents entries in the `notur_activity_logs` table.
+
+**Key attributes:**
+
+| Attribute | Type | Description |
+|---|---|---|
+| `extension_id` | `string` | Extension ID |
+| `action` | `string` | Action name (installed, updated, enabled, disabled, removed) |
+| `summary` | `string` | Human-readable summary |
+| `context` | `array` | Optional structured context |
+
+---
+
 ## Configuration
 
 The Notur config file (`config/notur.php`) exposes the following keys:
@@ -519,10 +570,20 @@ All commands are prefixed with `notur:` in Artisan.
 | `notur:disable` | `notur:disable {extension}` | Disable an extension without removing files |
 | `notur:list` | `notur:list [--enabled] [--disabled]` | List installed extensions |
 | `notur:update` | `notur:update {extension?} [--check]` | Update one or all extensions |
-| `notur:new` | `notur:new {id} [--path=]` | Scaffold a new extension from templates |
+| `notur:new` | `notur:new {id} [--path=] [--preset=] [--with-api-routes|--no-api-routes] [--with-admin-routes|--no-admin-routes] [--with-frontend|--no-frontend] [--with-admin|--no-admin] [--with-migrations|--no-migrations] [--with-tests|--no-tests]` | Scaffold a new extension from templates |
+| `notur:validate` | `notur:validate {path?} [--strict]` | Validate an extension manifest and settings schema |
 | `notur:dev` | `notur:dev {path} [--link] [--watch] [--watch-bridge]` | Link a local extension for development |
 | `notur:export` | `notur:export {path?} [--output=] [--sign]` | Export extension as `.notur` archive |
 | `notur:build` | `notur:build` | Build extension frontend assets |
 | `notur:registry:sync` | `notur:registry:sync [--search=] [--force]` | Sync or search the extension registry |
 | `notur:registry:status` | `notur:registry:status [--json]` | Show registry cache status |
 | `notur:uninstall` | `notur:uninstall [--confirm]` | Completely remove Notur from the panel |
+
+### Preset Definitions
+
+For `notur:new`:
+
+- `standard`: frontend + API routes (default)
+- `backend`: API routes only
+- `full`: frontend + API routes + admin UI + migrations + tests
+- `minimal`: backend-only scaffolding with no routes or frontend

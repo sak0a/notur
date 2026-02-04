@@ -25,6 +25,7 @@ export default defineConfig({
         items: [
           { text: 'Installing Notur', link: '/getting-started/installing' },
           { text: 'Developing Notur', link: '/getting-started/developing' },
+          { text: 'Publishing to npm', link: '/getting-started/publishing-npm' },
         ],
       },
       {
@@ -33,6 +34,7 @@ export default defineConfig({
           { text: 'Creating Extensions', link: '/extensions/guide' },
           { text: 'PHP API Reference', link: '/extensions/api-reference' },
           { text: 'Frontend SDK', link: '/extensions/frontend-sdk' },
+          { text: 'Extension Signing', link: '/extensions/signing' },
           { text: 'Extension Registry', link: '/extensions/registry' },
         ],
       },

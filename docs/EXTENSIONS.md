@@ -185,6 +185,77 @@ Key consumers:
 | `health` | Health system | Declares available health checks. |
 | `schedules` | Scheduler | Declares scheduled tasks with cron or schedule objects. |
 
+### Annotated extension.yaml
+
+```yaml
+notur: "1.0" # Manifest schema version
+id: "acme/server-analytics" # Global unique ID
+name: "Server Analytics" # Display name
+version: "1.0.0" # Semver version
+description: "Real-time server analytics"
+
+authors:
+  - name: "Your Name"
+license: "MIT"
+
+requires:
+  notur: "^1.0" # Minimum Notur runtime
+  pterodactyl: "^1.11" # Panel compatibility
+  php: "^8.2" # PHP runtime requirement
+
+capabilities:
+  routes: "^1"
+  health: "^1"
+  schedules: "^1"
+  css_isolation: "^1"
+
+entrypoint: "Acme\\ServerAnalytics\\ServerAnalyticsExtension" # PHP entry class
+
+autoload:
+  psr-4:
+    "Acme\\ServerAnalytics\\": "src/"
+
+backend:
+  routes:
+    api-client: "src/routes/api-client.php"
+  migrations: "database/migrations"
+  permissions:
+    - "analytics.view"
+
+frontend:
+  bundle: "resources/frontend/dist/extension.js"
+  css_isolation:
+    mode: "root-class"
+  slots:
+    server.subnav:
+      label: "Analytics"
+      icon: "chart-bar"
+      permission: "analytics.view"
+
+admin:
+  settings:
+    title: "Settings"
+    fields:
+      - key: "enabled"
+        label: "Enable Extension"
+        type: "boolean"
+        default: true
+        public: true
+
+health:
+  checks:
+    - id: "db"
+      label: "Database"
+      severity: "critical"
+
+schedules:
+  tasks:
+    - id: "sync"
+      label: "Sync Analytics"
+      command: "acme:analytics:sync"
+      cron: "0 * * * *"
+```
+
 ### Critical alignment rules
 
 If these drift, your extension will load partially or not at all.
@@ -206,6 +277,19 @@ flowchart TD
   B --> G["Expose admin settings schema"]
   F --> H["bridge.js loads bundle"]
   H --> I["createExtension registers slots and routes"]
+```
+
+### Settings and permissions flow
+
+```mermaid
+flowchart TD
+  A["extension.yaml admin.settings"] --> B["Admin UI renders fields"]
+  B --> C["Values stored per extension"]
+  C --> D["Public settings API"]
+  D --> E["useExtensionConfig()"]
+  P["extension.yaml backend.permissions"] --> Q["Permission list registered"]
+  Q --> R["Panel assigns permissions to users"]
+  R --> S["slot/route permission checks and usePermission()"]
 ```
 
 ### Admin Settings Schema
@@ -339,6 +423,15 @@ flowchart LR
   B --> C["Class: notur-ext--vendor-name"]
   C --> D["Your CSS scoped to root class"]
 ```
+
+## Troubleshooting extension.yaml
+
+- Extension not loading: ensure `id` matches `ExtensionInterface::getId()` and `createExtension().config.id`.
+- Routes return 404: ensure `backend.routes` is set and `capabilities.routes` is declared.
+- Frontend not rendering: ensure `frontend.bundle` exists and matches your build output.
+- `useExtensionConfig` returns empty: ensure settings fields are marked `public: true`.
+- CSS isolation not applied: ensure `frontend.css_isolation` is present or `createExtension({ cssIsolation: true })`.
+- Admin settings not visible: ensure `admin.settings` has `fields` and the extension is installed.
 
 ## Step 2: Implement the PHP Entrypoint
 

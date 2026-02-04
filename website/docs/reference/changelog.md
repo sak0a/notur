@@ -1,8 +1,8 @@
-# Changelog
+# Notur Changelog
 
 All notable changes to the Notur Extension Library are documented here.
 
-## [Unreleased]
+## [1.1.1] - 2026-02-04
 
 ### Added
 - **Admin health overview** -- `/admin/notur/health` aggregates extension health checks and highlights critical failures.
@@ -20,7 +20,7 @@ All notable changes to the Notur Extension Library are documented here.
 ### Added
 - **E2E test suite** -- Docker-based end-to-end testing with Pterodactyl Panel, MySQL, and the hello-world extension. Covers install, enable, routes, disable, and remove lifecycle. (`docker/e2e/`, `tests/E2E/`, `.github/workflows/e2e.yml`)
 - **Compatibility matrix testing** -- CI now tests PHP 8.2/8.3 with both MySQL 8.0 and MariaDB 10.6, and frontend builds on Node 18, 20, and 22. Unit tests run separately from integration tests to enable proper DB-dependent testing.
-- **Documentation site** -- Comprehensive documentation for administrators (`docs/ADMIN-GUIDE.md`), PHP API reference (`docs/API-REFERENCE.md`), frontend SDK reference (`docs/FRONTEND-SDK.md`), registry documentation (`docs/REGISTRY.md`), and this changelog.
+- **Documentation site** -- Comprehensive documentation for administrators ([Admin guide](/admin/guide)), PHP API reference ([PHP API Reference](/extensions/api-reference)), frontend SDK reference ([Frontend SDK](/extensions/frontend-sdk)), registry documentation ([Registry](/admin/registry)), and this changelog.
 - **Signature verification** -- Ed25519 signatures for `.notur` archives with `notur.require_signatures` enforcement, `notur:keygen`, and `notur:export --sign`.
 - **Admin Blade UI** -- Extension management page with list, enable/disable, install/remove, and detail views.
 - **Theme extensions** -- CSS variable overrides and Blade view overrides from extension manifests.
@@ -42,10 +42,10 @@ All notable changes to the Notur Extension Library are documented here.
 ## Phase 3: Frontend Slots + SDK
 
 ### Added
-- **All slot renderers** -- Nine predefined slots wired up: `navbar`, `server.subnav`, `server.page`, `server.terminal.buttons`, `server.files.actions`, `dashboard.widgets`, `dashboard.page`, `account.page`, `account.subnav`.
-- **Additional React patches** -- `ServerRouter.tsx` for server subnav/page slots, terminal button and file manager toolbar slots.
+- **All slot renderers** -- Expanded slot set (65 total) including headers/footers, console/file manager slots, and dashboard server list slots.
+- **Additional React patches** -- `DashboardContainer.tsx`, `ServerConsoleContainer.tsx`, `FileManagerContainer.tsx`, and navigation/router updates to expose the new slot containers.
 - **Bridge hooks** -- `useSlot(slotId)` for reactive slot subscriptions, `useExtensionApi({ extensionId })` for scoped HTTP client with CSRF handling, `useExtensionState(extensionId, initialState)` for shared cross-component state.
-- **Theme system** -- CSS custom property extraction from the live Pterodactyl DOM. Three-strategy approach: mapped `--ptero-*` variables, computed style probes on known elements, and stylesheet scanning. `ThemeProvider` wiring with 23 default CSS custom properties.
+- **Theme system** -- CSS custom property extraction from the live Pterodactyl DOM. Three-strategy approach: mapped `--ptero-*` variables, computed style probes on known elements, and stylesheet scanning. `ThemeProvider` wiring with 25 default CSS custom properties.
 - **`notur:new` command** -- Scaffold new extensions from templates. Generates `extension.yaml`, PHP entrypoint, route file, frontend entry, and webpack config.
 - **SDK webpack config** -- Base webpack configuration for extension builds. Externalizes React/ReactDOM, configures TypeScript, outputs UMD bundles.
 - **SDK type exports** -- Published `@notur/sdk` TypeScript types: `ExtensionConfig`, `SlotConfig`, `RouteConfig`, `ExtensionDefinition`, `NoturApi`.

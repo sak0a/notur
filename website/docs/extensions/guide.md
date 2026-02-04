@@ -19,12 +19,51 @@ acme-server-analytics/
 ├── database/
 │   └── migrations/
 │       └── 2024_01_01_000001_create_analytics_table.php
-└── resources/
-    └── frontend/
+    └── resources/
+        └── frontend/
         ├── src/
         │   └── index.tsx       # Frontend entry — calls createExtension()
         └── dist/
             └── extension.js    # Pre-built bundle (shipped with extension)
+```
+
+## Scaffold with CLI (Optional)
+
+You can scaffold a new extension with the Notur CLI:
+
+```bash
+php artisan notur:new acme/server-analytics
+```
+
+### Preset Definitions
+
+- `standard`: frontend + API routes (default)
+- `backend`: API routes only
+- `full`: frontend + API routes + admin UI + migrations + tests
+- `minimal`: backend-only scaffolding with no routes or frontend
+
+### Examples
+```bash
+php artisan notur:new acme/server-analytics --preset=backend
+php artisan notur:new acme/server-analytics --preset=full
+```
+
+Feature toggles:
+```bash
+php artisan notur:new acme/server-analytics --with-api-routes
+php artisan notur:new acme/server-analytics --with-admin-routes
+php artisan notur:new acme/server-analytics --with-admin --with-migrations --with-tests
+```
+Admin UI scaffolding is separate from admin routes; add `--with-admin-routes` to expose admin endpoints.
+
+Validate your extension manifest and settings schema:
+```bash
+php artisan notur:validate /path/to/your-extension
+```
+
+Strict mode (treat warnings as errors):
+```bash
+php artisan notur:validate /path/to/your-extension --strict
 ```
 
 ## Step 1: Create extension.yaml
@@ -44,6 +83,12 @@ requires:
   pterodactyl: "^1.11"
   php: "^8.2"
 
+capabilities:
+  routes: "^1"
+  health: "^1"
+  schedules: "^1"
+  css_isolation: "^1"
+
 entrypoint: "Acme\\ServerAnalytics\\ServerAnalyticsExtension"
 
 autoload:
@@ -60,6 +105,8 @@ backend:
 
 frontend:
   bundle: "resources/frontend/dist/extension.js"
+  css_isolation:
+    mode: "root-class"
   slots:
     server.subnav:
       label: "Analytics"
@@ -68,7 +115,323 @@ frontend:
     dashboard.widgets:
       component: "AnalyticsWidget"
       order: 10
+
+admin:
+  settings:
+    title: "Settings"
+    description: "Configure analytics behavior"
+    fields:
+      - key: "api_key"
+        label: "API Key"
+        type: "string"
+        required: true
+        help: "Used to authenticate with the analytics service."
+      - key: "mode"
+        label: "Mode"
+        type: "select"
+        options:
+          - value: "fast"
+            label: "Fast"
+          - value: "safe"
+            label: "Safe"
+      - key: "enabled"
+        label: "Enable Extension"
+        type: "boolean"
+        default: true
+        public: true
+
+health:
+  checks:
+    - id: "db"
+      label: "Database"
+      description: "Checks analytics database connectivity."
+      severity: "critical"
+
+schedules:
+  tasks:
+    - id: "sync"
+      label: "Sync Analytics"
+      description: "Syncs analytics data every hour."
+      command: "acme:analytics:sync"
+      cron: "0 * * * *"
+      without_overlapping: true
 ```
+
+### Why the manifest exists
+
+`extension.yaml` is the contract between your extension bundle and the Notur loader. The loader uses it to validate compatibility, discover entrypoints, wire routes, and expose frontend assets before any of your PHP or JS code runs.
+
+Key consumers:
+- The Notur loader reads it at install and boot time to register your extension.
+- The admin UI reads it to build settings screens and expose public config.
+- The frontend bridge reads it to know which bundles and CSS isolation settings to load.
+- The CLI uses it for validation and packaging.
+
+### Manifest fields and purpose
+
+| Field | Consumed by | Purpose |
+|---|---|---|
+| `notur` | Loader | Manifest schema version. Lets the loader parse the correct structure. |
+| `id` | Loader, SDK | Global unique ID. Must match `createExtension().config.id` and `ExtensionInterface::getId()`. |
+| `name` | UI | Human readable display name in admin and UI surfaces. |
+| `version` | Loader, UI | Used for compatibility checks, upgrades, and debug output. |
+| `requires` | Loader | Hard compatibility constraints for Notur, Pterodactyl, PHP. Prevents invalid installs. |
+| `capabilities` | Loader | Feature flags that enable specific subsystems like schedules and health checks. |
+| `entrypoint` | Loader | PHP class that boots your extension. |
+| `autoload` | Loader | PSR-4 mapping so the entrypoint class can be loaded. |
+| `backend` | Loader | Route files, migrations, and permissions used by the backend runtime. |
+| `frontend` | Bridge | Frontend bundle path, CSS isolation, and slot metadata. |
+| `admin` | Admin UI | Settings schema and metadata for the admin UI. |
+| `health` | Health system | Declares available health checks. |
+| `schedules` | Scheduler | Declares scheduled tasks with cron or schedule objects. |
+
+### Annotated extension.yaml
+
+```yaml
+notur: "1.0" # Manifest schema version
+id: "acme/server-analytics" # Global unique ID
+name: "Server Analytics" # Display name
+version: "1.0.0" # Semver version
+description: "Real-time server analytics"
+
+authors:
+  - name: "Your Name"
+license: "MIT"
+
+requires:
+  notur: "^1.0" # Minimum Notur runtime
+  pterodactyl: "^1.11" # Panel compatibility
+  php: "^8.2" # PHP runtime requirement
+
+capabilities:
+  routes: "^1"
+  health: "^1"
+  schedules: "^1"
+  css_isolation: "^1"
+
+entrypoint: "Acme\\ServerAnalytics\\ServerAnalyticsExtension" # PHP entry class
+
+autoload:
+  psr-4:
+    "Acme\\ServerAnalytics\\": "src/"
+
+backend:
+  routes:
+    api-client: "src/routes/api-client.php"
+  migrations: "database/migrations"
+  permissions:
+    - "analytics.view"
+
+frontend:
+  bundle: "resources/frontend/dist/extension.js"
+  css_isolation:
+    mode: "root-class"
+  slots:
+    server.subnav:
+      label: "Analytics"
+      icon: "chart-bar"
+      permission: "analytics.view"
+
+admin:
+  settings:
+    title: "Settings"
+    fields:
+      - key: "enabled"
+        label: "Enable Extension"
+        type: "boolean"
+        default: true
+        public: true
+
+health:
+  checks:
+    - id: "db"
+      label: "Database"
+      severity: "critical"
+
+schedules:
+  tasks:
+    - id: "sync"
+      label: "Sync Analytics"
+      command: "acme:analytics:sync"
+      cron: "0 * * * *"
+```
+
+### Critical alignment rules
+
+If these drift, your extension will load partially or not at all.
+
+- `extension.yaml` `id` must equal `ExtensionInterface::getId()`.
+- `extension.yaml` `id` must equal `createExtension({ config: { id } })`.
+- `frontend.bundle` must match your build output path.
+- `entrypoint` must point to a class that implements `ExtensionInterface`.
+
+### How Notur uses the manifest
+
+```mermaid
+flowchart TD
+  A["extension.yaml"] --> B["Notur loader"]
+  B --> C["Validate requirements"]
+  B --> D["Register entrypoint"]
+  B --> E["Register routes, migrations, permissions"]
+  B --> F["Expose frontend bundle path"]
+  B --> G["Expose admin settings schema"]
+  F --> H["bridge.js loads bundle"]
+  H --> I["createExtension registers slots and routes"]
+```
+
+### Settings and permissions flow
+
+```mermaid
+flowchart TD
+  A["extension.yaml admin.settings"] --> B["Admin UI renders fields"]
+  B --> C["Values stored per extension"]
+  C --> D["Public settings API"]
+  D --> E["useExtensionConfig()"]
+  P["extension.yaml backend.permissions"] --> Q["Permission list registered"]
+  Q --> R["Panel assigns permissions to users"]
+  R --> S["slot/route permission checks and usePermission()"]
+```
+
+### Admin Settings Schema
+
+Settings defined under `admin.settings` are rendered in the Notur admin UI and persisted per extension.
+
+Supported field types:
+- `string`
+- `text`
+- `number`
+- `boolean`
+- `select`
+
+Optional field properties:
+- `label`
+- `required`
+- `default`
+- `help` (or `description`)
+- `placeholder`
+- `input` (e.g. `text`, `email`, `password`, `url`, `color`)
+- `options` (for `select`, list of `{ value, label }`)
+- `public` (expose to frontend via `useExtensionConfig`)
+
+## Capabilities
+
+Capabilities declare which Notur features your extension opts into. Each capability is versioned
+using a major-only constraint (e.g. `^1`, `1`, `>=1`). If the `capabilities` section is present,
+any capability not explicitly listed is treated as disabled.
+
+Common capability IDs:
+- `routes` — backend route registration
+- `health` — health check reporting
+- `schedules` — scheduled tasks
+- `css_isolation` — frontend CSS isolation helper
+
+## Health Checks
+
+Use `health.checks` to declare check metadata, and implement `HasHealthChecks` to return results.
+
+```yaml
+health:
+  checks:
+    - id: "db"
+      label: "Database"
+      description: "Checks analytics database connectivity."
+      severity: "critical"
+```
+
+```php
+use Notur\Contracts\HasHealthChecks;
+
+class ServerAnalyticsExtension implements HasHealthChecks
+{
+    public function getHealthChecks(): array
+    {
+        return [
+            [
+                'id' => 'db',
+                'status' => 'ok',
+                'message' => 'Database reachable',
+            ],
+        ];
+    }
+}
+```
+
+## Scheduled Tasks
+
+Use `schedules.tasks` to declare scheduled commands. Each task requires an `id`, `label`,
+and `command`. You can use either a `cron` expression or a `schedule` object.
+If you declare `capabilities`, include `schedules: "^1"` or schedules will be ignored.
+If both `cron` and `schedule` are provided, `cron` takes precedence.
+
+```yaml
+schedules:
+  tasks:
+    - id: "sync"
+      label: "Sync Analytics"
+      command: "acme:analytics:sync"
+      cron: "0 * * * *"
+      without_overlapping: true
+```
+
+Schedule object examples:
+
+```yaml
+schedules:
+  tasks:
+    - id: "hourly"
+      label: "Hourly Sync"
+      command: "acme:analytics:sync"
+      schedule:
+        type: "hourly"
+
+    - id: "daily"
+      label: "Daily Report"
+      command: "acme:analytics:report"
+      schedule:
+        type: "dailyAt"
+        at: "02:30"
+```
+
+Supported schedule types:
+- `hourly`
+- `daily`
+- `dailyAt` (requires `at`)
+- `weeklyOn` (requires `day` as `mon`..`sun` and `at`)
+- `everyMinutes` (requires `interval`)
+- `everyHours` (requires `interval`)
+
+## CSS Isolation
+
+Use `frontend.css_isolation` to enable the root-class scoping helper. When enabled, Notur wraps
+each rendered component in a root element with a class like `notur-ext--vendor-name`.
+
+Why it matters:
+- It prevents your component styles from leaking into the panel UI.
+- It allows you to scope all your CSS under a predictable root class.
+- It avoids collisions between multiple extensions shipping similarly named classes.
+
+```yaml
+frontend:
+  css_isolation:
+    mode: "root-class"
+    class: "notur-ext--acme-analytics" # optional override
+```
+
+```mermaid
+flowchart LR
+  A["Your component"] --> B["Notur root wrapper"]
+  B --> C["Class: notur-ext--vendor-name"]
+  C --> D["Your CSS scoped to root class"]
+```
+
+## Troubleshooting extension.yaml
+
+- Extension not loading: ensure `id` matches `ExtensionInterface::getId()` and `createExtension().config.id`.
+- Routes return 404: ensure `backend.routes` is set and `capabilities.routes` is declared.
+- Frontend not rendering: ensure `frontend.bundle` exists and matches your build output.
+- `useExtensionConfig` returns empty: ensure settings fields are marked `public: true`.
+- CSS isolation not applied: ensure `frontend.css_isolation` is present or `createExtension({ cssIsolation: true })`.
+- Admin settings not visible: ensure `admin.settings` has `fields` and the extension is installed.
 
 ## Step 2: Implement the PHP Entrypoint
 
@@ -155,6 +518,22 @@ Route groups and their prefixes:
 | `api-client` | `/api/client/notur/{extension-id}/` | `client-api` |
 | `admin` | `/admin/notur/{extension-id}/` | `web`, `admin` |
 | `web` | `/notur/{extension-id}/` | `web` |
+
+### Request flow for extension APIs
+
+```mermaid
+sequenceDiagram
+  participant UI as "Extension UI"
+  participant Bridge as "Notur bridge hooks"
+  participant API as "Pterodactyl API"
+  participant Ext as "Extension backend"
+  UI->>Bridge: "useExtensionApi({ extensionId })"
+  Bridge->>API: "GET /api/client/notur/{id}/stats"
+  API->>Ext: "Route file handler"
+  Ext-->>API: "JSON response"
+  API-->>Bridge: "JSON response"
+  Bridge-->>UI: "data, loading, error"
+```
 
 ## Step 4: Build the Frontend
 
@@ -273,13 +652,27 @@ php artisan notur:install /path/to/acme-server-analytics-1.0.0.notur
 | Slot ID | Location | Type |
 |---|---|---|
 | `navbar` | Top navigation bar | Component portal |
+| `navbar.left` | Navbar left (near logo) | Component portal |
 | `server.subnav` | Server sub-navigation | Nav items |
+| `server.header` | Server header area | Component portal |
 | `server.page` | Server area | Full route/page |
+| `server.footer` | Server footer area | Component portal |
 | `server.terminal.buttons` | Terminal power buttons | Component portal |
+| `server.console.header` | Console page header | Component portal |
+| `server.console.sidebar` | Console sidebar area | Component portal |
+| `server.console.footer` | Console page footer | Component portal |
 | `server.files.actions` | File manager toolbar | Component portal |
+| `server.files.header` | File manager header | Component portal |
+| `server.files.footer` | File manager footer | Component portal |
+| `dashboard.header` | Dashboard header area | Component portal |
 | `dashboard.widgets` | Dashboard below server list | Component portal |
+| `dashboard.serverlist.before` | Before dashboard server list | Component portal |
+| `dashboard.serverlist.after` | After dashboard server list | Component portal |
+| `dashboard.footer` | Dashboard footer area | Component portal |
 | `dashboard.page` | Dashboard area | Full route/page |
+| `account.header` | Account header area | Component portal |
 | `account.page` | Account area | Full route/page |
+| `account.footer` | Account footer area | Component portal |
 | `account.subnav` | Account sub-navigation | Nav items |
 
 ## Available Hooks

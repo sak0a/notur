@@ -1,4 +1,4 @@
-# Administrator Guide
+# Notur Administrator Guide
 
 This guide is for Pterodactyl Panel administrators who want to install and manage the Notur extension framework.
 
@@ -49,7 +49,7 @@ Replace `/var/www/pterodactyl` with your panel root path if different. The insta
 
 ### Manual Installation
 
-If the automated installer does not work for your environment, see the [Installing](/getting-started/installing) page for step-by-step instructions.
+If the automated installer does not work for your environment, see [Installing](/getting-started/installing) for step-by-step instructions.
 
 ### Verifying the Installation
 
@@ -188,9 +188,30 @@ php artisan notur:new acme/my-extension
 
 # Specify output directory
 php artisan notur:new acme/my-extension --path=/home/user/extensions
+
+# Use presets (full includes admin UI, migrations, tests)
+php artisan notur:new acme/my-extension --preset=backend
+php artisan notur:new acme/my-extension --preset=full
+php artisan notur:new acme/my-extension --preset=standard
+php artisan notur:new acme/my-extension --preset=minimal
+
+# Toggle features explicitly
+php artisan notur:new acme/my-extension --with-api-routes
+php artisan notur:new acme/my-extension --no-api-routes
+php artisan notur:new acme/my-extension --with-admin-routes
+php artisan notur:new acme/my-extension --no-admin-routes
+php artisan notur:new acme/my-extension --no-admin --no-migrations --no-tests
+php artisan notur:new acme/my-extension --with-admin --with-migrations --with-tests
 ```
 
-The extension ID must be in `vendor/name` format using lowercase alphanumeric characters and hyphens.
+#### Preset Definitions
+
+- `standard`: frontend + API routes (default)
+- `backend`: API routes only
+- `full`: frontend + API routes + admin UI + migrations + tests
+- `minimal`: backend-only scaffolding with no routes or frontend
+
+The extension ID must be in `vendor/name` format using lowercase alphanumeric characters and hyphens. The default preset is `standard`.
 
 ### Exporting Extensions
 
@@ -217,14 +238,35 @@ Notur includes an admin UI accessible at `/admin/notur` (when the Admin Blade UI
 - Enable or disable extensions with a toggle
 - Install extensions from the registry via a search interface
 - Remove extensions with confirmation
-- Inspect extension health checks and diagnostics
-- Browse the slot catalog and registrations
 - View extension logs and error details
+- Configure extension settings (when the extension exposes an admin settings schema)
+- Browse the slot catalog and see registered slot usage
+- Inspect admin routes and slot registrations per extension
+- Review extension health checks and diagnostics
 
 Quick links:
 - Health overview: `/admin/notur/health`
 - Diagnostics: `/admin/notur/diagnostics`
 - Slot catalog: `/admin/notur/slots`
+
+### Extension Detail Page
+
+Each extension has a detail page with contextual diagnostics, including:
+- Settings form (if the extension defines `admin.settings`)
+- Registered frontend slots and slot metadata
+- Admin routes registered for the extension
+- Manifest and migration summaries
+- Health check results (if the extension implements `HasHealthChecks`)
+
+### Settings Preview (JSON)
+
+For debugging settings schemas and values, Notur exposes a JSON preview endpoint:
+
+```
+GET /admin/notur/extensions/{extension-id}/settings/preview
+```
+
+You can access this quickly from the extension detail page via the “Preview JSON” button.
 
 ## Configuration
 

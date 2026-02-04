@@ -1,4 +1,4 @@
-# Frontend SDK Reference
+# Notur Frontend SDK Reference
 
 This document covers the frontend SDK (`@notur/sdk`), bridge hooks, slot system, theme system, and webpack configuration for extension developers.
 
@@ -25,6 +25,19 @@ The Notur frontend has three layers:
 
 React and ReactDOM are **not bundled** with extensions. They are externalized and use the panel's existing instances via `window.React` and `window.ReactDOM`.
 
+### Runtime flow
+
+```mermaid
+flowchart TD
+  A["Panel HTML"] --> B["bridge.js"]
+  B --> C["window.__NOTUR__ registry + hooks"]
+  A --> D["Extension bundle"]
+  D --> E["createExtension()"]
+  E --> F["registry.registerExtension()"]
+  F --> G["SlotRenderer + Router"]
+  G --> H["Your components render"]
+```
+
 ---
 
 ## SDK API: createExtension
@@ -46,11 +59,34 @@ interface ExtensionDefinition {
     config: ExtensionConfig;
     slots?: SlotConfig[];
     routes?: RouteConfig[];
+    cssIsolation?: CssIsolationConfig | boolean;
     onInit?: () => void;
     onDestroy?: () => void;
-    cssIsolation?: CssIsolationConfig | boolean;
 }
 ```
+
+### CSS Isolation
+
+Enable the root-class CSS isolation helper by setting `cssIsolation`:
+
+```tsx
+createExtension({
+    config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
+    cssIsolation: true, // uses the default class: notur-ext--acme-analytics
+    slots: [/* ... */],
+});
+```
+
+You can also pass an explicit class name:
+
+```tsx
+createExtension({
+    config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
+    cssIsolation: { mode: 'root-class', className: 'notur-ext--acme-analytics' },
+});
+```
+
+If `frontend.css_isolation` is declared in `extension.yaml`, the SDK will pick it up automatically.
 
 ### Full Example
 
@@ -144,33 +180,6 @@ interface SlotConfig {
 
 Slots are sorted by `priority` (higher first), then by `order` (lower first).
 
-### Conditional Slot Rendering
-
-Use the `when` field on a slot to control when it renders. It supports:
-
-- `area` / `areas`: `'server' | 'dashboard' | 'account' | 'admin' | 'auth' | 'other'`
-- `server`, `dashboard`, `account`, `admin`, `auth`: boolean flags
-- `path` or `pathStartsWith`: string or array of strings
-- `pathIncludes`: string or array of strings
-- `pathMatches`: RegExp or regex string
-- `permission`: string or array of strings (uses server permissions when available)
-
-```typescript
-slots: [
-    {
-        slot: 'server.subnav',
-        component: AnalyticsNav,
-        when: { server: true, permission: 'analytics.view' },
-    },
-    {
-        slot: 'dashboard.widgets',
-        component: DashboardWidget,
-        when: { pathStartsWith: '/dashboard' },
-        props: { compact: true },
-    },
-]
-```
-
 ### `RouteConfig`
 
 ```typescript
@@ -181,6 +190,15 @@ interface RouteConfig {
     component: React.ComponentType<any>;         // Page component
     icon?: string;                               // Icon for nav item
     permission?: string;                         // Required permission
+}
+```
+
+### `CssIsolationConfig`
+
+```typescript
+interface CssIsolationConfig {
+    mode: 'root-class';
+    className?: string;
 }
 ```
 
@@ -215,6 +233,33 @@ Access it via:
 import { getNoturApi } from '@notur/sdk';
 
 const api = getNoturApi();  // throws if bridge.js hasn't loaded yet
+```
+
+### Conditional Slot Rendering
+
+Use the `when` field on a slot to control when it renders. It supports:
+
+- `area` / `areas`: `'server' | 'dashboard' | 'account' | 'admin' | 'auth' | 'other'`
+- `server`, `dashboard`, `account`, `admin`, `auth`: boolean flags
+- `path` or `pathStartsWith`: string or array of strings
+- `pathIncludes`: string or array of strings
+- `pathMatches`: RegExp or regex string
+- `permission`: string or array of strings (uses server permissions when available)
+
+```typescript
+slots: [
+    {
+        slot: 'server.subnav',
+        component: AnalyticsNav,
+        when: { server: true, permission: 'analytics.view' },
+    },
+    {
+        slot: 'dashboard.widgets',
+        component: DashboardWidget,
+        when: { pathStartsWith: '/dashboard' },
+        props: { compact: true },
+    },
+]
 ```
 
 ---
@@ -454,39 +499,96 @@ const AdminPanel: React.FC = () => {
 - Returns `true` if the user's permissions include the exact permission string.
 - Returns `false` if not on a server page (no server context).
 
+
 ---
 
 ## Slot System
 
 Slots are predefined injection points in the Pterodactyl panel where extensions can render components.
 
+### Slot render lifecycle
+
+```mermaid
+sequenceDiagram
+  participant Ext as "Extension bundle"
+  participant Reg as "PluginRegistry"
+  participant UI as "Panel UI"
+  Ext->>Reg: "registerExtension(slots, routes)"
+  Reg-->>UI: "emit slot change events"
+  UI->>Reg: "useSlot(slotId)"
+  Reg-->>UI: "list of registrations"
+  UI-->>UI: "render each component in order"
+```
+
 ### Available Slot IDs
 
 | Constant | Slot ID | Location | Type | Description |
 |---|---|---|---|---|
-| `NAVBAR` | `navbar` | Top navigation bar | `portal` | Render components in the navbar |
-| `NAVBAR_LEFT` | `navbar.left` | Navbar left area | `portal` | Render components near the logo |
-| `SERVER_SUBNAV` | `server.subnav` | Server sub-navigation | `nav` | Add items to server sub-nav |
-| `SERVER_HEADER` | `server.header` | Server header area | `portal` | Render content below server sub-nav |
-| `SERVER_PAGE` | `server.page` | Server area | `route` | Full page in server context |
-| `SERVER_FOOTER` | `server.footer` | Server footer area | `portal` | Render content at the end of server pages |
-| `SERVER_TERMINAL_BUTTONS` | `server.terminal.buttons` | Terminal power buttons | `portal` | Add buttons near terminal controls |
-| `SERVER_CONSOLE_HEADER` | `server.console.header` | Console page header | `portal` | Render content at the top of the console page |
-| `SERVER_CONSOLE_SIDEBAR` | `server.console.sidebar` | Console sidebar | `portal` | Render content next to console details |
-| `SERVER_CONSOLE_FOOTER` | `server.console.footer` | Console page footer | `portal` | Render content below console graphs |
-| `SERVER_FILES_ACTIONS` | `server.files.actions` | File manager toolbar | `portal` | Add actions to file manager |
-| `SERVER_FILES_HEADER` | `server.files.header` | File manager header | `portal` | Render content above file list |
-| `SERVER_FILES_FOOTER` | `server.files.footer` | File manager footer | `portal` | Render content below file list |
-| `DASHBOARD_HEADER` | `dashboard.header` | Dashboard header | `portal` | Render banners or summaries |
-| `DASHBOARD_WIDGETS` | `dashboard.widgets` | Dashboard below server list | `portal` | Add widgets to the dashboard |
-| `DASHBOARD_SERVERLIST_BEFORE` | `dashboard.serverlist.before` | Before server list | `portal` | Render content before server list |
-| `DASHBOARD_SERVERLIST_AFTER` | `dashboard.serverlist.after` | After server list | `portal` | Render content after server list |
-| `DASHBOARD_FOOTER` | `dashboard.footer` | Dashboard footer | `portal` | Render content below dashboard |
-| `DASHBOARD_PAGE` | `dashboard.page` | Dashboard area | `route` | Full page in dashboard context |
-| `ACCOUNT_HEADER` | `account.header` | Account header | `portal` | Render content above account pages |
-| `ACCOUNT_PAGE` | `account.page` | Account area | `route` | Full page in account context |
-| `ACCOUNT_FOOTER` | `account.footer` | Account footer | `portal` | Render content below account pages |
-| `ACCOUNT_SUBNAV` | `account.subnav` | Account sub-navigation | `nav` | Add items to account sub-nav |
+| `NAVBAR` | `navbar` | Navigation bar | `portal` | Top navigation bar |
+| `NAVBAR_LEFT` | `navbar.left` | Navigation bar | `portal` | Navbar left area (near logo) |
+| `NAVBAR_BEFORE` | `navbar.before` | Navigation bar | `portal` | Navbar items (before built-ins) |
+| `NAVBAR_AFTER` | `navbar.after` | Navigation bar | `portal` | Navbar items (after built-ins) |
+| `SERVER_SUBNAV` | `server.subnav` | Server sub-navigation | `nav` | Server sub-navigation |
+| `SERVER_SUBNAV_BEFORE` | `server.subnav.before` | Server sub-navigation | `nav` | Server sub-navigation (before built-ins) |
+| `SERVER_SUBNAV_AFTER` | `server.subnav.after` | Server sub-navigation | `nav` | Server sub-navigation (after built-ins) |
+| `SERVER_HEADER` | `server.header` | Server area | `portal` | Server header area |
+| `SERVER_PAGE` | `server.page` | Server area | `route` | Server area page |
+| `SERVER_FOOTER` | `server.footer` | Server area | `portal` | Server footer area |
+| `SERVER_TERMINAL_BUTTONS` | `server.terminal.buttons` | Server console | `portal` | Terminal power buttons |
+| `SERVER_CONSOLE_HEADER` | `server.console.header` | Server console | `portal` | Console page header |
+| `SERVER_CONSOLE_INFO_BEFORE` | `server.console.info.before` | Server console | `portal` | Console info (before details) |
+| `SERVER_CONSOLE_INFO_AFTER` | `server.console.info.after` | Server console | `portal` | Console info (after details) |
+| `SERVER_CONSOLE_SIDEBAR` | `server.console.sidebar` | Server console | `portal` | Console sidebar area |
+| `SERVER_CONSOLE_COMMAND` | `server.console.command` | Server console | `portal` | Console command row |
+| `SERVER_CONSOLE_FOOTER` | `server.console.footer` | Server console | `portal` | Console page footer |
+| `SERVER_FILES_ACTIONS` | `server.files.actions` | Server files | `portal` | File manager toolbar |
+| `SERVER_FILES_HEADER` | `server.files.header` | Server files | `portal` | File manager header |
+| `SERVER_FILES_FOOTER` | `server.files.footer` | Server files | `portal` | File manager footer |
+| `SERVER_FILES_DROPDOWN` | `server.files.dropdown` | Server files | `portal` | File manager dropdown items |
+| `SERVER_FILES_EDIT_BEFORE` | `server.files.edit.before` | Server files | `portal` | File editor (before content) |
+| `SERVER_FILES_EDIT_AFTER` | `server.files.edit.after` | Server files | `portal` | File editor (after content) |
+| `SERVER_DATABASES_BEFORE` | `server.databases.before` | Server databases | `portal` | Databases page (before content) |
+| `SERVER_DATABASES_AFTER` | `server.databases.after` | Server databases | `portal` | Databases page (after content) |
+| `SERVER_SCHEDULES_BEFORE` | `server.schedules.before` | Server schedules | `portal` | Schedules list (before content) |
+| `SERVER_SCHEDULES_AFTER` | `server.schedules.after` | Server schedules | `portal` | Schedules list (after content) |
+| `SERVER_SCHEDULES_EDIT_BEFORE` | `server.schedules.edit.before` | Server schedules | `portal` | Schedule editor (before content) |
+| `SERVER_SCHEDULES_EDIT_AFTER` | `server.schedules.edit.after` | Server schedules | `portal` | Schedule editor (after content) |
+| `SERVER_USERS_BEFORE` | `server.users.before` | Server users | `portal` | Users page (before content) |
+| `SERVER_USERS_AFTER` | `server.users.after` | Server users | `portal` | Users page (after content) |
+| `SERVER_BACKUPS_BEFORE` | `server.backups.before` | Server backups | `portal` | Backups page (before content) |
+| `SERVER_BACKUPS_AFTER` | `server.backups.after` | Server backups | `portal` | Backups page (after content) |
+| `SERVER_BACKUPS_DROPDOWN` | `server.backups.dropdown` | Server backups | `portal` | Backup row dropdown items |
+| `SERVER_NETWORK_BEFORE` | `server.network.before` | Server network | `portal` | Network page (before content) |
+| `SERVER_NETWORK_AFTER` | `server.network.after` | Server network | `portal` | Network page (after content) |
+| `SERVER_STARTUP_BEFORE` | `server.startup.before` | Server startup | `portal` | Startup page (before content) |
+| `SERVER_STARTUP_AFTER` | `server.startup.after` | Server startup | `portal` | Startup page (after content) |
+| `SERVER_SETTINGS_BEFORE` | `server.settings.before` | Server settings | `portal` | Settings page (before content) |
+| `SERVER_SETTINGS_AFTER` | `server.settings.after` | Server settings | `portal` | Settings page (after content) |
+| `DASHBOARD_HEADER` | `dashboard.header` | Dashboard | `portal` | Dashboard header area |
+| `DASHBOARD_WIDGETS` | `dashboard.widgets` | Dashboard | `portal` | Dashboard widgets |
+| `DASHBOARD_SERVERLIST_BEFORE` | `dashboard.serverlist.before` | Dashboard server list | `portal` | Dashboard server list (before) |
+| `DASHBOARD_SERVERLIST_AFTER` | `dashboard.serverlist.after` | Dashboard server list | `portal` | Dashboard server list (after) |
+| `DASHBOARD_SERVERROW_NAME_BEFORE` | `dashboard.serverrow.name.before` | Dashboard server row | `portal` | Dashboard server row name (before) |
+| `DASHBOARD_SERVERROW_NAME_AFTER` | `dashboard.serverrow.name.after` | Dashboard server row | `portal` | Dashboard server row name (after) |
+| `DASHBOARD_SERVERROW_DESCRIPTION_BEFORE` | `dashboard.serverrow.description.before` | Dashboard server row | `portal` | Dashboard server row description (before) |
+| `DASHBOARD_SERVERROW_DESCRIPTION_AFTER` | `dashboard.serverrow.description.after` | Dashboard server row | `portal` | Dashboard server row description (after) |
+| `DASHBOARD_SERVERROW_LIMITS` | `dashboard.serverrow.limits` | Dashboard server row | `portal` | Dashboard server row resource limits |
+| `DASHBOARD_FOOTER` | `dashboard.footer` | Dashboard | `portal` | Dashboard footer area |
+| `DASHBOARD_PAGE` | `dashboard.page` | Dashboard | `route` | Dashboard page |
+| `ACCOUNT_HEADER` | `account.header` | Account | `portal` | Account header area |
+| `ACCOUNT_PAGE` | `account.page` | Account | `route` | Account page |
+| `ACCOUNT_FOOTER` | `account.footer` | Account | `portal` | Account footer area |
+| `ACCOUNT_SUBNAV` | `account.subnav` | Account sub-navigation | `nav` | Account sub-navigation |
+| `ACCOUNT_SUBNAV_BEFORE` | `account.subnav.before` | Account sub-navigation | `nav` | Account sub-navigation (before built-ins) |
+| `ACCOUNT_SUBNAV_AFTER` | `account.subnav.after` | Account sub-navigation | `nav` | Account sub-navigation (after built-ins) |
+| `ACCOUNT_OVERVIEW_BEFORE` | `account.overview.before` | Account | `portal` | Account overview (before content) |
+| `ACCOUNT_OVERVIEW_AFTER` | `account.overview.after` | Account | `portal` | Account overview (after content) |
+| `ACCOUNT_API_BEFORE` | `account.api.before` | Account | `portal` | Account API (before content) |
+| `ACCOUNT_API_AFTER` | `account.api.after` | Account | `portal` | Account API (after content) |
+| `ACCOUNT_SSH_BEFORE` | `account.ssh.before` | Account | `portal` | Account SSH (before content) |
+| `ACCOUNT_SSH_AFTER` | `account.ssh.after` | Account | `portal` | Account SSH (after content) |
+| `AUTH_CONTAINER_BEFORE` | `auth.container.before` | Authentication | `portal` | Authentication container (before content) |
+| `AUTH_CONTAINER_AFTER` | `auth.container.after` | Authentication | `portal` | Authentication container (after content) |
 
 ### Slot Types
 
@@ -503,29 +605,71 @@ The slot IDs are available as constants:
 const { SLOT_IDS } = window.__NOTUR__;
 
 // Constants:
-SLOT_IDS.NAVBAR                    // 'navbar'
-SLOT_IDS.NAVBAR_LEFT               // 'navbar.left'
-SLOT_IDS.SERVER_SUBNAV             // 'server.subnav'
-SLOT_IDS.SERVER_HEADER             // 'server.header'
-SLOT_IDS.SERVER_PAGE               // 'server.page'
-SLOT_IDS.SERVER_FOOTER             // 'server.footer'
-SLOT_IDS.SERVER_TERMINAL_BUTTONS   // 'server.terminal.buttons'
-SLOT_IDS.SERVER_CONSOLE_HEADER     // 'server.console.header'
-SLOT_IDS.SERVER_CONSOLE_SIDEBAR    // 'server.console.sidebar'
-SLOT_IDS.SERVER_CONSOLE_FOOTER     // 'server.console.footer'
-SLOT_IDS.SERVER_FILES_ACTIONS      // 'server.files.actions'
-SLOT_IDS.SERVER_FILES_HEADER       // 'server.files.header'
-SLOT_IDS.SERVER_FILES_FOOTER       // 'server.files.footer'
-SLOT_IDS.DASHBOARD_HEADER          // 'dashboard.header'
-SLOT_IDS.DASHBOARD_WIDGETS         // 'dashboard.widgets'
-SLOT_IDS.DASHBOARD_SERVERLIST_BEFORE // 'dashboard.serverlist.before'
-SLOT_IDS.DASHBOARD_SERVERLIST_AFTER  // 'dashboard.serverlist.after'
-SLOT_IDS.DASHBOARD_FOOTER          // 'dashboard.footer'
-SLOT_IDS.DASHBOARD_PAGE            // 'dashboard.page'
-SLOT_IDS.ACCOUNT_HEADER            // 'account.header'
-SLOT_IDS.ACCOUNT_PAGE              // 'account.page'
-SLOT_IDS.ACCOUNT_FOOTER            // 'account.footer'
-SLOT_IDS.ACCOUNT_SUBNAV            // 'account.subnav'
+SLOT_IDS.NAVBAR                         // 'navbar'
+SLOT_IDS.NAVBAR_LEFT                    // 'navbar.left'
+SLOT_IDS.NAVBAR_BEFORE                  // 'navbar.before'
+SLOT_IDS.NAVBAR_AFTER                   // 'navbar.after'
+SLOT_IDS.SERVER_SUBNAV                  // 'server.subnav'
+SLOT_IDS.SERVER_SUBNAV_BEFORE           // 'server.subnav.before'
+SLOT_IDS.SERVER_SUBNAV_AFTER            // 'server.subnav.after'
+SLOT_IDS.SERVER_HEADER                  // 'server.header'
+SLOT_IDS.SERVER_PAGE                    // 'server.page'
+SLOT_IDS.SERVER_FOOTER                  // 'server.footer'
+SLOT_IDS.SERVER_TERMINAL_BUTTONS        // 'server.terminal.buttons'
+SLOT_IDS.SERVER_CONSOLE_HEADER          // 'server.console.header'
+SLOT_IDS.SERVER_CONSOLE_INFO_BEFORE     // 'server.console.info.before'
+SLOT_IDS.SERVER_CONSOLE_INFO_AFTER      // 'server.console.info.after'
+SLOT_IDS.SERVER_CONSOLE_SIDEBAR         // 'server.console.sidebar'
+SLOT_IDS.SERVER_CONSOLE_COMMAND         // 'server.console.command'
+SLOT_IDS.SERVER_CONSOLE_FOOTER          // 'server.console.footer'
+SLOT_IDS.SERVER_FILES_ACTIONS           // 'server.files.actions'
+SLOT_IDS.SERVER_FILES_HEADER            // 'server.files.header'
+SLOT_IDS.SERVER_FILES_FOOTER            // 'server.files.footer'
+SLOT_IDS.SERVER_FILES_DROPDOWN          // 'server.files.dropdown'
+SLOT_IDS.SERVER_FILES_EDIT_BEFORE       // 'server.files.edit.before'
+SLOT_IDS.SERVER_FILES_EDIT_AFTER        // 'server.files.edit.after'
+SLOT_IDS.SERVER_DATABASES_BEFORE        // 'server.databases.before'
+SLOT_IDS.SERVER_DATABASES_AFTER         // 'server.databases.after'
+SLOT_IDS.SERVER_SCHEDULES_BEFORE        // 'server.schedules.before'
+SLOT_IDS.SERVER_SCHEDULES_AFTER         // 'server.schedules.after'
+SLOT_IDS.SERVER_SCHEDULES_EDIT_BEFORE   // 'server.schedules.edit.before'
+SLOT_IDS.SERVER_SCHEDULES_EDIT_AFTER    // 'server.schedules.edit.after'
+SLOT_IDS.SERVER_USERS_BEFORE            // 'server.users.before'
+SLOT_IDS.SERVER_USERS_AFTER             // 'server.users.after'
+SLOT_IDS.SERVER_BACKUPS_BEFORE          // 'server.backups.before'
+SLOT_IDS.SERVER_BACKUPS_AFTER           // 'server.backups.after'
+SLOT_IDS.SERVER_BACKUPS_DROPDOWN        // 'server.backups.dropdown'
+SLOT_IDS.SERVER_NETWORK_BEFORE          // 'server.network.before'
+SLOT_IDS.SERVER_NETWORK_AFTER           // 'server.network.after'
+SLOT_IDS.SERVER_STARTUP_BEFORE          // 'server.startup.before'
+SLOT_IDS.SERVER_STARTUP_AFTER           // 'server.startup.after'
+SLOT_IDS.SERVER_SETTINGS_BEFORE         // 'server.settings.before'
+SLOT_IDS.SERVER_SETTINGS_AFTER          // 'server.settings.after'
+SLOT_IDS.DASHBOARD_HEADER               // 'dashboard.header'
+SLOT_IDS.DASHBOARD_WIDGETS              // 'dashboard.widgets'
+SLOT_IDS.DASHBOARD_SERVERLIST_BEFORE    // 'dashboard.serverlist.before'
+SLOT_IDS.DASHBOARD_SERVERLIST_AFTER     // 'dashboard.serverlist.after'
+SLOT_IDS.DASHBOARD_SERVERROW_NAME_BEFORE // 'dashboard.serverrow.name.before'
+SLOT_IDS.DASHBOARD_SERVERROW_NAME_AFTER // 'dashboard.serverrow.name.after'
+SLOT_IDS.DASHBOARD_SERVERROW_DESCRIPTION_BEFORE // 'dashboard.serverrow.description.before'
+SLOT_IDS.DASHBOARD_SERVERROW_DESCRIPTION_AFTER // 'dashboard.serverrow.description.after'
+SLOT_IDS.DASHBOARD_SERVERROW_LIMITS     // 'dashboard.serverrow.limits'
+SLOT_IDS.DASHBOARD_FOOTER               // 'dashboard.footer'
+SLOT_IDS.DASHBOARD_PAGE                 // 'dashboard.page'
+SLOT_IDS.ACCOUNT_HEADER                 // 'account.header'
+SLOT_IDS.ACCOUNT_PAGE                   // 'account.page'
+SLOT_IDS.ACCOUNT_FOOTER                 // 'account.footer'
+SLOT_IDS.ACCOUNT_SUBNAV                 // 'account.subnav'
+SLOT_IDS.ACCOUNT_SUBNAV_BEFORE          // 'account.subnav.before'
+SLOT_IDS.ACCOUNT_SUBNAV_AFTER           // 'account.subnav.after'
+SLOT_IDS.ACCOUNT_OVERVIEW_BEFORE        // 'account.overview.before'
+SLOT_IDS.ACCOUNT_OVERVIEW_AFTER         // 'account.overview.after'
+SLOT_IDS.ACCOUNT_API_BEFORE             // 'account.api.before'
+SLOT_IDS.ACCOUNT_API_AFTER              // 'account.api.after'
+SLOT_IDS.ACCOUNT_SSH_BEFORE             // 'account.ssh.before'
+SLOT_IDS.ACCOUNT_SSH_AFTER              // 'account.ssh.after'
+SLOT_IDS.AUTH_CONTAINER_BEFORE          // 'auth.container.before'
+SLOT_IDS.AUTH_CONTAINER_AFTER           // 'auth.container.after'
 ```
 
 ---
@@ -725,4 +869,32 @@ export type { ExtensionConfig, SlotConfig, RouteConfig, ExtensionDefinition, Not
 export { useServerContext } from './hooks/useServerContext';
 export { useUserContext } from './hooks/useUserContext';
 export { usePermission } from './hooks/usePermission';
+export { useExtensionConfig } from './hooks/useExtensionConfig';
+```
+
+### `useExtensionConfig(extensionId: string, options?): { config, loading, error, refresh }`
+
+Fetches public settings declared in `extension.yaml` under `admin.settings` with `public: true`.
+
+```tsx
+import { useExtensionConfig } from '@notur/sdk';
+
+const AnalyticsWidget: React.FC = () => {
+    const { config, loading, error } = useExtensionConfig('acme/server-analytics');
+
+    if (loading) return <p>Loading settings...</p>;
+    if (error) return <p>Failed to load settings: {error}</p>;
+
+    return <p>Mode: {config.mode ?? 'default'}</p>;
+};
+```
+
+Options:
+- `baseUrl` (string): override the API base URL (default `/api/client/notur`)
+- `initial` (object): initial settings value before fetch completes
+- `pollInterval` (number): refresh interval in milliseconds (enables live reload)
+
+Live reload example:
+```tsx
+const { config } = useExtensionConfig('acme/server-analytics', { pollInterval: 5000 });
 ```
