@@ -98,7 +98,16 @@ detect_panel_dir() {
 detect_web_user() {
     # Determine the web server user based on environment
     if is_pterodactyl_docker || (is_alpine && is_docker); then
-        echo "nginx"
+        # Prefer nginx in Docker environments if it exists, otherwise fall back
+        if id -u nginx >/dev/null 2>&1; then
+            echo "nginx"
+        elif id -u www-data >/dev/null 2>&1; then
+            echo "www-data"
+        elif id -u apache >/dev/null 2>&1; then
+            echo "apache"
+        else
+            echo "$(whoami)"
+        fi
     elif is_alpine; then
         # Alpine bare-metal typically uses nginx
         if id -u nginx >/dev/null 2>&1; then
