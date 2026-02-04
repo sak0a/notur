@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { groupIconMdPlugin, groupIconVitePlugin } from 'vitepress-plugin-group-icons'
 
 export default defineConfig({
   title: 'Notur',
@@ -6,6 +7,22 @@ export default defineConfig({
 
   markdown: {
     mermaid: true,
+    config(md) {
+      md.use(groupIconMdPlugin)
+    },
+  },
+
+  vite: {
+    plugins: [
+      groupIconVitePlugin()
+    ],
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: 'modern',
+        },
+      },
+    },
   },
 
   head: [
@@ -77,14 +94,4 @@ export default defineConfig({
   },
 
   appearance: 'dark',
-
-  vite: {
-    css: {
-      preprocessorOptions: {
-        scss: {
-          api: 'modern',
-        },
-      },
-    },
-  },
 })

@@ -7,7 +7,7 @@ Guide for contributing to the Notur Extension Library itself.
 - PHP 8.2+
 - Composer 2.x
 - Node.js 22+
-- Bun
+- A package manager: npm, Yarn, pnpm, or Bun
 
 ## Setup
 
@@ -17,10 +17,27 @@ cd NoturExtensionLib
 
 # Install PHP dependencies
 composer install
+```
 
-# Install frontend dependencies
+Install frontend dependencies:
+
+::: code-group
+```bash [npm]
+npm install
+```
+
+```bash [yarn]
+yarn install
+```
+
+```bash [pnpm]
+pnpm install
+```
+
+```bash [bun]
 bun install
 ```
+:::
 
 After running these commands, IDE errors for missing classes/types should resolve.
 
@@ -42,7 +59,41 @@ docs/                 Documentation
 
 ## Building
 
-```bash
+::: code-group
+```bash [npm]
+# Build bridge runtime
+npm run build:bridge
+
+# Build SDK
+npm run build:sdk
+
+# Build everything
+npm run build
+```
+
+```bash [yarn]
+# Build bridge runtime
+yarn run build:bridge
+
+# Build SDK
+yarn run build:sdk
+
+# Build everything
+yarn run build
+```
+
+```bash [pnpm]
+# Build bridge runtime
+pnpm run build:bridge
+
+# Build SDK
+pnpm run build:sdk
+
+# Build everything
+pnpm run build
+```
+
+```bash [bun]
 # Build bridge runtime
 bun run build:bridge
 
@@ -52,6 +103,7 @@ bun run build:sdk
 # Build everything
 bun run build
 ```
+:::
 
 ## Releasing / Publishing to npm
 
@@ -77,9 +129,23 @@ To publish **@notur/sdk** to npm and how the registry-validate workflow works, s
 
 ### Frontend Tests
 
-```bash
+::: code-group
+```bash [npm]
+npm run test:frontend
+```
+
+```bash [yarn]
+yarn run test:frontend
+```
+
+```bash [pnpm]
+pnpm run test:frontend
+```
+
+```bash [bun]
 bun run test:frontend
 ```
+:::
 
 ## How the Pieces Fit Together
 

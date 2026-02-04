@@ -60,10 +60,22 @@ patch -p1 < vendor/notur/notur/installer/patches/v1.11/FileManager.tsx.patch
 
 ### Step 4: Rebuild Frontend
 
+One-time rebuild — not needed again when installing/removing extensions.
+
+Using your preferred package manager:
+
 ```bash
-# One-time rebuild — not needed again when installing/removing extensions
-bun install
-bun run build:production
+# npm
+npm install && npm run build:production
+
+# Yarn
+yarn install && yarn run build:production
+
+# pnpm
+pnpm install && pnpm run build:production
+
+# Bun
+bun install && bun run build:production
 ```
 
 ### Step 5: Run Migrations
@@ -91,8 +103,20 @@ The bridge JS must be built and placed in the panel's public directory:
 
 ```bash
 cd vendor/notur/notur/bridge
-bun install
-bun run build
+
+# npm
+npm install && npm run build
+
+# Yarn
+yarn install && yarn run build
+
+# pnpm
+pnpm install && pnpm run build
+
+# Bun
+bun install && bun run build
+
+# Then copy the built file
 cp dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js
 ```
 
@@ -107,7 +131,7 @@ cp dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js
 
 1. Remove all extensions: `php artisan notur:list` then `php artisan notur:remove` for each
 2. Restore backed-up files (the installer creates `.notur-backup` copies)
-3. Rebuild frontend: `bun run build:production`
+3. Rebuild frontend using your package manager (e.g., `npm run build:production`, `yarn run build:production`, `pnpm run build:production`, or `bun run build:production`)
 4. Remove Notur tables: `php artisan migrate:rollback` (the 3 notur tables)
 5. Remove composer package: `composer remove notur/notur`
 6. Remove directories: `rm -rf notur/ public/notur/`

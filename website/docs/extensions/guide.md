@@ -525,9 +525,23 @@ sequenceDiagram
 
 ### Install the SDK
 
-```bash
-bun install @notur/sdk
+::: code-group
+```bash [npm]
+npm install @notur/sdk
 ```
+
+```bash [yarn]
+yarn add @notur/sdk
+```
+
+```bash [pnpm]
+pnpm add @notur/sdk
+```
+
+```bash [bun]
+bun add @notur/sdk
+```
+:::
 
 ### Create the Frontend Entry
 

@@ -45,7 +45,7 @@ Replace `/var/www/pterodactyl` with your panel root path if different. The insta
 6. Runs `php artisan migrate` to create Notur's 3 database tables
 7. Creates the `notur/extensions` directory and `notur/extensions.json` manifest
 8. Builds and deploys the bridge runtime (`public/notur/bridge.js`)
-9. Triggers a frontend rebuild (`bun run build:production`)
+9. Triggers a frontend rebuild
 
 ### Manual Installation
 
@@ -379,10 +379,27 @@ composer update notur/notur
 
 # Re-apply patches if needed (the installer handles this)
 curl -sSL https://docs.notur.site/install.sh | bash -s -- /var/www/pterodactyl
+```
 
-# Rebuild frontend
+Rebuild the frontend:
+
+::: code-group
+```bash [npm]
+npm run build:production
+```
+
+```bash [yarn]
+yarn run build:production
+```
+
+```bash [pnpm]
+pnpm run build:production
+```
+
+```bash [bun]
 bun run build:production
 ```
+:::
 
 ## Uninstalling Notur
 
@@ -406,7 +423,7 @@ The uninstall command performs:
 3. Removes the `@include('notur::scripts')` Blade injection
 4. Deletes the `notur/` and `public/notur/` directories
 5. Runs `composer remove notur/notur`
-6. Triggers `bun run build:production` to rebuild without Notur patches
+6. Triggers a frontend rebuild to rebuild without Notur patches
 
 ## Troubleshooting
 
@@ -414,11 +431,31 @@ The uninstall command performs:
 
 This usually means the frontend rebuild failed. Run:
 
-```bash
+::: code-group
+```bash [npm]
+cd /var/www/pterodactyl
+npm install
+npm run build:production
+```
+
+```bash [yarn]
+cd /var/www/pterodactyl
+yarn install
+yarn run build:production
+```
+
+```bash [pnpm]
+cd /var/www/pterodactyl
+pnpm install
+pnpm run build:production
+```
+
+```bash [bun]
 cd /var/www/pterodactyl
 bun install
 bun run build:production
 ```
+:::
 
 Check for JavaScript errors in `resources/scripts/` -- the patches may not have applied cleanly. Verify with:
 
@@ -451,7 +488,7 @@ If it says "already applied," the patches are in place. If it fails, the panel v
 1. Verify the bridge script loads: check for `<script src="/notur/bridge.js">` in the page source.
 2. Check the browser console for errors.
 3. Make sure the extension's frontend bundle calls `createExtension()` with the correct slot IDs.
-4. Verify the panel was rebuilt after Notur installation (`bun run build:production`).
+4. Verify the panel was rebuilt after Notur installation.
 
 ### Database migration errors
 

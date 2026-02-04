@@ -6,7 +6,7 @@ How to publish **@notur/sdk** to npm and how the registry-validate workflow work
 
 | Package        | Published to npm? | Purpose |
 |----------------|-------------------|--------|
-| **@notur/sdk** | Yes               | Extension developers install it: `bun add @notur/sdk`. Provides `createExtension()`, hooks, types, webpack config. |
+| **@notur/sdk** | Yes               | Extension developers install it via npm/yarn/pnpm/bun. Provides `createExtension()`, hooks, types, webpack config. |
 | **@notur/bridge** | No (optional)  | Runtime bundled into the panel (`public/notur/bridge.js`). Not consumed from npm by end users. |
 | **hello-world** | No               | Example extension in this repo. It is not an npm package; it can be packaged as a `.notur` archive or listed in the registry. |
 
@@ -82,11 +82,23 @@ So after a successful release you get:
 
 Extension authors (and the hello-world example, if you switch it to the SDK) use:
 
-```bash
-bun add @notur/sdk
-# or
+::: code-group
+```bash [npm]
 npm install @notur/sdk
 ```
+
+```bash [yarn]
+yarn add @notur/sdk
+```
+
+```bash [pnpm]
+pnpm add @notur/sdk
+```
+
+```bash [bun]
+bun add @notur/sdk
+```
+:::
 
 Docs already reference `@notur/sdk` (e.g. [Creating Extensions](/extensions/guide), [Frontend SDK](/extensions/frontend-sdk)). The **hello-world** example currently uses `window.__NOTUR__` directly; it can stay that way as a minimal example, or you can later add a `package.json` and use `@notur/sdk` there.
 

@@ -68,14 +68,55 @@ if ! command -v composer &> /dev/null; then
     die "Composer is not installed."
 fi
 
-# Check Node/Bun
+# Check Node.js
 if ! command -v node &> /dev/null; then
     die "Node.js is not installed."
 fi
 
-if ! command -v bun &> /dev/null; then
-    die "Bun is not installed. Install it from https://bun.sh"
+# Detect available package manager (prefer bun > pnpm > yarn > npm)
+detect_pkg_manager() {
+    if [ -n "${PKG_MANAGER:-}" ]; then
+        # User specified via environment variable
+        case "$PKG_MANAGER" in
+            bun|pnpm|yarn|npm) echo "$PKG_MANAGER"; return ;;
+            *) warn "Unknown PKG_MANAGER '$PKG_MANAGER', auto-detecting..." ;;
+        esac
+    fi
+
+    if command -v bun &> /dev/null; then echo "bun"
+    elif command -v pnpm &> /dev/null; then echo "pnpm"
+    elif command -v yarn &> /dev/null; then echo "yarn"
+    elif command -v npm &> /dev/null; then echo "npm"
+    else echo ""
+    fi
+}
+
+PKG_MGR=$(detect_pkg_manager)
+if [ -z "$PKG_MGR" ]; then
+    die "No package manager found. Install one of: bun, pnpm, yarn, or npm"
 fi
+
+info "Using package manager: ${PKG_MGR}"
+
+# Package manager command helpers
+pkg_install() {
+    case "$PKG_MGR" in
+        bun)  bun install ;;
+        pnpm) pnpm install ;;
+        yarn) yarn install ;;
+        npm)  npm install ;;
+    esac
+}
+
+pkg_run() {
+    local script="$1"
+    case "$PKG_MGR" in
+        bun)  bun run "$script" ;;
+        pnpm) pnpm run "$script" ;;
+        yarn) yarn run "$script" ;;
+        npm)  npm run "$script" ;;
+    esac
+}
 
 # Check sodium extension
 if ! php -m | grep -q sodium; then
@@ -189,7 +230,7 @@ fi
 info "Step 4/6: Rebuilding frontend assets..."
 cd "${PANEL_DIR}"
 
-bun install && bun run build:production || die "Frontend build failed."
+pkg_install && pkg_run build:production || die "Frontend build failed."
 
 ok "Frontend rebuilt."
 
@@ -206,7 +247,7 @@ if [ -f "${BRIDGE_JS}" ]; then
     cp "${BRIDGE_JS}" "${PANEL_DIR}/public/notur/bridge.js"
     ok "Bridge runtime installed."
 else
-    warn "Bridge runtime not found at ${BRIDGE_JS}. Build it with: cd vendor/notur/notur/bridge && bun run build"
+    warn "Bridge runtime not found at ${BRIDGE_JS}. Build it with: cd vendor/notur/notur/bridge && ${PKG_MGR} run build"
 fi
 
 # Initialize extensions.json

@@ -7,7 +7,7 @@ Guide for contributing to the Notur Extension Library itself.
 - PHP 8.2+
 - Composer 2.x
 - Node.js 22+
-- Bun
+- A package manager: npm, Yarn, pnpm, or Bun
 
 ## Setup
 
@@ -18,8 +18,11 @@ cd NoturExtensionLib
 # Install PHP dependencies
 composer install
 
-# Install frontend dependencies
-bun install
+# Install frontend dependencies (choose one)
+npm install
+# or: yarn install
+# or: pnpm install
+# or: bun install
 ```
 
 After running these commands, IDE errors for missing classes/types should resolve.
@@ -42,16 +45,20 @@ docs/                 Documentation
 
 ## Building
 
+Using your preferred package manager (npm, yarn, pnpm, or bun):
+
 ```bash
 # Build bridge runtime
-bun run build:bridge
+npm run build:bridge
 
 # Build SDK
-bun run build:sdk
+npm run build:sdk
 
 # Build everything
-bun run build
+npm run build
 ```
+
+Replace `npm` with `yarn`, `pnpm`, or `bun` as needed.
 
 ## Releasing / Publishing to npm
 
@@ -78,7 +85,10 @@ To publish **@notur/sdk** to npm and how the registry-validate workflow works, s
 ### Frontend Tests
 
 ```bash
-bun run test:frontend
+npm run test:frontend
+# or: yarn run test:frontend
+# or: pnpm run test:frontend
+# or: bun run test:frontend
 ```
 
 ## How the Pieces Fit Together

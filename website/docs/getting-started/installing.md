@@ -60,11 +60,29 @@ patch -p1 < vendor/notur/notur/installer/patches/v1.11/FileManager.tsx.patch
 
 ### Step 4: Rebuild Frontend
 
-```bash
-# One-time rebuild — not needed again when installing/removing extensions
+One-time rebuild — not needed again when installing/removing extensions.
+
+::: code-group
+```bash [npm]
+npm install
+npm run build:production
+```
+
+```bash [yarn]
+yarn install
+yarn run build:production
+```
+
+```bash [pnpm]
+pnpm install
+pnpm run build:production
+```
+
+```bash [bun]
 bun install
 bun run build:production
 ```
+:::
 
 ### Step 5: Run Migrations
 
@@ -89,12 +107,35 @@ echo '{"extensions":{}}' > notur/extensions.json
 
 The bridge JS must be built and placed in the panel's public directory:
 
-```bash
+::: code-group
+```bash [npm]
+cd vendor/notur/notur/bridge
+npm install
+npm run build
+cp dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js
+```
+
+```bash [yarn]
+cd vendor/notur/notur/bridge
+yarn install
+yarn run build
+cp dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js
+```
+
+```bash [pnpm]
+cd vendor/notur/notur/bridge
+pnpm install
+pnpm run build
+cp dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js
+```
+
+```bash [bun]
 cd vendor/notur/notur/bridge
 bun install
 bun run build
 cp dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js
 ```
+:::
 
 ## Verifying the Installation
 
@@ -107,7 +148,26 @@ cp dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js
 
 1. Remove all extensions: `php artisan notur:list` then `php artisan notur:remove` for each
 2. Restore backed-up files (the installer creates `.notur-backup` copies)
-3. Rebuild frontend: `bun run build:production`
+3. Rebuild frontend:
+
+::: code-group
+```bash [npm]
+npm run build:production
+```
+
+```bash [yarn]
+yarn run build:production
+```
+
+```bash [pnpm]
+pnpm run build:production
+```
+
+```bash [bun]
+bun run build:production
+```
+:::
+
 4. Remove Notur tables: `php artisan migrate:rollback` (the 3 notur tables)
 5. Remove composer package: `composer remove notur/notur`
 6. Remove directories: `rm -rf notur/ public/notur/`
