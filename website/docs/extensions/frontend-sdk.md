@@ -1,10 +1,11 @@
 # Notur Frontend SDK Reference
 
-This document covers the frontend SDK (`@notur/sdk`), bridge hooks, slot system, theme system, and webpack configuration for extension developers.
+This document covers the frontend SDK (`@notur/sdk`), bridge hooks, slot system, theme system, webpack configuration, and CLI tools for extension developers.
 
 ## Table of Contents
 
 - [Architecture Overview](#architecture-overview)
+- [CLI Tools](#cli-tools)
 - [SDK API: createExtension](#sdk-api-createextension)
 - [SDK Types](#sdk-types)
 - [Bridge Hooks](#bridge-hooks)
@@ -37,6 +38,54 @@ flowchart TD
   F --> G["SlotRenderer + Router"]
   G --> H["Your components render"]
 ```
+
+---
+
+## CLI Tools
+
+The SDK includes command-line tools for extension development.
+
+### `notur-pack`
+
+Package your extension into a `.notur` archive for distribution. This can be run directly on your development machine without needing access to a Pterodactyl server.
+
+```bash
+# From your extension directory
+npx notur-pack
+
+# Or with bun
+bunx notur-pack
+
+# Specify a different path
+npx notur-pack /path/to/my-extension
+
+# Custom output filename
+npx notur-pack --output my-extension.notur
+```
+
+**Output:**
+```
+Packing My Extension v1.0.0...
+  Found 12 files
+
+Created: acme-my-extension-1.0.0.notur
+Checksum: a7b5cf768de...
+
+Upload this file to your Pterodactyl admin panel at /admin/notur/extensions
+```
+
+**What it creates:**
+
+A `.notur` file is a tar.gz archive containing:
+- All extension files (excluding `node_modules`, `.git`, `vendor`, `.idea`, `.vscode`)
+- A `checksums.json` with SHA-256 hashes for integrity verification
+- A companion `.sha256` file with the archive checksum
+
+**Installation:**
+
+Upload the `.notur` file via:
+1. **Admin UI** (recommended): Navigate to `/admin/notur/extensions` and use the upload form
+2. **CLI**: `php artisan notur:install /path/to/extension.notur`
 
 ---
 

@@ -232,10 +232,11 @@ php artisan notur:export --sign
 
 ## Managing Extensions via Admin UI
 
-Notur includes an admin UI accessible at `/admin/notur` (when the Admin Blade UI feature is enabled). From this page you can:
+Notur includes an admin UI accessible at `/admin/notur/extensions`. From this page you can:
 
 - View all installed extensions with their status
 - Enable or disable extensions with a toggle
+- **Upload and install `.notur` packages** directly from your browser (WordPress-style)
 - Install extensions from the registry via a search interface
 - Remove extensions with confirmation
 - View extension logs and error details
@@ -245,9 +246,22 @@ Notur includes an admin UI accessible at `/admin/notur` (when the Admin Blade UI
 - Review extension health checks and diagnostics
 
 Quick links:
+- Extensions: `/admin/notur/extensions`
 - Health overview: `/admin/notur/health`
 - Diagnostics: `/admin/notur/diagnostics`
 - Slot catalog: `/admin/notur/slots`
+
+### Uploading Extensions via Admin UI
+
+The easiest way to install an extension is to upload a `.notur` package directly through the admin panel:
+
+1. Navigate to `/admin/notur/extensions`
+2. Click the **Upload** button or use the file upload form
+3. Select your `.notur` file
+4. The extension will be validated, extracted, and installed automatically
+5. Enable the extension with the toggle switch
+
+This is the recommended approach for most users, as it requires no CLI access and works like installing a WordPress plugin.
 
 ### Extension Detail Page
 

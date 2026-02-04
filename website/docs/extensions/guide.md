@@ -618,7 +618,33 @@ Watch mode (rebuilds the frontend bundle on change):
 php artisan notur:dev /path/to/acme-server-analytics --watch
 ```
 
-## Step 6: Export and Distribute
+## Step 6: Package and Distribute
+
+### Option A: Package Locally with the SDK CLI (Recommended)
+
+The `@notur/sdk` package includes a CLI tool to create `.notur` archives directly on your development machine — no server access required.
+
+```bash
+# From your extension directory
+npx notur-pack
+
+# Or with bun
+bunx notur-pack
+
+# Specify a different path
+npx notur-pack /path/to/my-extension
+
+# Custom output filename
+npx notur-pack --output my-extension.notur
+```
+
+This creates a `.notur` file (tar.gz archive) containing:
+- All extension files (excluding `node_modules`, `.git`, `vendor`, `.idea`, `.vscode`)
+- A `checksums.json` with SHA-256 hashes for integrity verification
+
+### Option B: Package on the Server
+
+If you have access to the Pterodactyl server with Notur installed:
 
 ```bash
 # Create a .notur archive
@@ -626,9 +652,19 @@ php artisan notur:export /path/to/acme-server-analytics
 
 # Output: acme-server-analytics-1.0.0.notur
 # Also generates: .sha256 checksum file
+
+# Sign the archive (optional)
+php artisan notur:export /path/to/acme-server-analytics --sign
 ```
 
-Users install with:
+### Installing Your Extension
+
+**Via Admin UI (Recommended):**
+
+Navigate to `/admin/notur/extensions` in your Pterodactyl panel and upload the `.notur` file directly. This works like WordPress plugin uploads.
+
+**Via CLI:**
+
 ```bash
 php artisan notur:install /path/to/acme-server-analytics-1.0.0.notur
 ```
