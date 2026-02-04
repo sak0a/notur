@@ -20,6 +20,7 @@ use Notur\Console\Commands\NewCommand;
 use Notur\Console\Commands\RegistryStatusCommand;
 use Notur\Console\Commands\RegistrySyncCommand;
 use Notur\Console\Commands\RemoveCommand;
+use Notur\Console\Commands\StatusCommand;
 use Notur\Console\Commands\UninstallCommand;
 use Notur\Console\Commands\UpdateCommand;
 use Notur\Console\Commands\ValidateCommand;
@@ -99,6 +100,7 @@ class NoturServiceProvider extends ServiceProvider
                 NewCommand::class,
                 ValidateCommand::class,
                 UninstallCommand::class,
+                StatusCommand::class,
             ]);
 
             Event::listen(CommandStarting::class, function (CommandStarting $event): void {

@@ -63,6 +63,54 @@ If the automated installer does not work for your environment, see [Installing](
 
 All extension management is done through Artisan commands in the panel directory (typically `/var/www/pterodactyl`).
 
+### Interactive Mode
+
+When running commands without arguments in an interactive terminal, Notur provides a beautiful TUI experience using Laravel Prompts.
+
+#### Install Extensions
+
+```bash
+# Install an extension by ID
+php artisan notur:install acme/server-analytics
+
+# Install from a local .notur file
+php artisan notur:install /path/to/extension.notur
+
+# Force reinstall an existing extension
+php artisan notur:install acme/server-analytics --force
+```
+
+#### System Status Dashboard
+
+```bash
+# Show full dashboard
+php artisan notur:status
+
+# JSON output for scripting
+php artisan notur:status --json
+
+# Health checks only
+php artisan notur:status --health
+```
+
+The dashboard displays:
+- System health (PHP, Laravel, Panel versions)
+- Installed extensions with status indicators
+- Available updates
+- Quick action shortcuts
+
+#### Non-Interactive Mode
+
+All commands support `--no-interaction` or `-n` flag for CI/CD pipelines:
+
+```bash
+# Install without prompts
+php artisan notur:install acme/analytics -n
+
+# Works in CI environments automatically
+CI=true php artisan notur:install acme/analytics
+```
+
 ### Listing Extensions
 
 ```bash

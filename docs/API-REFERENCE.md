@@ -570,6 +570,7 @@ All commands are prefixed with `notur:` in Artisan.
 | `notur:disable` | `notur:disable {extension}` | Disable an extension without removing files |
 | `notur:list` | `notur:list [--enabled] [--disabled]` | List installed extensions |
 | `notur:update` | `notur:update {extension?} [--check]` | Update one or all extensions |
+| `notur:status` | `notur:status [--json] [--health] [--extensions]` | Display system status dashboard |
 | `notur:new` | `notur:new {id} [--path=] [--preset=] [--with-api-routes|--no-api-routes] [--with-admin-routes|--no-admin-routes] [--with-frontend|--no-frontend] [--with-admin|--no-admin] [--with-migrations|--no-migrations] [--with-tests|--no-tests]` | Scaffold a new extension from templates |
 | `notur:validate` | `notur:validate {path?} [--strict]` | Validate an extension manifest and settings schema |
 | `notur:dev` | `notur:dev {path} [--link] [--watch] [--watch-bridge]` | Link a local extension for development |

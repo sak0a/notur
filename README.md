@@ -11,6 +11,7 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 - **Clean architecture** — no sed-based injection or file patching per extension
 - **One-time install** — patches 4 React files + rebuilds once during Notur setup
 - **Full lifecycle management** — install, enable, disable, update, remove via artisan
+- **Interactive CLI** — beautiful terminal UI with search, wizards, and status dashboard
 - **Frontend slot system** — React portal-based rendering into predefined panel locations
 - **Scoped namespacing** — routes, permissions, migrations, and config are all extension-scoped
 - **Registry support** — GitHub-backed extension registry with optional Ed25519 signatures
@@ -112,6 +113,7 @@ php artisan notur:disable acme/server-analytics    # Disable
 php artisan notur:remove acme/server-analytics     # Uninstall + rollback migrations
 php artisan notur:list                             # Show all installed
 php artisan notur:update                           # Check for updates
+php artisan notur:status                           # System status dashboard
 ```
 
 ## Project Structure
