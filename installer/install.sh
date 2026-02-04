@@ -34,6 +34,72 @@ banner() {
     fi
 }
 
+# ── Helper: Detect system package manager ────────────────────────────────
+
+detect_sys_pkg_manager() {
+    if command -v apk &> /dev/null; then echo "apk"
+    elif command -v apt-get &> /dev/null; then echo "apt"
+    elif command -v dnf &> /dev/null; then echo "dnf"
+    elif command -v yum &> /dev/null; then echo "yum"
+    elif command -v pacman &> /dev/null; then echo "pacman"
+    else echo ""
+    fi
+}
+
+# Helper: Prompt user for confirmation
+confirm() {
+    local prompt="$1"
+    local response
+    echo -en "${YELLOW}[Notur]${NC} ${prompt} [y/N]: "
+    read -r response
+    case "$response" in
+        [yY][eE][sS]|[yY]) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Helper: Install a system package
+install_sys_package() {
+    local pkg_name="$1"
+    local sys_pkg_mgr
+    sys_pkg_mgr=$(detect_sys_pkg_manager)
+
+    case "$sys_pkg_mgr" in
+        apk)
+            apk add --no-cache $pkg_name
+            ;;
+        apt)
+            apt-get update && apt-get install -y $pkg_name
+            ;;
+        dnf)
+            dnf install -y $pkg_name
+            ;;
+        yum)
+            yum install -y $pkg_name
+            ;;
+        pacman)
+            pacman -S --noconfirm $pkg_name
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# Helper: Get package names for different package managers
+get_node_packages() {
+    local sys_pkg_mgr
+    sys_pkg_mgr=$(detect_sys_pkg_manager)
+
+    case "$sys_pkg_mgr" in
+        apk)     echo "nodejs npm" ;;
+        apt)     echo "nodejs npm" ;;
+        dnf|yum) echo "nodejs npm" ;;
+        pacman)  echo "nodejs npm" ;;
+        *)       echo "" ;;
+    esac
+}
+
 # ── Pre-flight checks ────────────────────────────────────────────────────
 
 banner
@@ -70,7 +136,22 @@ fi
 
 # Check Node.js
 if ! command -v node &> /dev/null; then
-    die "Node.js is not installed."
+    warn "Node.js is not installed."
+    node_pkgs=$(get_node_packages)
+    if [ -n "$node_pkgs" ]; then
+        if confirm "Would you like to install Node.js automatically?"; then
+            info "Installing Node.js..."
+            if install_sys_package "$node_pkgs"; then
+                ok "Node.js installed successfully."
+            else
+                die "Failed to install Node.js. Please install it manually and re-run the installer."
+            fi
+        else
+            die "Node.js is required. Please install it manually and re-run the installer."
+        fi
+    else
+        die "Node.js is not installed and automatic installation is not supported on this system. Please install Node.js manually."
+    fi
 fi
 
 # Detect available package manager (prefer bun > pnpm > yarn > npm)
@@ -199,7 +280,19 @@ esac
 
 info "Using patch set: ${PATCH_VERSION}"
 
-PATCH_DIR="$(dirname "$(realpath "$0")")/patches/${PATCH_VERSION}"
+# Resolve script directory (realpath may not exist on Alpine)
+resolve_path() {
+    if command -v realpath &> /dev/null; then
+        realpath "$1" 2>/dev/null || echo "$1"
+    elif command -v readlink &> /dev/null; then
+        readlink -f "$1" 2>/dev/null || echo "$1"
+    else
+        echo "$1"
+    fi
+}
+
+SCRIPT_DIR="$(dirname "$(resolve_path "$0")")"
+PATCH_DIR="${SCRIPT_DIR}/patches/${PATCH_VERSION}"
 
 if [ ! -d "${PATCH_DIR}" ]; then
     # Patches may be in the Composer vendor directory
@@ -230,7 +323,26 @@ fi
 info "Step 4/6: Rebuilding frontend assets..."
 cd "${PANEL_DIR}"
 
-pkg_install && pkg_run build:production || die "Frontend build failed."
+# Enable legacy OpenSSL provider for Node.js 17+ compatibility with older webpack configs
+export NODE_OPTIONS="${NODE_OPTIONS:-} --openssl-legacy-provider"
+
+# Try normal install first, fall back to --legacy-peer-deps for dependency conflicts
+build_frontend() {
+    if pkg_install && pkg_run build:production; then
+        return 0
+    fi
+
+    # Check if this is npm with a peer dependency conflict
+    if [ "$PKG_MGR" = "npm" ]; then
+        warn "Standard npm install failed. Retrying with --legacy-peer-deps..."
+        npm install --legacy-peer-deps && npm run build:production || return 1
+        return 0
+    fi
+
+    return 1
+}
+
+build_frontend || die "Frontend build failed."
 
 ok "Frontend rebuilt."
 
@@ -241,13 +353,28 @@ info "Step 5/6: Setting up Notur directories..."
 mkdir -p "${PANEL_DIR}/notur/extensions"
 mkdir -p "${PANEL_DIR}/public/notur/extensions"
 
-# Copy bridge.js to public
+# Copy bridge.js to public (build it if missing)
 BRIDGE_JS="${PANEL_DIR}/vendor/notur/notur/bridge/dist/bridge.js"
+if [ ! -f "${BRIDGE_JS}" ]; then
+    warn "Bridge runtime not found. Building it now..."
+    NOTUR_DIR="${PANEL_DIR}/vendor/notur/notur"
+    if [ -d "${NOTUR_DIR}" ]; then
+        cd "${NOTUR_DIR}"
+        # Install dependencies and build bridge
+        if [ "$PKG_MGR" = "npm" ]; then
+            npm install --legacy-peer-deps && npm run build:bridge
+        else
+            pkg_install && pkg_run build:bridge
+        fi
+        cd "${PANEL_DIR}"
+    fi
+fi
+
 if [ -f "${BRIDGE_JS}" ]; then
     cp "${BRIDGE_JS}" "${PANEL_DIR}/public/notur/bridge.js"
     ok "Bridge runtime installed."
 else
-    warn "Bridge runtime not found at ${BRIDGE_JS}. Build it with: cd vendor/notur/notur/bridge && ${PKG_MGR} run build"
+    die "Bridge runtime could not be built. Please build it manually: cd vendor/notur/notur && npm install && npm run build:bridge"
 fi
 
 # Initialize extensions.json

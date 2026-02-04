@@ -1,0 +1,1 @@
+{"version":3,"file":"useServerContext.d.ts","sourceRoot":"","sources":["../../src/hooks/useServerContext.ts"],"names":[],"mappings":"AAEA,UAAU,aAAa;IACnB,IAAI,EAAE,MAAM,CAAC;IACb,IAAI,EAAE,MAAM,CAAC;IACb,IAAI,EAAE,MAAM,CAAC;IACb,OAAO,EAAE,OAAO,CAAC;IACjB,MAAM,EAAE,MAAM,GAAG,IAAI,CAAC;IACtB,WAAW,EAAE,MAAM,EAAE,CAAC;CACzB;AAED;;;GAGG;AACH,wBAAgB,gBAAgB,IAAI,aAAa,GAAG,IAAI,CA0BvD"}

@@ -14,8 +14,9 @@ composer.phar
 /dist/
 /build/
 *.tsbuildinfo
-bridge/dist/
-sdk/dist/
+# Note: bridge/dist/ and sdk/dist/ are NOT ignored - they must be committed for Composer distribution
+# bridge/dist/
+# sdk/dist/
 
 # Environment
 .env

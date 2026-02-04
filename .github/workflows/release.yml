@@ -40,6 +40,17 @@ jobs:
             exit 1
           fi
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build bridge and SDK
+        run: |
+          npm install
+          npm run build:bridge
+          npm run build:sdk
+
       - name: Update version in config/notur.php
         run: |
           sed -i "s/'version' => '[^']*'/'version' => '${{ inputs.version }}'/" config/notur.php

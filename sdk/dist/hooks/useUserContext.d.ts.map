@@ -1,0 +1,1 @@
+{"version":3,"file":"useUserContext.d.ts","sourceRoot":"","sources":["../../src/hooks/useUserContext.ts"],"names":[],"mappings":"AAEA,UAAU,WAAW;IACjB,IAAI,EAAE,MAAM,CAAC;IACb,QAAQ,EAAE,MAAM,CAAC;IACjB,KAAK,EAAE,MAAM,CAAC;IACd,OAAO,EAAE,OAAO,CAAC;CACpB;AAED;;GAEG;AACH,wBAAgB,cAAc,IAAI,WAAW,GAAG,IAAI,CAoCnD"}
