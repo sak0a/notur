@@ -242,8 +242,12 @@ Notur includes an admin UI accessible at `/admin/notur` (when the Admin Blade UI
 - Configure extension settings (when the extension exposes an admin settings schema)
 - Browse the slot catalog and see registered slot usage
 - Inspect admin routes and slot registrations per extension
+- Review extension health checks and diagnostics
 
-Note: The Admin UI is a Phase 5 feature currently under development. CLI management is the fully supported approach.
+Quick links:
+- Health overview: `/admin/notur/health`
+- Diagnostics: `/admin/notur/diagnostics`
+- Slot catalog: `/admin/notur/slots`
 
 ### Extension Detail Page
 
@@ -252,6 +256,7 @@ Each extension has a detail page with contextual diagnostics, including:
 - Registered frontend slots and slot metadata
 - Admin routes registered for the extension
 - Manifest and migration summaries
+- Health check results (if the extension implements `HasHealthChecks`)
 
 ### Settings Preview (JSON)
 
@@ -306,6 +311,14 @@ The base URL of the extension registry. Change this to point to a private or sel
 ```
 
 Where the local copy of the registry index is stored. The cache has a 1-hour TTL by default.
+
+### `registry_cache_ttl`
+
+```php
+'registry_cache_ttl' => 3600,
+```
+
+The cache TTL in seconds. Set to `0` to disable cache expiry checks.
 
 ### `public_key`
 

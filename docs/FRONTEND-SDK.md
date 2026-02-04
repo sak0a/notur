@@ -130,11 +130,10 @@ createExtension({
 
 ### What happens on registration
 
-1. Each slot config is registered with the PluginRegistry via `registerSlot()`.
-2. Each route config is registered with the PluginRegistry via `registerRoute()`.
-3. The extension metadata is registered via `registerExtension()`.
-4. The `onInit` callback is invoked (if provided).
-5. A log message `[Notur] Extension registered: {id} v{version}` is printed to the console.
+1. `createExtension()` calls `registry.registerExtension()` with your slots and routes.
+2. The registry registers each slot and route internally.
+3. The `onInit` callback is invoked (if provided).
+4. A log message `[Notur] Extension registered: {id} v{version}` is printed to the console.
 
 ---
 

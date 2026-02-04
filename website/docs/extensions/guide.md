@@ -247,6 +247,12 @@ php artisan notur:dev /path/to/acme-server-analytics
 # Frontend changes require rebuilding the JS bundle
 ```
 
+Watch mode (rebuilds the frontend bundle on change):
+
+```bash
+php artisan notur:dev /path/to/acme-server-analytics --watch
+```
+
 ## Step 6: Export and Distribute
 
 ```bash

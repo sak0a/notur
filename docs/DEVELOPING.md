@@ -106,7 +106,7 @@ The bridge (`bridge/src/index.ts`) runs when `bridge.js` loads in the browser:
 2. Applies default CSS custom properties
 3. Exposes hooks, SlotRenderer, and ThemeProvider on the global
 
-Extension bundles (loaded after bridge.js) call `window.__NOTUR__.registry.registerSlot()` or use `createExtension()` from the SDK to register their components.
+Extension bundles (loaded after bridge.js) call `createExtension()` from the SDK, which registers the extension (and its slots/routes) with the registry.
 
 The patched React files contain `<div id="notur-slot-*">` containers. The `SlotRenderer` uses React portals to render extension components into these containers.
 

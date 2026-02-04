@@ -2,6 +2,19 @@
 
 All notable changes to the Notur Extension Library are documented here.
 
+## [Unreleased]
+
+### Added
+- **Admin health overview** -- `/admin/notur/health` aggregates extension health checks and highlights critical failures.
+- **Registry cache status command** -- `notur:registry:status` shows cache age, TTL, size, and extension count (with `--json` for automation).
+- **Slot enhancements** -- Slot registrations now support `priority`, `props`, and conditional rendering rules (`when`).
+- **Dev watch mode** -- `notur:dev --watch` rebuilds extension bundles on change, with `--watch-bridge` for the runtime.
+- **CLI/installer banner** -- Notur logo banner renders on installer and CLI commands (respects `NO_COLOR` and `NOTUR_NO_BANNER`).
+
+### Changed
+- **Registry cache behavior** -- Auto-refreshes on expiry and can fall back to stale cache if remote fetch fails.
+- **Slot ordering** -- Slots are now sorted by priority (desc) then order (asc).
+
 ## [1.0.0] - 2026-02-03
 
 ### Added

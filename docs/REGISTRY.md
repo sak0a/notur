@@ -21,10 +21,11 @@ The registry is a static JSON file (`registry.json`) hosted on a GitHub reposito
 
 ### Flow
 
-1. **Sync**: `php artisan notur:registry:sync` fetches `registry.json` from the configured registry URL and caches it locally at `storage/notur/registry-cache.json`. The cache has a 1-hour TTL.
+1. **Sync**: `php artisan notur:registry:sync` fetches `registry.json` from the configured registry URL and caches it locally at `storage/notur/registry-cache.json`. The cache TTL is configurable.
 2. **Search**: `php artisan notur:registry:sync --search "analytics"` searches the cached (or freshly fetched) index by ID, name, description, and tags.
 3. **Install**: `php artisan notur:install acme/analytics` looks up the extension in the registry, downloads the `.notur` archive from its GitHub release, and installs it.
 4. **Update**: `php artisan notur:update` compares installed versions against the registry and offers to update any extensions with newer versions available.
+5. **Status**: `php artisan notur:registry:status` shows cache age, TTL, size, and extension count.
 
 ### RegistryClient
 
@@ -64,7 +65,10 @@ Configuration is read from `config/notur.php`:
 ```php
 'registry_url' => 'https://raw.githubusercontent.com/notur/registry/main',
 'registry_cache_path' => storage_path('notur/registry-cache.json'),
+'registry_cache_ttl' => 3600,
 ```
+
+Use `php artisan notur:registry:status --json` for machine-readable cache metadata.
 
 ---
 

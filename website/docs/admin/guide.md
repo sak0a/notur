@@ -146,6 +146,7 @@ The update command checks the registry for newer versions and reinstalls them wi
 ### Syncing the Registry
 
 The registry is a remote index of available extensions. Sync it to keep your local cache current.
+Cache expiry is controlled by `notur.registry_cache_ttl` (seconds) in `config/notur.php`.
 
 ```bash
 # Sync registry (respects cache TTL of 1 hour)
@@ -153,6 +154,9 @@ php artisan notur:registry:sync
 
 # Force a fresh fetch
 php artisan notur:registry:sync --force
+
+# Show cache status (age, size, extensions)
+php artisan notur:registry:status
 
 # Search the registry
 php artisan notur:registry:sync --search "analytics"
@@ -168,6 +172,12 @@ php artisan notur:dev /path/to/my-extension
 
 # Use symlink mode
 php artisan notur:dev /path/to/my-extension --link
+
+# Watch frontend bundle and rebuild on changes
+php artisan notur:dev /path/to/my-extension --watch
+
+# Also watch the Notur bridge runtime
+php artisan notur:dev /path/to/my-extension --watch --watch-bridge
 ```
 
 ### Scaffolding New Extensions
@@ -207,9 +217,14 @@ Notur includes an admin UI accessible at `/admin/notur` (when the Admin Blade UI
 - Enable or disable extensions with a toggle
 - Install extensions from the registry via a search interface
 - Remove extensions with confirmation
+- Inspect extension health checks and diagnostics
+- Browse the slot catalog and registrations
 - View extension logs and error details
 
-Note: The Admin UI is a Phase 5 feature currently under development. CLI management is the fully supported approach.
+Quick links:
+- Health overview: `/admin/notur/health`
+- Diagnostics: `/admin/notur/diagnostics`
+- Slot catalog: `/admin/notur/slots`
 
 ## Configuration
 
@@ -254,6 +269,14 @@ The base URL of the extension registry. Change this to point to a private or sel
 ```
 
 Where the local copy of the registry index is stored. The cache has a 1-hour TTL by default.
+
+### `registry_cache_ttl`
+
+```php
+'registry_cache_ttl' => 3600,
+```
+
+The cache TTL in seconds. Set to `0` to disable cache expiry checks.
 
 ### `public_key`
 
