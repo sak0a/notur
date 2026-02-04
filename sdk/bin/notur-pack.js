@@ -6,6 +6,8 @@
  * Usage:
  *   npx notur-pack [path]           # Pack extension at path (default: current dir)
  *   npx notur-pack --output foo.notur
+ *   npx notur-pack --sign           # Sign using NOTUR_SECRET_KEY env var
+ *   npx notur-pack --sign --secret-key xxx
  *   bunx notur-pack
  *
  * A .notur file is a tar.gz archive containing:
@@ -34,11 +36,17 @@ function parseArgs() {
     const options = {
         path: '.',
         output: null,
+        sign: false,
+        secretKey: null,
     };
 
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--output' || args[i] === '-o') {
             options.output = args[++i];
+        } else if (args[i] === '--sign' || args[i] === '-s') {
+            options.sign = true;
+        } else if (args[i] === '--secret-key') {
+            options.secretKey = args[++i];
         } else if (!args[i].startsWith('-')) {
             options.path = args[i];
         }
@@ -123,7 +131,45 @@ function computeChecksums(dir, files) {
     return checksums;
 }
 
-function pack(sourceDir, outputPath) {
+async function signArchive(archivePath, secretKeyHex) {
+    const sodium = require('libsodium-wrappers');
+    await sodium.ready;
+
+    const content = fs.readFileSync(archivePath);
+    const secretKey = sodium.from_hex(secretKeyHex);
+    const signature = sodium.crypto_sign_detached(content, secretKey);
+
+    return sodium.to_hex(signature);
+}
+
+function getSecretKey(options) {
+    // Check --secret-key argument first, then environment variable
+    const secretKey = options.secretKey || process.env.NOTUR_SECRET_KEY;
+
+    if (!secretKey) {
+        console.error('Error: --sign requires a secret key.');
+        console.error('');
+        console.error('Provide it via:');
+        console.error('  NOTUR_SECRET_KEY=xxx npx notur-pack --sign');
+        console.error('  npx notur-pack --sign --secret-key xxx');
+        console.error('');
+        console.error('Generate a keypair with: npx notur-keygen');
+        process.exit(1);
+    }
+
+    // Validate format: Ed25519 secret keys are 64 bytes = 128 hex chars
+    if (!/^[0-9a-fA-F]{128}$/.test(secretKey)) {
+        console.error('Error: Invalid secret key format.');
+        console.error('Expected 128 hexadecimal characters (64 bytes).');
+        console.error('');
+        console.error('Generate a valid keypair with: npx notur-keygen');
+        process.exit(1);
+    }
+
+    return secretKey;
+}
+
+async function pack(sourceDir, outputPath, options = {}) {
     const resolvedDir = path.resolve(sourceDir);
 
     if (!fs.existsSync(resolvedDir)) {
@@ -174,6 +220,16 @@ function pack(sourceDir, outputPath) {
 
         console.log(`\nCreated: ${outputFullPath}`);
         console.log(`Checksum: ${archiveChecksum}`);
+
+        // Sign the archive if requested
+        if (options.sign) {
+            const secretKey = getSecretKey(options);
+            const signature = await signArchive(outputFullPath, secretKey);
+            const sigPath = outputFullPath + '.sig';
+            fs.writeFileSync(sigPath, signature + '\n');
+            console.log(`Signature: ${sigPath}`);
+        }
+
         console.log(`\nUpload this file to your Pterodactyl admin panel at /admin/notur/extensions`);
 
     } finally {
@@ -186,4 +242,7 @@ function pack(sourceDir, outputPath) {
 
 // Main
 const options = parseArgs();
-pack(options.path, options.output);
+pack(options.path, options.output, options).catch(err => {
+    console.error('Error:', err.message);
+    process.exit(1);
+});

@@ -89,6 +89,37 @@ This creates a `.notur` file (tar.gz archive) containing:
 
 Upload the resulting `.notur` file to your Pterodactyl admin panel at `/admin/notur/extensions`.
 
+## Signing Extensions
+
+The SDK provides tools for Ed25519 signing of extension archives, compatible with the PHP `notur:keygen` and `notur:export --sign` commands.
+
+### Generating a Keypair
+
+```bash
+npx notur-keygen
+```
+
+This generates a new Ed25519 keypair and outputs:
+- **Public Key** (64 hex characters) -- Share with panel administrators
+- **Secret Key** (128 hex characters) -- Keep private, used for signing
+
+### Signing an Archive
+
+```bash
+# Using environment variable
+NOTUR_SECRET_KEY=your_secret_key npx notur-pack --sign
+
+# Or with --secret-key flag
+npx notur-pack --sign --secret-key your_secret_key
+```
+
+This produces three files:
+- `vendor-name-1.0.0.notur` -- The extension archive
+- `vendor-name-1.0.0.notur.sha256` -- SHA-256 checksum
+- `vendor-name-1.0.0.notur.sig` -- Ed25519 signature (hex-encoded)
+
+The `.sig` file format is compatible with PHP's `SignatureVerifier::verify()` and panels with `require_signatures` enabled.
+
 ## Build
 
 ```bash

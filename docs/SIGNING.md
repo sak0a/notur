@@ -79,6 +79,30 @@ The command produces three files:
 
 The `.sig` file must be distributed alongside the `.notur` archive. Without it, panels that enforce signatures will reject the archive.
 
+## Using the Node.js CLI (Alternative)
+
+If you don't have access to a PHP/Laravel environment, the `@notur/sdk` package provides equivalent CLI tools for keypair generation and signing.
+
+### Generating a Keypair (Node.js)
+
+```bash
+npx notur-keygen
+```
+
+This produces the same output format as `php artisan notur:keygen` -- a public key (64 hex characters) and a secret key (128 hex characters).
+
+### Signing an Archive (Node.js)
+
+```bash
+# Using environment variable
+NOTUR_SECRET_KEY=your_secret_key npx notur-pack --sign
+
+# Or with --secret-key flag
+npx notur-pack --sign --secret-key your_secret_key
+```
+
+This produces the same `.notur`, `.sha256`, and `.sig` files as `php artisan notur:export --sign`. The signature format is fully compatible with the PHP verification system.
+
 ### Signing in CI/CD
 
 A typical GitHub Actions step:

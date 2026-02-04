@@ -1,0 +1,9 @@
+{
+  "extension.yaml": "f5a02f31c65d13832b81b32af957defe27e439d61a73707a101b17440920b958",
+  "resources/frontend/dist/hello-world.js": "4af2439bddcfc0293f00d4bf220a664ca6cf413fafac0d080ea5f8d7704a752d",
+  "resources/frontend/src/index.tsx": "48df690cf9e8d3f764cfedff554a452c43df30e9d1fb03e8aa079ff6a6a216f7",
+  "src/HelloWorldExtension.php": "dcb80fcad778e563a599a37e0be2314c3aa36cdd038586f2eba147dc7d74d8ad",
+  "src/routes/api-client.php": "efda1c0d914a51f94e45a2d25104c07cf6743502dd09356442c129e8e0dda083",
+  "tsconfig.json": "980327c249e64897f9c1526b26d841a5f99ac9a1d5a55ada2b6e84ad19b31e96",
+  "webpack.config.js": "93e238da221b383304cfc6c4e09e4935f88c0db6720e6f9772b7a145d37cdb97"
+}
