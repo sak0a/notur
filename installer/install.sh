@@ -56,17 +56,43 @@ is_pterodactyl_docker() {
     [ -f /app/artisan ] && [ -d /app/vendor ] && [ -f /etc/nginx/http.d/default.conf ] 2>/dev/null
 }
 
+# Validate that a directory contains Pterodactyl Panel (not just any Laravel app)
+is_pterodactyl_panel() {
+    local dir="$1"
+
+    # Check 1: Pterodactyl-specific config file
+    if [ -f "${dir}/config/pterodactyl.php" ]; then
+        return 0
+    fi
+
+    # Check 2: pterodactyl/panel in composer.lock
+    if [ -f "${dir}/composer.lock" ]; then
+        if grep -q '"name": "pterodactyl/panel"' "${dir}/composer.lock" 2>/dev/null; then
+            return 0
+        fi
+    fi
+
+    # Check 3: Pterodactyl-specific models (Server, Node, Nest)
+    if [ -f "${dir}/app/Models/Server.php" ] && [ -f "${dir}/app/Models/Node.php" ] && [ -f "${dir}/app/Models/Nest.php" ]; then
+        return 0
+    fi
+
+    return 1
+}
+
 detect_panel_dir() {
     # Check common locations in order of specificity
-    if [ -f "/app/artisan" ]; then
-        echo "/app"  # Docker (Pterodactyl official image)
-    elif [ -f "/var/www/pterodactyl/artisan" ]; then
-        echo "/var/www/pterodactyl"  # Standard installation
-    elif [ -f "/var/www/html/artisan" ]; then
-        echo "/var/www/html"  # Alternative location
-    else
-        echo ""
-    fi
+    # Only return a path if it's actually Pterodactyl Panel
+    local candidates=("/app" "/var/www/pterodactyl" "/var/www/html")
+
+    for dir in "${candidates[@]}"; do
+        if [ -f "${dir}/artisan" ] && is_pterodactyl_panel "${dir}"; then
+            echo "${dir}"
+            return
+        fi
+    done
+
+    echo ""
 }
 
 detect_web_user() {
@@ -292,6 +318,13 @@ fi
 
 if [ ! -f "${PANEL_DIR}/composer.json" ]; then
     die "Invalid Pterodactyl installation: composer.json not found."
+fi
+
+# Validate this is actually Pterodactyl Panel, not just any Laravel app
+if ! is_pterodactyl_panel "${PANEL_DIR}"; then
+    error "Directory ${PANEL_DIR} appears to be a Laravel application, but not Pterodactyl Panel."
+    error "Could not find Pterodactyl-specific markers (config/pterodactyl.php, pterodactyl/panel in composer.lock)."
+    die "Please specify the correct Pterodactyl Panel path: bash install.sh /path/to/pterodactyl"
 fi
 
 info "Panel directory: ${PANEL_DIR}"
