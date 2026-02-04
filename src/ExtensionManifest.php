@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Notur;
 
+use Notur\Support\SettingsNormalizer;
 use Symfony\Component\Yaml\Yaml;
 use InvalidArgumentException;
 
@@ -245,9 +246,44 @@ class ExtensionManifest
         return $this->data['frontend']['css_isolation'] ?? [];
     }
 
+    /**
+     * Get frontend slot definitions from manifest.
+     *
+     * @deprecated Define slots in frontend code via createExtension({ slots: [...] }) instead.
+     * @return array<string, array<string, mixed>>
+     */
     public function getFrontendSlots(): array
     {
-        return $this->data['frontend']['slots'] ?? [];
+        $slots = $this->data['frontend']['slots'] ?? [];
+
+        if ($slots !== []) {
+            @trigger_error(
+                'frontend.slots in manifest is deprecated. Define slots in frontend code via createExtension({ slots: [...] }) instead.',
+                E_USER_DEPRECATED
+            );
+        }
+
+        return $slots;
+    }
+
+    /**
+     * Get normalized admin settings schema.
+     *
+     * Supports both full format and shorthand format:
+     * - Full: { fields: [{ key: "...", type: "...", ... }] }
+     * - Shorthand: { api_key: { type: string }, enabled: { type: boolean } }
+     *
+     * @return array<string, mixed> Normalized settings with fields array
+     */
+    public function getSettings(): array
+    {
+        $settings = $this->data['admin']['settings'] ?? [];
+
+        if (!is_array($settings)) {
+            return [];
+        }
+
+        return SettingsNormalizer::normalize($settings);
     }
 
     public function getTheme(): array

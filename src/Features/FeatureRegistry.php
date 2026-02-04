@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Notur\Features;
 
+use Notur\Contracts\HasRoutes;
 use Notur\Support\CapabilityMatcher;
 
 final class FeatureRegistry
@@ -88,10 +89,33 @@ final class FeatureRegistry
     private function isImplicitlyEnabled(string $capabilityId, ExtensionContext $context): bool
     {
         return match ($capabilityId) {
+            'routes' => $this->hasRouteDefinitions($context),
             'health' => $this->hasNonEmptyArray($context->manifest->get('health.checks', [])),
             'schedules' => $this->hasNonEmptyArray($context->manifest->get('schedules.tasks', [])),
+            'css_isolation' => $this->hasNonEmptyArray($context->manifest->get('frontend.css_isolation', [])),
             default => false,
         };
+    }
+
+    /**
+     * Check if the extension has route definitions through any mechanism.
+     */
+    private function hasRouteDefinitions(ExtensionContext $context): bool
+    {
+        // Check if extension implements HasRoutes interface
+        if ($context->extension instanceof HasRoutes) {
+            return true;
+        }
+
+        // Check manifest routes
+        $routes = $context->manifest->getRoutes();
+        if (is_array($routes) && $routes !== []) {
+            return true;
+        }
+
+        // Routes are auto-discovered in manifest, so if getRoutes() is empty,
+        // no conventional route files exist either
+        return false;
     }
 
     private function hasNonEmptyArray(mixed $value): bool

@@ -6,6 +6,7 @@ namespace Notur\Console\Commands;
 
 use Illuminate\Console\Command;
 use Notur\Support\SchemaValidator;
+use Notur\Support\SettingsNormalizer;
 use Symfony\Component\Yaml\Yaml;
 
 class ValidateCommand extends Command
@@ -114,7 +115,15 @@ class ValidateCommand extends Command
             return [$errors, $warnings];
         }
 
-        $fields = $settings['fields'] ?? [];
+        // Check if using shorthand format and normalize
+        if (SettingsNormalizer::isShorthand($settings)) {
+            $this->info('  Using shorthand settings format (will be normalized).');
+        }
+
+        // Normalize shorthand syntax to full format before validation
+        $normalized = SettingsNormalizer::normalize($settings);
+        $fields = $normalized['fields'] ?? [];
+
         if (!is_array($fields)) {
             $errors[] = 'admin.settings.fields must be an array.';
             return [$errors, $warnings];
@@ -233,70 +242,57 @@ class ValidateCommand extends Command
         $errors = [];
         $warnings = [];
 
-        if (!array_key_exists('capabilities', $manifest)) {
-            return [$errors, $warnings];
-        }
+        // Capabilities section is now deprecated - features are auto-detected
+        if (array_key_exists('capabilities', $manifest)) {
+            $warnings[] = 'The capabilities section is deprecated. Capabilities are now auto-detected from feature definitions (routes, health, schedules, css_isolation).';
 
-        $capabilities = $manifest['capabilities'];
-        if (!is_array($capabilities)) {
-            $errors[] = 'capabilities must be an object.';
-            return [$errors, $warnings];
-        }
-
-        if ($capabilities === []) {
-            $warnings[] = 'capabilities is empty; all capability-gated features will be disabled.';
-        }
-
-        $supported = [
-            'routes' => 1,
-            'health' => 1,
-            'schedules' => 1,
-            'css_isolation' => 1,
-        ];
-
-        foreach ($capabilities as $id => $constraint) {
-            if (!is_string($id) || $id === '') {
-                $errors[] = 'capabilities keys must be non-empty strings.';
-                continue;
+            $capabilities = $manifest['capabilities'];
+            if (!is_array($capabilities)) {
+                $errors[] = 'capabilities must be an object.';
+                return [$errors, $warnings];
             }
 
-            if (!is_string($constraint) || $constraint === '') {
-                $errors[] = "capabilities.{$id} must be a non-empty string.";
-                continue;
+            if ($capabilities === []) {
+                $warnings[] = 'capabilities is empty and can be removed.';
             }
 
-            if (!preg_match('/^(\\^|~|>=)?\\d+(?:\\.\\d+)?$/', $constraint)) {
-                $warnings[] = "capabilities.{$id} uses an unrecognized version constraint '{$constraint}'.";
-            }
+            $supported = [
+                'routes' => 1,
+                'health' => 1,
+                'schedules' => 1,
+                'css_isolation' => 1,
+            ];
 
-            if (!isset($supported[$id])) {
-                $warnings[] = "capabilities.{$id} is not a known Notur capability.";
-                continue;
-            }
+            foreach ($capabilities as $id => $constraint) {
+                if (!is_string($id) || $id === '') {
+                    $errors[] = 'capabilities keys must be non-empty strings.';
+                    continue;
+                }
 
-            if (!\Notur\Support\CapabilityMatcher::matches($constraint, $supported[$id])) {
-                $warnings[] = "capabilities.{$id} does not match the supported major version ({$supported[$id]}).";
+                if (!is_string($constraint) || $constraint === '') {
+                    $errors[] = "capabilities.{$id} must be a non-empty string.";
+                    continue;
+                }
+
+                if (!preg_match('/^(\\^|~|>=)?\\d+(?:\\.\\d+)?$/', $constraint)) {
+                    $warnings[] = "capabilities.{$id} uses an unrecognized version constraint '{$constraint}'.";
+                }
+
+                if (!isset($supported[$id])) {
+                    $warnings[] = "capabilities.{$id} is not a known Notur capability.";
+                    continue;
+                }
+
+                if (!\Notur\Support\CapabilityMatcher::matches($constraint, $supported[$id])) {
+                    $warnings[] = "capabilities.{$id} does not match the supported major version ({$supported[$id]}).";
+                }
             }
         }
 
-        $usesRoutes = !empty($manifest['backend']['routes'] ?? []);
-        if ($usesRoutes && !array_key_exists('routes', $capabilities)) {
-            $warnings[] = 'backend.routes is defined but capabilities.routes is missing (routes will not be registered).';
-        }
-
-        $usesHealth = !empty($manifest['health']['checks'] ?? []);
-        if ($usesHealth && !array_key_exists('health', $capabilities)) {
-            $warnings[] = 'health.checks is defined but capabilities.health is missing (health checks will be ignored).';
-        }
-
-        $usesSchedules = !empty($manifest['schedules']['tasks'] ?? []);
-        if ($usesSchedules && !array_key_exists('schedules', $capabilities)) {
-            $warnings[] = 'schedules.tasks is defined but capabilities.schedules is missing (schedules will be ignored).';
-        }
-
-        $usesCssIsolation = !empty($manifest['frontend']['css_isolation'] ?? []);
-        if ($usesCssIsolation && !array_key_exists('css_isolation', $capabilities)) {
-            $warnings[] = 'frontend.css_isolation is defined but capabilities.css_isolation is missing (css isolation will be ignored).';
+        // Check for deprecated frontend.slots usage
+        $frontendSlots = $manifest['frontend']['slots'] ?? [];
+        if (!empty($frontendSlots)) {
+            $warnings[] = 'frontend.slots is deprecated. Define slots in frontend code via createExtension({ slots: [...] }) instead.';
         }
 
         return [$errors, $warnings];

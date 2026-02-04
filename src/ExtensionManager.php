@@ -219,11 +219,16 @@ class ExtensionManager
             View::addNamespace($extension->getViewNamespace(), $extension->getViewsPath());
         }
 
-        // Collect frontend slots
+        // Collect frontend slots (deprecated - use frontend createExtension() instead)
         $slots = [];
         if ($extension instanceof HasFrontendSlots) {
+            @trigger_error(
+                "Extension '{$id}' uses deprecated HasFrontendSlots interface. Define slots in frontend code via createExtension({ slots: [...] }) instead.",
+                E_USER_DEPRECATED
+            );
             $slots = $extension->getFrontendSlots();
         } else {
+            // getFrontendSlots() already triggers deprecation if slots exist
             $slots = $manifest->getFrontendSlots();
         }
 
