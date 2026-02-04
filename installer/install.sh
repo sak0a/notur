@@ -140,6 +140,14 @@ detect_environment() {
     fi
 }
 
+# Check if running in a Docker-like environment (centralized check for Docker-specific behavior)
+is_docker_env() {
+    case "$ENVIRONMENT" in
+        docker*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 # Set environment variables
 ENVIRONMENT=$(detect_environment)
 WEB_USER=$(detect_web_user)
@@ -303,7 +311,7 @@ if [ -n "$AUTO_PANEL_DIR" ]; then
 fi
 
 # Docker-specific warnings
-if [ "$ENVIRONMENT" = "docker-alpine" ] || [ "$ENVIRONMENT" = "docker" ]; then
+if is_docker_env; then
     echo ""
     warn "Docker installation detected."
     warn "Ensure your docker-compose.yml includes volume mounts for Notur data:"
@@ -647,7 +655,7 @@ info "Panel directory: ${PANEL_DIR}"
 info "Web user: ${WEB_USER}"
 echo ""
 info "Next steps:"
-if [ "$ENVIRONMENT" = "docker-alpine" ] || [ "$ENVIRONMENT" = "docker" ]; then
+if is_docker_env; then
     info "  Install an extension:  docker exec -it <container> php artisan notur:install vendor/name"
     info "  List extensions:       docker exec -it <container> php artisan notur:list"
 else
@@ -658,7 +666,7 @@ info "  Manage extensions:     Browse to /admin/notur/extensions"
 echo ""
 
 # Docker-specific final notes
-if [ "$ENVIRONMENT" = "docker-alpine" ] || [ "$ENVIRONMENT" = "docker" ]; then
+if is_docker_env; then
     warn "IMPORTANT: For Docker installations:"
     warn "  1. Add volume mounts to persist Notur data across container restarts:"
     warn "       - 'notur-data:/app/notur'"
