@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Notur Extension Framework Installer
+#  ┌─────────┐   ███╗   ██╗ ██████╗ ████████╗██╗   ██╗██████╗
+#  │         │   ████╗  ██║██╔═══██╗╚══██╔══╝██║   ██║██╔══██╗
+#  │    N    │   ██╔██╗ ██║██║   ██║   ██║   ██║   ██║██████╔╝
+#  │         │   ██║╚██╗██║██║   ██║   ██║   ██║   ██║██╔══██╗
+#  └─────────┘   ██║ ╚████║╚██████╔╝   ██║   ╚██████╔╝██║  ██║
+#                ╚═╝  ╚═══╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+#
+#  Extension Framework for Pterodactyl Panel
+#  https://github.com/sak0a/notur
+#
+# ─────────────────────────────────────────────────────────────────────────────
+#
 # Usage: curl -sSL https://docs.notur.site/install.sh | bash
 #   or:  bash install.sh [/path/to/pterodactyl]
 #
 # Supports:
 #   - Standard bare-metal installations (Debian/Ubuntu, CentOS/RHEL, Alpine)
 #   - Docker installations (official Pterodactyl Docker image, Coolify, etc.)
+#
+# ─────────────────────────────────────────────────────────────────────────────
 
 NOTUR_VERSION="1.1.2"
 
