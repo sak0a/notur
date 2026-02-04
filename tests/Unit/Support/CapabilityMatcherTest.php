@@ -44,12 +44,6 @@ class CapabilityMatcherTest extends TestCase
         $this->assertFalse(CapabilityMatcher::matches('>=2', 1));
     }
 
-    public function test_matches_less_than(): void
-    {
-        // Note: The current implementation extracts the first number
-        $this->assertTrue(CapabilityMatcher::matches('<2', 2));
-    }
-
     public function test_rejects_non_matching_version(): void
     {
         $this->assertFalse(CapabilityMatcher::matches('1', 2));

@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Notur\Tests\Integration\Http\Middleware;
 
 use Notur\NoturServiceProvider;
+use Notur\Http\Middleware\ExtensionNamespace;
+use Notur\ExtensionManager;
 use Orchestra\Testbench\TestCase;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Mockery;
 
 class ExtensionNamespaceTest extends TestCase
 {
@@ -31,24 +35,65 @@ class ExtensionNamespaceTest extends TestCase
         $this->loadMigrationsFrom(__DIR__ . '/../../../../database/migrations');
     }
 
-    public function test_extracts_extension_id_from_path(): void
+    protected function tearDown(): void
     {
-        // Create a test route
-        Route::middleware('notur.namespace')->get('/api/client/notur/{vendor}/{name}/test', function () {
-            return response()->json(['ok' => true]);
-        });
-
-        // This test verifies the middleware is registered
-        $this->assertTrue(true);
+        Mockery::close();
+        parent::tearDown();
     }
 
-    public function test_passes_through_non_matching_paths(): void
+    public function test_non_notur_paths_pass_without_extension_context(): void
     {
-        Route::get('/api/other/path', function () {
-            return response()->json(['ok' => true]);
+        $manager = Mockery::mock(ExtensionManager::class);
+        // isEnabled should not be called for non-matching paths
+        $manager->shouldNotReceive('isEnabled');
+
+        $middleware = new ExtensionNamespace($manager);
+
+        $request = Request::create('/api/test', 'GET');
+        $response = $middleware->handle($request, function ($req) {
+            return new Response('ok');
         });
 
-        $response = $this->get('/api/other/path');
-        $response->assertStatus(200);
+        $this->assertEquals('ok', $response->getContent());
+        $this->assertNull($request->attributes->get('notur.extension_id'));
+    }
+
+    public function test_sets_extension_id_for_enabled_extension(): void
+    {
+        $manager = Mockery::mock(ExtensionManager::class);
+        $manager->shouldReceive('isEnabled')
+            ->with('acme/test')
+            ->once()
+            ->andReturn(true);
+
+        $middleware = new ExtensionNamespace($manager);
+
+        $request = Request::create('/api/client/notur/acme/test/endpoint', 'GET');
+        $response = $middleware->handle($request, function ($req) {
+            return new Response('ok');
+        });
+
+        $this->assertEquals('ok', $response->getContent());
+        $this->assertEquals('acme/test', $request->attributes->get('notur.extension_id'));
+    }
+
+    public function test_aborts_for_disabled_extension(): void
+    {
+        $manager = Mockery::mock(ExtensionManager::class);
+        $manager->shouldReceive('isEnabled')
+            ->with('acme/disabled')
+            ->once()
+            ->andReturn(false);
+
+        $middleware = new ExtensionNamespace($manager);
+
+        $request = Request::create('/api/client/notur/acme/disabled/endpoint', 'GET');
+
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectExceptionMessage("Extension 'acme/disabled' is not enabled.");
+
+        $middleware->handle($request, function ($req) {
+            return new Response('ok');
+        });
     }
 }
