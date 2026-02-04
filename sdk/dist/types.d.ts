@@ -1,6 +1,15 @@
+/**
+ * Extension identity configuration.
+ *
+ * Only `id` is required. `name` and `version` are auto-resolved from
+ * the extension.yaml manifest if omitted.
+ */
 export interface ExtensionConfig {
+    /** Unique extension identifier in vendor/name format (e.g. "acme/analytics"). */
     id: string;
+    /** Human-readable name. Auto-resolved from extension.yaml if omitted. */
     name?: string;
+    /** Semantic version string. Auto-resolved from extension.yaml if omitted. */
     version?: string;
 }
 export interface CssIsolationConfig {
@@ -51,6 +60,17 @@ export interface RouteConfig {
     icon?: string;
     permission?: string;
 }
+/**
+ * Full extension definition passed to `createExtension()`.
+ *
+ * @example
+ * ```ts
+ * createExtension({
+ *     config: { id: 'acme/analytics' },
+ *     slots: [{ slot: 'dashboard.widgets', component: Widget }],
+ * });
+ * ```
+ */
 export interface ExtensionDefinition {
     config: ExtensionConfig;
     slots?: SlotConfig[];
@@ -59,6 +79,24 @@ export interface ExtensionDefinition {
     onInit?: () => void;
     onDestroy?: () => void;
 }
+/**
+ * Simplified extension definition with `id` at the top level.
+ *
+ * Name and version are auto-resolved from the extension.yaml manifest.
+ * This is the recommended format for most extensions.
+ *
+ * @example
+ * ```ts
+ * createExtension({
+ *     id: 'acme/analytics',
+ *     slots: [{ slot: 'dashboard.widgets', component: Widget }],
+ * });
+ * ```
+ */
+export type SimpleExtensionDefinition = Omit<ExtensionDefinition, 'config'> & {
+    /** Unique extension identifier in vendor/name format (e.g. "acme/analytics"). */
+    id: string;
+};
 export interface SlotRegistration {
     extensionId: string;
     slot: string;

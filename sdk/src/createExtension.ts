@@ -1,25 +1,39 @@
-import { ExtensionDefinition, getNoturApi } from './types';
+import { ExtensionDefinition, SimpleExtensionDefinition, getNoturApi } from './types';
 
 /**
  * Factory for registering a Notur extension.
  *
- * Usage:
- * ```ts
- * import { createExtension } from '@notur/sdk';
+ * Supports two calling conventions:
  *
+ * **Simplified** (recommended) — `id` at the top level, name/version auto-resolved from manifest:
+ * ```ts
  * createExtension({
- *   config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
- *   slots: [
- *     { slot: 'dashboard.widgets', component: AnalyticsWidget, order: 10 },
- *   ],
- *   routes: [
- *     { area: 'server', path: '/analytics', name: 'Analytics', component: AnalyticsPage },
- *   ],
+ *     id: 'acme/analytics',
+ *     slots: [
+ *         { slot: 'dashboard.widgets', component: AnalyticsWidget, order: 10 },
+ *     ],
+ * });
+ * ```
+ *
+ * **Full** — explicit config object (backward compatible):
+ * ```ts
+ * createExtension({
+ *     config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
+ *     slots: [
+ *         { slot: 'dashboard.widgets', component: AnalyticsWidget, order: 10 },
+ *     ],
  * });
  * ```
  */
-export function createExtension(definition: ExtensionDefinition): void {
-    const { config, slots = [], routes = [], onInit, onDestroy, cssIsolation } = definition;
+export function createExtension(definition: ExtensionDefinition): void;
+export function createExtension(definition: SimpleExtensionDefinition): void;
+export function createExtension(definition: ExtensionDefinition | SimpleExtensionDefinition): void {
+    // Normalize: if 'id' is at top level (simplified form), wrap in config
+    const normalized: ExtensionDefinition = isSimpleDefinition(definition)
+        ? { ...definition, config: { id: definition.id } }
+        : definition;
+
+    const { config, slots = [], routes = [], onInit, onDestroy, cssIsolation } = normalized;
     const api = getNoturApi();
 
     const resolvedConfig = resolveConfig(api, config);
@@ -51,6 +65,15 @@ export function createExtension(definition: ExtensionDefinition): void {
     }
 
     console.log(`[Notur] Extension registered: ${resolvedConfig.id} v${resolvedConfig.version}`);
+}
+
+/**
+ * Check if the definition uses the simplified form (id at top level).
+ */
+function isSimpleDefinition(
+    definition: ExtensionDefinition | SimpleExtensionDefinition,
+): definition is SimpleExtensionDefinition {
+    return 'id' in definition && !('config' in definition);
 }
 
 function resolveConfig(api: ReturnType<typeof getNoturApi>, config: ExtensionDefinition['config']) {

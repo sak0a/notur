@@ -23,8 +23,9 @@ import { createExtension } from '@notur/sdk';
 import AnalyticsWidget from './components/AnalyticsWidget';
 import AnalyticsPage from './pages/AnalyticsPage';
 
+// Simplified syntax — name/version auto-resolved from extension.yaml
 createExtension({
-  config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
+  id: 'acme/analytics',
   slots: [
     { slot: 'dashboard.widgets', component: AnalyticsWidget, order: 10 },
   ],
@@ -37,6 +38,7 @@ createExtension({
 Notes:
 - The Notur bridge must be loaded before your bundle. The SDK reads the bridge from `window.__NOTUR__`.
 - Extension IDs should be stable and unique (e.g., `vendor/name`).
+- The full `config: { id, name, version }` syntax is still supported for backward compatibility.
 
 ## API
 
@@ -44,8 +46,14 @@ Notes:
 
 Registers the extension with Notur, wires routes and slots, and runs optional lifecycle hooks.
 
+Supports two calling conventions:
+
+**Simplified** (recommended): `{ id, slots?, routes?, ... }` — name/version auto-resolved from manifest.
+
+**Full** (backward compatible): `{ config: { id, name?, version? }, slots?, routes?, ... }`
+
 Definition fields:
-- `config`: `{ id, name, version }`
+- `id`: Extension ID (simplified form) or `config`: `{ id, name?, version? }` (full form)
 - `slots`: UI slot registrations (`slot`, `component`, `order`, `when`, etc.)
 - `routes`: Panel routes (`area`, `path`, `name`, `component`, `permission`, etc.)
 - `cssIsolation`: `true` or `{ mode: 'root-class', className?: string }`
