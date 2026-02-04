@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Notur\Console\UI\Components;
 
 use Illuminate\Console\Command;
+use Composer\InstalledVersions;
 use Notur\Console\UI\Themes\NoturTheme;
 use Notur\ExtensionManager;
 use Notur\Models\InstalledExtension;
@@ -264,12 +265,21 @@ class StatusDashboard
      */
     private function getNoturVersion(): string
     {
-        $composerFile = base_path('vendor/notur/notur/composer.json');
+        if (class_exists(InstalledVersions::class)) {
+            $version = InstalledVersions::getPrettyVersion('notur/notur');
+            if ($version) {
+                return $version;
+            }
+        }
 
-        if (file_exists($composerFile)) {
-            $composer = json_decode(file_get_contents($composerFile), true);
-
-            return $composer['version'] ?? '1.x';
+        $lockFile = base_path('composer.lock');
+        if (file_exists($lockFile)) {
+            $lock = json_decode(file_get_contents($lockFile), true);
+            foreach (array_merge($lock['packages'] ?? [], $lock['packages-dev'] ?? []) as $package) {
+                if (($package['name'] ?? null) === 'notur/notur') {
+                    return $package['version'] ?? $package['pretty_version'] ?? '1.x';
+                }
+            }
         }
 
         return '1.x';
