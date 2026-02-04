@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Notur\Console\UI\Components;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
 use Notur\Console\UI\Themes\NoturTheme;
 use Notur\ExtensionManager;
+use Notur\Models\InstalledExtension;
 use Notur\Support\ConsoleBanner;
 
 /**
@@ -111,11 +111,9 @@ class StatusDashboard
         ];
 
         // Extensions count
-        $extCount = count($this->manager->all());
-        $enabledCount = count(array_filter(
-            $this->manager->all(),
-            fn ($ext) => $ext->enabled ?? true
-        ));
+        $extensions = InstalledExtension::all();
+        $extCount = $extensions->count();
+        $enabledCount = $extensions->where('enabled', true)->count();
         $checks[] = [
             'label' => 'Extensions',
             'value' => "{$enabledCount}/{$extCount}",
@@ -166,11 +164,11 @@ class StatusDashboard
     {
         $this->renderSectionHeader('Installed Extensions');
 
-        $extensions = $this->manager->all();
+        $extensions = InstalledExtension::all();
 
-        if (empty($extensions)) {
+        if ($extensions->isEmpty()) {
             $this->command->line('  ' . NoturTheme::muted('No extensions installed.'));
-            $this->command->line('  ' . NoturTheme::muted('Run: php artisan notur:install --browse'));
+            $this->command->line('  ' . NoturTheme::muted('Run: php artisan notur:install <extension-id>'));
             $this->command->newLine();
 
             return;
@@ -181,8 +179,8 @@ class StatusDashboard
         }
 
         // Summary line
-        $total = count($extensions);
-        $enabled = count(array_filter($extensions, fn ($e) => $e->enabled ?? true));
+        $total = $extensions->count();
+        $enabled = $extensions->where('enabled', true)->count();
         $disabled = $total - $enabled;
 
         $this->command->newLine();
@@ -198,14 +196,12 @@ class StatusDashboard
 
     /**
      * Render a single extension row.
-     *
-     * @param object $extension
      */
-    private function renderExtensionRow(object $extension): void
+    private function renderExtensionRow(InstalledExtension $extension): void
     {
-        $id = $extension->extension_id ?? 'unknown';
-        $version = $extension->version ?? '?';
-        $enabled = $extension->enabled ?? true;
+        $id = $extension->extension_id;
+        $version = $extension->version;
+        $enabled = $extension->enabled;
 
         $indicator = $enabled
             ? NoturTheme::successIndicator()
@@ -236,8 +232,8 @@ class StatusDashboard
         $this->renderSectionHeader('Quick Actions');
 
         $actions = [
-            ['key' => 'notur:install --browse', 'desc' => 'Browse & install extensions'],
-            ['key' => 'notur:update --all', 'desc' => 'Update all extensions'],
+            ['key' => 'notur:install <id>', 'desc' => 'Install an extension'],
+            ['key' => 'notur:update', 'desc' => 'Update all extensions'],
             ['key' => 'notur:list', 'desc' => 'List installed extensions'],
             ['key' => 'notur:new', 'desc' => 'Create a new extension'],
         ];
@@ -311,14 +307,13 @@ class StatusDashboard
      */
     public function toArray(): array
     {
-        $extensions = [];
-        foreach ($this->manager->all() as $ext) {
-            $extensions[] = [
-                'id' => $ext->extension_id ?? 'unknown',
-                'version' => $ext->version ?? '?',
-                'enabled' => $ext->enabled ?? true,
-            ];
-        }
+        $installedExtensions = InstalledExtension::all();
+
+        $extensions = $installedExtensions->map(fn (InstalledExtension $ext) => [
+            'id' => $ext->extension_id,
+            'version' => $ext->version,
+            'enabled' => $ext->enabled,
+        ])->toArray();
 
         return [
             'notur_version' => $this->getNoturVersion(),
@@ -327,7 +322,7 @@ class StatusDashboard
             'panel_version' => $this->getPanelVersion(),
             'extensions' => $extensions,
             'extensions_total' => count($extensions),
-            'extensions_enabled' => count(array_filter($extensions, fn ($e) => $e['enabled'])),
+            'extensions_enabled' => $installedExtensions->where('enabled', true)->count(),
         ];
     }
 }

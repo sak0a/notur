@@ -108,7 +108,6 @@ Panel Response (HTML)
 
 ```bash
 php artisan notur:install acme/server-analytics   # Install from registry
-php artisan notur:install --browse                 # Browse registry interactively
 php artisan notur:enable acme/server-analytics     # Enable
 php artisan notur:disable acme/server-analytics    # Disable
 php artisan notur:remove acme/server-analytics     # Uninstall + rollback migrations

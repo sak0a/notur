@@ -67,20 +67,18 @@ All extension management is done through Artisan commands in the panel directory
 
 When running commands without arguments in an interactive terminal, Notur provides a beautiful TUI experience using Laravel Prompts.
 
-#### Browse and Install Extensions
+#### Install Extensions
 
 ```bash
-# Open interactive registry browser
-php artisan notur:install --browse
+# Install an extension by ID
+php artisan notur:install acme/server-analytics
 
-# Or simply run without arguments for interactive mode
-php artisan notur:install
+# Install from a local .notur file
+php artisan notur:install /path/to/extension.notur
+
+# Force reinstall an existing extension
+php artisan notur:install acme/server-analytics --force
 ```
-
-The browser lets you:
-- Search extensions with real-time filtering
-- View extension details, ratings, and downloads
-- Select and install with a single keypress
 
 #### System Status Dashboard
 

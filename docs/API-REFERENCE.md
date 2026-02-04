@@ -564,11 +564,11 @@ All commands are prefixed with `notur:` in Artisan.
 
 | Command | Signature | Description |
 |---|---|---|
-| `notur:install` | `notur:install {extension?} [--browse] [--force] [--no-migrate]` | Install from registry, browse interactively, or `.notur` file |
+| `notur:install` | `notur:install {extension} [--force] [--no-migrate]` | Install from registry or `.notur` file |
 | `notur:remove` | `notur:remove {extension} [--keep-data]` | Remove an extension |
 | `notur:enable` | `notur:enable {extension}` | Enable a disabled extension |
 | `notur:disable` | `notur:disable {extension}` | Disable an extension without removing files |
-| `notur:list` | `notur:list [--enabled] [--disabled] [--json]` | List installed extensions |
+| `notur:list` | `notur:list [--enabled] [--disabled]` | List installed extensions |
 | `notur:update` | `notur:update {extension?} [--check]` | Update one or all extensions |
 | `notur:status` | `notur:status [--json] [--health] [--extensions]` | Display system status dashboard |
 | `notur:new` | `notur:new {id} [--path=] [--preset=] [--with-api-routes|--no-api-routes] [--with-admin-routes|--no-admin-routes] [--with-frontend|--no-frontend] [--with-admin|--no-admin] [--with-migrations|--no-migrations] [--with-tests|--no-tests]` | Scaffold a new extension from templates |

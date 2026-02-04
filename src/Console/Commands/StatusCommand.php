@@ -22,8 +22,7 @@ class StatusCommand extends Command
     protected $signature = 'notur:status
         {--json : Output as JSON}
         {--health : Show health checks only}
-        {--extensions : Show extensions only}
-        {--compact : Compact output format}';
+        {--extensions : Show extensions only}';
 
     protected $description = 'Display Notur system status and health dashboard';
 
