@@ -305,8 +305,10 @@ if [ "$ENVIRONMENT" = "docker-alpine" ] || [ "$ENVIRONMENT" = "docker" ]; then
 fi
 
 # Install Alpine requirements first (before other checks)
+# Use || true to continue even if package installation fails - the script will
+# fail later at a more specific point if required tools are missing
 if is_alpine; then
-    install_alpine_requirements
+    install_alpine_requirements || true
 fi
 
 echo ""
