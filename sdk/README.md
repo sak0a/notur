@@ -65,6 +65,30 @@ All hooks are exported from `@notur/sdk`.
 - `useEmitEvent()`: Returns a function to emit inter-extension events.
 - `useNavigate({ extensionId })`: Navigate inside your extension namespace.
 
+## Packaging Your Extension
+
+The SDK includes a CLI tool to package your extension into a `.notur` archive that can be uploaded to the Pterodactyl admin panel.
+
+```bash
+# From your extension directory
+npx notur-pack
+
+# Or with bun
+bunx notur-pack
+
+# Specify a different path
+npx notur-pack /path/to/my-extension
+
+# Custom output filename
+npx notur-pack --output my-extension.notur
+```
+
+This creates a `.notur` file (tar.gz archive) containing:
+- All extension files (excluding `node_modules`, `.git`, `vendor`, `.idea`, `.vscode`)
+- A `checksums.json` with SHA-256 hashes for integrity verification
+
+Upload the resulting `.notur` file to your Pterodactyl admin panel at `/admin/notur/extensions`.
+
 ## Build
 
 ```bash

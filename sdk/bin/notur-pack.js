@@ -1,0 +1,189 @@
+#!/usr/bin/env node
+
+/**
+ * notur-pack - Package a Notur extension into a .notur archive
+ *
+ * Usage:
+ *   npx notur-pack [path]           # Pack extension at path (default: current dir)
+ *   npx notur-pack --output foo.notur
+ *   bunx notur-pack
+ *
+ * A .notur file is a tar.gz archive containing:
+ * - All extension files (excluding node_modules, .git, vendor, .idea, .vscode)
+ * - A checksums.json with SHA-256 hashes of all included files
+ */
+
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { execSync } = require('child_process');
+const yaml = require('yaml');
+
+const EXCLUDE_PATTERNS = [
+    'node_modules',
+    '.git',
+    'vendor',
+    '.idea',
+    '.vscode',
+    '.DS_Store',
+    'checksums.json',
+];
+
+function parseArgs() {
+    const args = process.argv.slice(2);
+    const options = {
+        path: '.',
+        output: null,
+    };
+
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--output' || args[i] === '-o') {
+            options.output = args[++i];
+        } else if (!args[i].startsWith('-')) {
+            options.path = args[i];
+        }
+    }
+
+    return options;
+}
+
+function loadManifest(dir) {
+    const manifestPath = path.join(dir, 'extension.yaml');
+    if (!fs.existsSync(manifestPath)) {
+        console.error('Error: extension.yaml not found in', dir);
+        process.exit(1);
+    }
+
+    const content = fs.readFileSync(manifestPath, 'utf8');
+
+    // Try to parse YAML, fall back to simple regex if yaml package not available
+    try {
+        const parsed = yaml.parse(content);
+        return {
+            id: parsed.id,
+            version: parsed.version,
+            name: parsed.name,
+        };
+    } catch {
+        // Fallback: simple regex parsing
+        const idMatch = content.match(/^id:\s*["']?([^"'\n]+)["']?/m);
+        const versionMatch = content.match(/^version:\s*["']?([^"'\n]+)["']?/m);
+        const nameMatch = content.match(/^name:\s*["']?([^"'\n]+)["']?/m);
+
+        return {
+            id: idMatch ? idMatch[1].trim() : null,
+            version: versionMatch ? versionMatch[1].trim() : null,
+            name: nameMatch ? nameMatch[1].trim() : null,
+        };
+    }
+}
+
+function shouldExclude(relativePath) {
+    for (const pattern of EXCLUDE_PATTERNS) {
+        if (relativePath === pattern || relativePath.startsWith(pattern + '/') || relativePath.startsWith(pattern + path.sep)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function collectFiles(dir, baseDir = dir) {
+    const files = [];
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        const relativePath = path.relative(baseDir, fullPath);
+
+        if (shouldExclude(relativePath)) {
+            continue;
+        }
+
+        if (entry.isDirectory()) {
+            files.push(...collectFiles(fullPath, baseDir));
+        } else if (entry.isFile()) {
+            files.push(relativePath);
+        }
+    }
+
+    return files.sort();
+}
+
+function computeChecksum(filePath) {
+    const content = fs.readFileSync(filePath);
+    return crypto.createHash('sha256').update(content).digest('hex');
+}
+
+function computeChecksums(dir, files) {
+    const checksums = {};
+    for (const file of files) {
+        const fullPath = path.join(dir, file);
+        checksums[file] = computeChecksum(fullPath);
+    }
+    return checksums;
+}
+
+function pack(sourceDir, outputPath) {
+    const resolvedDir = path.resolve(sourceDir);
+
+    if (!fs.existsSync(resolvedDir)) {
+        console.error('Error: Directory does not exist:', resolvedDir);
+        process.exit(1);
+    }
+
+    const manifest = loadManifest(resolvedDir);
+
+    if (!manifest.id || !manifest.version) {
+        console.error('Error: extension.yaml must contain "id" and "version"');
+        process.exit(1);
+    }
+
+    console.log(`Packing ${manifest.name || manifest.id} v${manifest.version}...`);
+
+    // Collect files and compute checksums
+    const files = collectFiles(resolvedDir);
+    const checksums = computeChecksums(resolvedDir, files);
+
+    console.log(`  Found ${files.length} files`);
+
+    // Write checksums.json temporarily
+    const checksumsPath = path.join(resolvedDir, 'checksums.json');
+    const checksumsExisted = fs.existsSync(checksumsPath);
+    fs.writeFileSync(checksumsPath, JSON.stringify(checksums, null, 2) + '\n');
+
+    // Determine output filename
+    const filename = outputPath || `${manifest.id.replace('/', '-')}-${manifest.version}.notur`;
+    const outputFullPath = path.resolve(filename);
+
+    // Build exclude args for tar
+    const excludeArgs = EXCLUDE_PATTERNS.map(p => `--exclude='${p}'`).join(' ');
+
+    try {
+        // Create tar.gz archive
+        execSync(
+            `tar ${excludeArgs} -czvf "${outputFullPath}" .`,
+            { cwd: resolvedDir, stdio: 'pipe' }
+        );
+
+        // Compute archive checksum
+        const archiveChecksum = computeChecksum(outputFullPath);
+        fs.writeFileSync(
+            outputFullPath + '.sha256',
+            `${archiveChecksum}  ${path.basename(outputFullPath)}\n`
+        );
+
+        console.log(`\nCreated: ${outputFullPath}`);
+        console.log(`Checksum: ${archiveChecksum}`);
+        console.log(`\nUpload this file to your Pterodactyl admin panel at /admin/notur/extensions`);
+
+    } finally {
+        // Clean up checksums.json if we created it
+        if (!checksumsExisted && fs.existsSync(checksumsPath)) {
+            fs.unlinkSync(checksumsPath);
+        }
+    }
+}
+
+// Main
+const options = parseArgs();
+pack(options.path, options.output);
