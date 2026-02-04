@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage: curl -sSL https://docs.notur.site/install.sh | bash
 #   or:  bash install.sh [/path/to/pterodactyl]
 
-NOTUR_VERSION="1.1.1"
+NOTUR_VERSION="1.1.2"
 PANEL_DIR="${1:-/var/www/pterodactyl}"
 
 RED='\033[0;31m'

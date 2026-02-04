@@ -1,6 +1,6 @@
 {
   "name": "@notur/bridge",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Notur frontend bridge runtime",
   "main": "dist/bridge.js",
   "scripts": {
