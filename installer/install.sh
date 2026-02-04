@@ -1,12 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Notur Extension Framework Installer
+#  ┌─────────┐   ███╗   ██╗ ██████╗ ████████╗██╗   ██╗██████╗
+#  │         │   ████╗  ██║██╔═══██╗╚══██╔══╝██║   ██║██╔══██╗
+#  │    N    │   ██╔██╗ ██║██║   ██║   ██║   ██║   ██║██████╔╝
+#  │         │   ██║╚██╗██║██║   ██║   ██║   ██║   ██║██╔══██╗
+#  └─────────┘   ██║ ╚████║╚██████╔╝   ██║   ╚██████╔╝██║  ██║
+#                ╚═╝  ╚═══╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+#
+#  Extension Framework for Pterodactyl Panel
+#  https://github.com/sak0a/notur
+#
+# ─────────────────────────────────────────────────────────────────────────────
+#
 # Usage: curl -sSL https://docs.notur.site/install.sh | bash
 #   or:  bash install.sh [/path/to/pterodactyl]
+#
+# Supports:
+#   - Standard bare-metal installations (Debian/Ubuntu, CentOS/RHEL, Alpine)
+#   - Docker installations (official Pterodactyl Docker image, Coolify, etc.)
+#
+# ─────────────────────────────────────────────────────────────────────────────
 
 NOTUR_VERSION="1.1.2"
-PANEL_DIR="${1:-/var/www/pterodactyl}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -21,6 +37,122 @@ ok()    { echo -e "${GREEN}[Notur]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[Notur]${NC} $1"; }
 error() { echo -e "${RED}[Notur]${NC} $1" >&2; }
 die()   { error "$1"; exit 1; }
+
+# ── Environment Detection ─────────────────────────────────────────────────
+
+is_docker() {
+    # Check for Docker container markers
+    [ -f /.dockerenv ] || grep -q docker /proc/1/cgroup 2>/dev/null || \
+        grep -q docker /proc/self/cgroup 2>/dev/null || \
+        [ -f /run/.containerenv ]
+}
+
+is_alpine() {
+    [ -f /etc/alpine-release ]
+}
+
+is_pterodactyl_docker() {
+    # Official Pterodactyl Docker image has panel at /app with specific structure
+    [ -f /app/artisan ] && [ -d /app/vendor ] && [ -f /etc/nginx/http.d/default.conf ] 2>/dev/null
+}
+
+# Validate that a directory contains Pterodactyl Panel (not just any Laravel app)
+is_pterodactyl_panel() {
+    local dir="$1"
+
+    # Check 1: Pterodactyl-specific config file
+    if [ -f "${dir}/config/pterodactyl.php" ]; then
+        return 0
+    fi
+
+    # Check 2: pterodactyl/panel in composer.lock
+    if [ -f "${dir}/composer.lock" ]; then
+        if grep -q '"name": "pterodactyl/panel"' "${dir}/composer.lock" 2>/dev/null; then
+            return 0
+        fi
+    fi
+
+    # Check 3: Pterodactyl-specific models (Server, Node, Nest)
+    if [ -f "${dir}/app/Models/Server.php" ] && [ -f "${dir}/app/Models/Node.php" ] && [ -f "${dir}/app/Models/Nest.php" ]; then
+        return 0
+    fi
+
+    return 1
+}
+
+detect_panel_dir() {
+    # Check common locations in order of specificity
+    # Only return a path if it's actually Pterodactyl Panel
+    local candidates=("/app" "/var/www/pterodactyl" "/var/www/html")
+
+    for dir in "${candidates[@]}"; do
+        if [ -f "${dir}/artisan" ] && is_pterodactyl_panel "${dir}"; then
+            echo "${dir}"
+            return
+        fi
+    done
+
+    echo ""
+}
+
+detect_web_user() {
+    # Determine the web server user based on environment
+    if is_pterodactyl_docker || (is_alpine && is_docker); then
+        # Prefer nginx in Docker environments if it exists, otherwise fall back
+        if id -u nginx >/dev/null 2>&1; then
+            echo "nginx"
+        elif id -u www-data >/dev/null 2>&1; then
+            echo "www-data"
+        elif id -u apache >/dev/null 2>&1; then
+            echo "apache"
+        else
+            echo "$(whoami)"
+        fi
+    elif is_alpine; then
+        # Alpine bare-metal typically uses nginx
+        if id -u nginx >/dev/null 2>&1; then
+            echo "nginx"
+        else
+            echo "www-data"
+        fi
+    elif id -u www-data >/dev/null 2>&1; then
+        echo "www-data"
+    elif id -u nginx >/dev/null 2>&1; then
+        echo "nginx"
+    elif id -u apache >/dev/null 2>&1; then
+        echo "apache"
+    else
+        echo "$(whoami)"
+    fi
+}
+
+detect_environment() {
+    if is_docker; then
+        if is_alpine; then
+            echo "docker-alpine"
+        else
+            echo "docker"
+        fi
+    elif is_alpine; then
+        echo "alpine"
+    else
+        echo "bare-metal"
+    fi
+}
+
+# Check if running in a Docker-like environment (centralized check for Docker-specific behavior)
+is_docker_env() {
+    case "$ENVIRONMENT" in
+        docker*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Set environment variables
+ENVIRONMENT=$(detect_environment)
+WEB_USER=$(detect_web_user)
+AUTO_PANEL_DIR=$(detect_panel_dir)
+PANEL_DIR="${1:-${AUTO_PANEL_DIR:-/var/www/pterodactyl}}"
 
 banner() {
     if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
@@ -100,10 +232,102 @@ get_node_packages() {
     esac
 }
 
+# Helper: Install Alpine-specific requirements for Notur
+install_alpine_requirements() {
+    if ! is_alpine; then
+        return 0
+    fi
+
+    info "Detected Alpine Linux. Checking required packages..."
+
+    # Packages needed for Notur installation and frontend building
+    # - bash: Script compatibility (Alpine uses ash by default)
+    # - nodejs/npm: Frontend build
+    # - git: Required by composer
+    # - coreutils: GNU utilities (realpath, etc.)
+    # - patch: For applying React patches
+    # - build-base: For native node module compilation
+    local required_packages=""
+
+    # Check each package and add to install list if missing
+    if ! command -v bash >/dev/null 2>&1; then
+        required_packages="$required_packages bash"
+    fi
+    if ! command -v git >/dev/null 2>&1; then
+        required_packages="$required_packages git"
+    fi
+    if ! command -v patch >/dev/null 2>&1; then
+        required_packages="$required_packages patch"
+    fi
+    if ! command -v realpath >/dev/null 2>&1; then
+        required_packages="$required_packages coreutils"
+    fi
+    # build-base is needed for node-gyp native modules
+    if ! command -v make >/dev/null 2>&1; then
+        required_packages="$required_packages build-base"
+    fi
+
+    if [ -n "$required_packages" ]; then
+        info "Installing missing Alpine packages:$required_packages"
+        if command -v apk >/dev/null 2>&1; then
+            apk add --no-cache $required_packages || {
+                warn "Failed to install some Alpine packages. Installation may fail."
+                return 1
+            }
+            ok "Alpine packages installed."
+        else
+            warn "apk not found. Cannot install packages automatically."
+            return 1
+        fi
+    else
+        ok "All required Alpine packages are present."
+    fi
+
+    return 0
+}
+
+# Helper: Fix permissions for web server user
+fix_permissions() {
+    local dir="$1"
+    if [ -d "$dir" ] && [ -n "$WEB_USER" ]; then
+        # Only change ownership if running as root
+        if [ "$(id -u)" = "0" ]; then
+            chown -R "${WEB_USER}:${WEB_USER}" "$dir" 2>/dev/null || true
+        fi
+    fi
+}
+
 # ── Pre-flight checks ────────────────────────────────────────────────────
 
 banner
 info "Notur Extension Framework Installer v${NOTUR_VERSION}"
+echo ""
+
+# Display detected environment
+info "Environment: ${ENVIRONMENT}"
+info "Web user: ${WEB_USER}"
+if [ -n "$AUTO_PANEL_DIR" ]; then
+    info "Auto-detected panel at: ${AUTO_PANEL_DIR}"
+fi
+
+# Docker-specific warnings
+if is_docker_env; then
+    echo ""
+    warn "Docker installation detected."
+    warn "Ensure your docker-compose.yml includes volume mounts for Notur data:"
+    warn "  volumes:"
+    warn "    - 'notur-data:/app/notur/'"
+    warn "    - 'notur-public:/app/public/notur/'"
+    echo ""
+fi
+
+# Install Alpine requirements first (before other checks)
+# Use || true to continue even if package installation fails - the script will
+# fail later at a more specific point if required tools are missing
+if is_alpine; then
+    install_alpine_requirements || true
+fi
+
 echo ""
 
 # Check panel directory
@@ -113,6 +337,13 @@ fi
 
 if [ ! -f "${PANEL_DIR}/composer.json" ]; then
     die "Invalid Pterodactyl installation: composer.json not found."
+fi
+
+# Validate this is actually Pterodactyl Panel, not just any Laravel app
+if ! is_pterodactyl_panel "${PANEL_DIR}"; then
+    error "Directory ${PANEL_DIR} appears to be a Laravel application, but not Pterodactyl Panel."
+    error "Could not find Pterodactyl-specific markers (config/pterodactyl.php, pterodactyl/panel in composer.lock)."
+    die "Please specify the correct Pterodactyl Panel path: bash install.sh /path/to/pterodactyl"
 fi
 
 info "Panel directory: ${PANEL_DIR}"
@@ -352,6 +583,7 @@ info "Step 5/6: Setting up Notur directories..."
 
 mkdir -p "${PANEL_DIR}/notur/extensions"
 mkdir -p "${PANEL_DIR}/public/notur/extensions"
+mkdir -p "${PANEL_DIR}/storage/notur"
 
 # Copy bridge.js to public (build it if missing)
 BRIDGE_JS="${PANEL_DIR}/vendor/notur/notur/bridge/dist/bridge.js"
@@ -382,6 +614,13 @@ if [ ! -f "${PANEL_DIR}/notur/extensions.json" ]; then
     echo '{"extensions":{}}' > "${PANEL_DIR}/notur/extensions.json"
 fi
 
+# Fix permissions for web server user
+info "Setting permissions for ${WEB_USER}..."
+fix_permissions "${PANEL_DIR}/notur"
+fix_permissions "${PANEL_DIR}/public/notur"
+fix_permissions "${PANEL_DIR}/storage/notur"
+ok "Directory permissions set."
+
 # ── Step 6: Run migrations ───────────────────────────────────────────────
 
 info "Step 6/6: Running database migrations..."
@@ -411,8 +650,29 @@ ok "============================================"
 ok "  Notur v${NOTUR_VERSION} installed!"
 ok "============================================"
 echo ""
+info "Environment: ${ENVIRONMENT}"
+info "Panel directory: ${PANEL_DIR}"
+info "Web user: ${WEB_USER}"
+echo ""
 info "Next steps:"
-info "  Install an extension:  php artisan notur:install vendor/name"
-info "  List extensions:       php artisan notur:list"
+if is_docker_env; then
+    info "  Install an extension:  docker exec -it <container> php artisan notur:install vendor/name"
+    info "  List extensions:       docker exec -it <container> php artisan notur:list"
+else
+    info "  Install an extension:  php artisan notur:install vendor/name"
+    info "  List extensions:       php artisan notur:list"
+fi
 info "  Manage extensions:     Browse to /admin/notur/extensions"
 echo ""
+
+# Docker-specific final notes
+if is_docker_env; then
+    warn "IMPORTANT: For Docker installations:"
+    warn "  1. Add volume mounts to persist Notur data across container restarts:"
+    warn "       - 'notur-data:/app/notur'"
+    warn "       - 'notur-public:/app/public/notur'"
+    warn "     Or use bind mounts: './notur:/app/notur' (host path on left side)"
+    warn "  2. If using Coolify or similar, configure persistent storage for these paths."
+    warn "  3. After updating the panel image, you may need to re-run this installer."
+    echo ""
+fi
