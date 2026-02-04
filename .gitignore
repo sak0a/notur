@@ -47,5 +47,5 @@ bootstrap/cache/*.php
 clover.xml
 
 # Optional: local panel checkout for development (uncomment if needed)
-/pterodactyl-panel-v1.11.1/
+/pterodactyl-panel-v1.11.11/
 /pterodactyl-panel-v1.12/

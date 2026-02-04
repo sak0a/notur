@@ -1,7 +1,7 @@
 --- a/resources/scripts/components/dashboard/DashboardContainer.tsx	2026-02-03 20:41:36
 +++ b/resources/scripts/components/dashboard/DashboardContainer.tsx	2026-02-03 20:41:36
 @@ -50,6 +50,7 @@
-
+ 
      return (
          <PageContentBlock title={'Dashboard'} showFlashKey={'dashboard'}>
 +            <div id="notur-slot-dashboard.header" style={{ display: 'contents' }}></div>
