@@ -93,7 +93,13 @@ class ExtensionBrowser
         $options = $this->formatSearchResults($results);
         $options['cancel'] = 'Cancel';
 
-        return $this->command->choice('Select an extension', array_values($options));
+        // choice() returns the value, so we need to map back to the key (extension ID)
+        $selected = $this->command->choice('Select an extension', $options);
+
+        // Find the key for the selected value
+        $extensionId = array_search($selected, $options, true);
+
+        return $extensionId !== false ? $extensionId : null;
     }
 
     /**
