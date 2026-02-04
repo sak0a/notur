@@ -9,7 +9,7 @@
                              <NewDirectoryButton />
                              <UploadButton />
                              <NavLink to={`/server/${id}/files/new${window.location.hash}`}>
-@@ -90,7 +89,6 @@
+@@ -90,5 +89,4 @@
              </ErrorBoundary>
 -            <div id="notur-slot-server.files.header" style={{ display: 'contents' }}></div>
              {!files ? (
