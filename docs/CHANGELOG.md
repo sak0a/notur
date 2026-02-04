@@ -2,7 +2,7 @@
 
 All notable changes to the Notur Extension Library are documented here.
 
-## [Unreleased]
+## [1.1.1] - 2026-02-04
 
 ### Added
 - **Admin health overview** -- `/admin/notur/health` aggregates extension health checks and highlights critical failures.
