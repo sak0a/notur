@@ -4,6 +4,10 @@ export default defineConfig({
   title: 'Notur',
   description: 'Extension framework for Pterodactyl Panel',
 
+  markdown: {
+    mermaid: true,
+  },
+
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
   ],
