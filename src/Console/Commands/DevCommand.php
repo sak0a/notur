@@ -64,7 +64,11 @@ class DevCommand extends Command
             }
 
             $bundleSource = $devPath . '/' . $bundle;
-            $bundleTarget = $publicPath . '/' . basename($bundle);
+            $bundleTarget = $publicPath . '/' . ltrim($bundle, '/');
+            $bundleDir = dirname($bundleTarget);
+            if (!is_dir($bundleDir)) {
+                mkdir($bundleDir, 0755, true);
+            }
 
             if (is_link($bundleTarget)) {
                 unlink($bundleTarget);

@@ -111,19 +111,17 @@ class ExtensionManager
             $extPath = $enabledExtensions[$id];
             $extManifest = $this->manifests[$id];
 
-            $this->registerAutoloading($extManifest, $extPath);
-            $this->bootExtension($id, $extManifest, $extPath);
+            $psr4 = $this->resolveAutoloadPsr4($extManifest, $extPath);
+            $this->registerAutoloading($psr4, $extPath);
+            $this->bootExtension($id, $extManifest, $extPath, $psr4);
         }
 
         $this->booted = true;
     }
 
-    private function registerAutoloading(ExtensionManifest $manifest, string $extPath): void
+    private function registerAutoloading(array $psr4, string $extPath): void
     {
-        $autoload = $manifest->getAutoload();
-        $psr4 = $autoload['psr-4'] ?? [];
-
-        if (empty($psr4)) {
+        if ($psr4 === []) {
             return;
         }
 
@@ -135,14 +133,29 @@ class ExtensionManager
             return;
         }
 
-        foreach ($psr4 as $namespace => $path) {
-            $loader->addPsr4($namespace, $extPath . '/' . ltrim($path, '/'));
+        foreach ($psr4 as $namespace => $paths) {
+            $resolved = [];
+            foreach ((array) $paths as $path) {
+                if (!is_string($path) || $path === '') {
+                    continue;
+                }
+                $resolved[] = $this->resolvePath($extPath, $path);
+            }
+
+            if ($resolved === []) {
+                continue;
+            }
+
+            $loader->addPsr4($namespace, count($resolved) === 1 ? $resolved[0] : $resolved);
         }
     }
 
-    private function bootExtension(string $id, ExtensionManifest $manifest, string $extPath): void
+    private function bootExtension(string $id, ExtensionManifest $manifest, string $extPath, array $psr4): void
     {
-        $entrypoint = $manifest->getEntrypoint();
+        $entrypoint = $this->resolveEntrypoint($manifest, $extPath, $psr4);
+        if (!$entrypoint) {
+            return;
+        }
 
         if (!class_exists($entrypoint)) {
             return;
@@ -207,8 +220,15 @@ class ExtensionManager
         }
 
         // Collect frontend slots
+        $slots = [];
         if ($extension instanceof HasFrontendSlots) {
-            $this->frontendSlots[$id] = $extension->getFrontendSlots();
+            $slots = $extension->getFrontendSlots();
+        } else {
+            $slots = $manifest->getFrontendSlots();
+        }
+
+        if (is_array($slots) && $slots !== []) {
+            $this->frontendSlots[$id] = $slots;
         }
 
         // Register permissions
@@ -397,6 +417,337 @@ class ExtensionManager
     public function getPublicPath(): string
     {
         return public_path('notur/extensions');
+    }
+
+    /**
+     * Resolve PSR-4 autoload mappings from manifest, composer.json, or conventions.
+     *
+     * @return array<string, string|array<int, string>>
+     */
+    private function resolveAutoloadPsr4(ExtensionManifest $manifest, string $extPath): array
+    {
+        $autoload = $manifest->getAutoload();
+        $psr4 = is_array($autoload) ? ($autoload['psr-4'] ?? []) : [];
+
+        if (is_array($psr4) && $psr4 !== []) {
+            return $psr4;
+        }
+
+        $composer = $this->readComposerJson($extPath);
+        $composerPsr4 = [];
+        if (isset($composer['autoload']) && is_array($composer['autoload'])) {
+            $composerPsr4 = $composer['autoload']['psr-4'] ?? [];
+        }
+        if (is_array($composerPsr4) && $composerPsr4 !== []) {
+            return $composerPsr4;
+        }
+
+        $namespace = $this->inferNamespaceFromId($manifest->getId());
+        if ($namespace !== '') {
+            return [$namespace . '\\' => 'src/'];
+        }
+
+        return [];
+    }
+
+    private function resolveEntrypoint(ExtensionManifest $manifest, string $extPath, array $psr4): ?string
+    {
+        $entrypoint = $manifest->getEntrypoint();
+        if (is_string($entrypoint) && $entrypoint !== '') {
+            return $entrypoint;
+        }
+
+        $composerEntrypoint = $this->readComposerEntrypoint($extPath);
+        if ($composerEntrypoint !== null) {
+            return $composerEntrypoint;
+        }
+
+        $defaultEntrypoint = $this->buildDefaultEntrypoint($manifest->getId());
+        if ($defaultEntrypoint !== '' && class_exists($defaultEntrypoint) && is_subclass_of($defaultEntrypoint, ExtensionInterface::class)) {
+            return $defaultEntrypoint;
+        }
+
+        $discovered = $this->discoverEntrypoint($extPath, $psr4, $defaultEntrypoint);
+        if ($discovered !== null) {
+            return $discovered;
+        }
+
+        return null;
+    }
+
+    private function readComposerEntrypoint(string $extPath): ?string
+    {
+        $composer = $this->readComposerJson($extPath);
+        $extra = $composer['extra'] ?? null;
+        if (!is_array($extra)) {
+            return null;
+        }
+
+        $notur = $extra['notur'] ?? null;
+        if (!is_array($notur)) {
+            return null;
+        }
+
+        $entrypoint = $notur['entrypoint'] ?? null;
+        if (!is_string($entrypoint) || $entrypoint === '') {
+            return null;
+        }
+
+        return $entrypoint;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function readComposerJson(string $extPath): array
+    {
+        $path = rtrim($extPath, '/') . '/composer.json';
+        if (!file_exists($path)) {
+            return [];
+        }
+
+        $raw = file_get_contents($path);
+        if ($raw === false || $raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function buildDefaultEntrypoint(string $id): string
+    {
+        $namespace = $this->inferNamespaceFromId($id);
+        if ($namespace === '') {
+            return '';
+        }
+
+        $className = $this->inferClassNameFromId($id);
+        if ($className === '') {
+            return '';
+        }
+
+        return $namespace . '\\' . $className;
+    }
+
+    private function inferNamespaceFromId(string $id): string
+    {
+        if (!str_contains($id, '/')) {
+            return '';
+        }
+
+        [$vendor, $name] = explode('/', $id, 2);
+        if ($vendor === '' || $name === '') {
+            return '';
+        }
+
+        return $this->toStudly($vendor) . '\\' . $this->toStudly($name);
+    }
+
+    private function inferClassNameFromId(string $id): string
+    {
+        if (!str_contains($id, '/')) {
+            return '';
+        }
+
+        [, $name] = explode('/', $id, 2);
+        if ($name === '') {
+            return '';
+        }
+
+        $classBase = $this->toStudly($name);
+        return str_ends_with($classBase, 'Extension') ? $classBase : $classBase . 'Extension';
+    }
+
+    private function toStudly(string $value): string
+    {
+        return str_replace(' ', '', ucwords(str_replace('-', ' ', $value)));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function resolveAutoloadDirs(string $extPath, array $psr4): array
+    {
+        $dirs = [];
+
+        foreach ($psr4 as $paths) {
+            foreach ((array) $paths as $path) {
+                if (!is_string($path) || $path === '') {
+                    continue;
+                }
+
+                $dir = $this->resolvePath($extPath, $path);
+                if (is_dir($dir)) {
+                    $dirs[] = $dir;
+                }
+            }
+        }
+
+        return array_values(array_unique($dirs));
+    }
+
+    private function discoverEntrypoint(string $extPath, array $psr4, string $preferred): ?string
+    {
+        $dirs = $this->resolveAutoloadDirs($extPath, $psr4);
+        if ($dirs === []) {
+            $fallback = rtrim($extPath, '/') . '/src';
+            if (is_dir($fallback)) {
+                $dirs[] = $fallback;
+            }
+        }
+
+        if ($dirs === []) {
+            return null;
+        }
+
+        $candidates = $this->findExtensionClassCandidates($dirs);
+        if ($candidates === []) {
+            return null;
+        }
+
+        if ($preferred !== '' && isset($candidates[$preferred])) {
+            $preferredFile = $candidates[$preferred];
+            unset($candidates[$preferred]);
+            $candidates = [$preferred => $preferredFile] + $candidates;
+        }
+
+        foreach ($candidates as $class => $file) {
+            if (!class_exists($class)) {
+                require_once $file;
+            }
+
+            if (is_subclass_of($class, ExtensionInterface::class)) {
+                return $class;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<int, string> $dirs
+     * @return array<string, string> Map of class => file path.
+     */
+    private function findExtensionClassCandidates(array $dirs): array
+    {
+        $candidates = [];
+
+        foreach ($dirs as $dir) {
+            if (!is_dir($dir)) {
+                continue;
+            }
+
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+            );
+
+            foreach ($iterator as $file) {
+                if (!$file->isFile()) {
+                    continue;
+                }
+
+                $filename = $file->getFilename();
+                if (!str_ends_with($filename, 'Extension.php')) {
+                    continue;
+                }
+
+                $classes = $this->extractPhpClasses($file->getPathname());
+                foreach ($classes as $class) {
+                    if (!isset($candidates[$class])) {
+                        $candidates[$class] = $file->getPathname();
+                    }
+                }
+            }
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function extractPhpClasses(string $file): array
+    {
+        $contents = file_get_contents($file);
+        if ($contents === false) {
+            return [];
+        }
+
+        $tokens = token_get_all($contents);
+        $namespace = '';
+        $classes = [];
+        $previousToken = null;
+
+        $count = count($tokens);
+        for ($i = 0; $i < $count; $i++) {
+            $token = $tokens[$i];
+
+            if (is_array($token)) {
+                if ($token[0] === T_NAMESPACE) {
+                    $namespace = '';
+                    for ($j = $i + 1; $j < $count; $j++) {
+                        $next = $tokens[$j];
+                        if (is_array($next) && in_array($next[0], [T_STRING, T_NS_SEPARATOR, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED], true)) {
+                            $namespace .= $next[1];
+                            continue;
+                        }
+                        if ($next === ';' || $next === '{') {
+                            break;
+                        }
+                    }
+                }
+
+                if ($token[0] === T_CLASS) {
+                    if ($previousToken === T_NEW) {
+                        continue;
+                    }
+
+                    for ($j = $i + 1; $j < $count; $j++) {
+                        $next = $tokens[$j];
+                        if (is_array($next) && $next[0] === T_STRING) {
+                            $className = $next[1];
+                            $classes[] = $namespace !== '' ? $namespace . '\\' . $className : $className;
+                            break;
+                        }
+
+                        if ($next === '{' || $next === ';') {
+                            break;
+                        }
+                    }
+                }
+
+                if (!in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                    $previousToken = $token[0];
+                }
+            } elseif (trim($token) !== '') {
+                $previousToken = null;
+            }
+        }
+
+        return $classes;
+    }
+
+    private function resolvePath(string $extPath, string $path): string
+    {
+        if ($this->isAbsolutePath($path)) {
+            return $path;
+        }
+
+        return rtrim($extPath, '/') . '/' . ltrim($path, '/');
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        if ($path === '') {
+            return false;
+        }
+
+        if ($path[0] === '/' || $path[0] === '\\') {
+            return true;
+        }
+
+        return (bool) preg_match('/^[A-Za-z]:[\\\\\\/]/', $path);
     }
 
     /**

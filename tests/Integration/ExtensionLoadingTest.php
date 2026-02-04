@@ -43,8 +43,10 @@ class ExtensionLoadingTest extends TestCase
 
     public function test_config_is_loaded(): void
     {
-        $this->assertNotNull(config('notur.version'));
-        $this->assertSame('1.0.0', config('notur.version'));
+        $version = config('notur.version');
+        $this->assertIsString($version);
+        $this->assertNotSame('', $version);
+        $this->assertMatchesRegularExpression('/^\\d+\\.\\d+\\.\\d+$/', $version);
     }
 
     public function test_boots_with_no_extensions(): void

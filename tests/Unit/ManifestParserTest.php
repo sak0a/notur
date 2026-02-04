@@ -137,6 +137,20 @@ YAML;
         $this->assertSame('acme/yml-ext', $manifest->getId());
     }
 
+    public function test_allows_missing_entrypoint(): void
+    {
+        $yaml = <<<YAML
+id: "acme/no-entrypoint"
+name: "No Entrypoint"
+version: "1.0.0"
+YAML;
+
+        file_put_contents($this->fixturesDir . '/extension.yaml', $yaml);
+
+        $manifest = ExtensionManifest::load($this->fixturesDir);
+        $this->assertSame('', $manifest->getEntrypoint());
+    }
+
     public function test_get_returns_nested_values(): void
     {
         $yaml = <<<YAML

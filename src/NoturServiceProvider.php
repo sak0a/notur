@@ -144,14 +144,20 @@ class NoturServiceProvider extends ServiceProvider
                     continue;
                 }
 
-                $asset = ['id' => $id];
+                $asset = [
+                    'id' => $id,
+                    'name' => $extension->getName(),
+                    'version' => $extension->getVersion(),
+                ];
 
                 if ($bundle = $manifest->getFrontendBundle()) {
-                    $asset['bundle'] = "/notur/extensions/{$id}/{$bundle}";
+                    $bundlePath = ltrim($bundle, '/');
+                    $asset['bundle'] = "/notur/extensions/{$id}/{$bundlePath}";
                 }
 
                 if ($styles = $manifest->getFrontendStyles()) {
-                    $asset['styles'] = "/notur/extensions/{$id}/{$styles}";
+                    $stylesPath = ltrim($styles, '/');
+                    $asset['styles'] = "/notur/extensions/{$id}/{$stylesPath}";
                 }
 
                 $cssIsolation = $manifest->getFrontendCssIsolation();

@@ -71,7 +71,7 @@ Enable the root-class CSS isolation helper by setting `cssIsolation`:
 
 ```tsx
 createExtension({
-    config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
+    config: { id: 'acme/analytics' },
     cssIsolation: true, // uses the default class: notur-ext--acme-analytics
     slots: [/* ... */],
 });
@@ -81,12 +81,13 @@ You can also pass an explicit class name:
 
 ```tsx
 createExtension({
-    config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
+    config: { id: 'acme/analytics' },
     cssIsolation: { mode: 'root-class', className: 'notur-ext--acme-analytics' },
 });
 ```
 
 If `frontend.css_isolation` is declared in `extension.yaml`, the SDK will pick it up automatically.
+If you omit `name` and `version` from `config`, the SDK will auto-fill them from `extension.yaml`.
 
 ### Full Example
 
@@ -157,8 +158,8 @@ createExtension({
 ```typescript
 interface ExtensionConfig {
     id: string;        // Extension ID matching extension.yaml (e.g., "acme/analytics")
-    name: string;      // Human-readable name
-    version: string;   // Semantic version string
+    name?: string;     // Human-readable name (optional, auto-filled)
+    version?: string;  // Semantic version string (optional, auto-filled)
 }
 ```
 

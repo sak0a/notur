@@ -31,6 +31,7 @@ class ExtensionApiController extends Controller
     public function extensions(): JsonResponse
     {
         $extensions = [];
+        $slotsByExtension = $this->manager->getFrontendSlots();
 
         foreach ($this->manager->all() as $id => $extension) {
             $manifest = $this->manager->getManifest($id);
@@ -39,7 +40,7 @@ class ExtensionApiController extends Controller
                 'name' => $extension->getName(),
                 'version' => $extension->getVersion(),
                 'description' => $manifest?->getDescription() ?? '',
-                'slots' => $manifest?->getFrontendSlots() ?? [],
+                'slots' => $slotsByExtension[$id] ?? ($manifest?->getFrontendSlots() ?? []),
             ];
         }
 

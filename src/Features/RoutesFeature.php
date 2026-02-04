@@ -26,18 +26,30 @@ final class RoutesFeature implements ExtensionFeature
 
     public function supports(ExtensionContext $context): bool
     {
-        return $context->extension instanceof HasRoutes;
+        if ($context->extension instanceof HasRoutes) {
+            return true;
+        }
+
+        $manifestRoutes = $context->manifest->getRoutes();
+        if (is_array($manifestRoutes) && $manifestRoutes !== []) {
+            return true;
+        }
+
+        return $this->hasDefaultRouteFiles($context->path);
     }
 
     public function register(ExtensionContext $context): void
     {
-        if (!$context->extension instanceof HasRoutes) {
+        $routeFiles = $this->resolveRouteFiles($context);
+        if ($routeFiles === []) {
             return;
         }
 
-        $routeFiles = $context->extension->getRouteFiles();
-
         foreach ($routeFiles as $group => $file) {
+            if (!is_string($file) || $file === '') {
+                continue;
+            }
+
             $filePath = $context->path . '/' . ltrim($file, '/');
 
             if (!file_exists($filePath)) {
@@ -67,5 +79,52 @@ final class RoutesFeature implements ExtensionFeature
     public function boot(ExtensionContext $context): void
     {
         // No-op for now (routes are registered in the register phase).
+    }
+
+    /**
+     * Resolve route files from the extension class, manifest, or convention defaults.
+     *
+     * @return array<string, string>
+     */
+    private function resolveRouteFiles(ExtensionContext $context): array
+    {
+        if ($context->extension instanceof HasRoutes) {
+            $routeFiles = $context->extension->getRouteFiles();
+            return is_array($routeFiles) ? $routeFiles : [];
+        }
+
+        $manifestRoutes = $context->manifest->getRoutes();
+        if (is_array($manifestRoutes) && $manifestRoutes !== []) {
+            return $manifestRoutes;
+        }
+
+        return $this->defaultRouteFiles($context->path);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function defaultRouteFiles(string $extensionPath): array
+    {
+        $defaults = [
+            'api-client' => 'src/routes/api-client.php',
+            'admin' => 'src/routes/admin.php',
+            'web' => 'src/routes/web.php',
+        ];
+
+        $resolved = [];
+        foreach ($defaults as $group => $relativePath) {
+            $fullPath = rtrim($extensionPath, '/') . '/' . $relativePath;
+            if (file_exists($fullPath)) {
+                $resolved[$group] = $relativePath;
+            }
+        }
+
+        return $resolved;
+    }
+
+    private function hasDefaultRouteFiles(string $extensionPath): bool
+    {
+        return $this->defaultRouteFiles($extensionPath) !== [];
     }
 }

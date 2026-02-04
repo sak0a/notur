@@ -68,93 +68,76 @@ php artisan notur:validate /path/to/your-extension --strict
 
 ## Step 1: Create extension.yaml
 
+Minimal manifest (this is all you need to boot an extension now):
+
 ```yaml
 notur: "1.0"
 id: "acme/server-analytics"
 name: "Server Analytics"
 version: "1.0.0"
 description: "Real-time server analytics"
-authors:
-  - name: "Your Name"
 license: "MIT"
+```
 
+Optional sections (only include what you need):
+
+```yaml
 requires:
   notur: "^1.0"
   pterodactyl: "^1.11"
   php: "^8.2"
 
-capabilities:
-  routes: "^1"
-  health: "^1"
-  schedules: "^1"
-  css_isolation: "^1"
-
+# Entrypoint/autoload are optional. If omitted, Notur infers:
+# - namespace + class from id (Acme\\ServerAnalytics\\ServerAnalyticsExtension)
+# - psr-4 mapping to "src/"
 entrypoint: "Acme\\ServerAnalytics\\ServerAnalyticsExtension"
-
 autoload:
   psr-4:
     "Acme\\ServerAnalytics\\": "src/"
 
+# backend routes/migrations/permissions
 backend:
   routes:
     api-client: "src/routes/api-client.php"
   migrations: "database/migrations"
   permissions:
     - "analytics.view"
-    - "analytics.export"
 
+# frontend bundle/styles/slots
 frontend:
   bundle: "resources/frontend/dist/extension.js"
+  styles: "resources/frontend/dist/extension.css"
   css_isolation:
     mode: "root-class"
   slots:
-    server.subnav:
-      label: "Analytics"
-      icon: "chart-bar"
-      permission: "analytics.view"
     dashboard.widgets:
       component: "AnalyticsWidget"
       order: 10
 
+# admin settings schema
 admin:
   settings:
     title: "Settings"
-    description: "Configure analytics behavior"
     fields:
-      - key: "api_key"
-        label: "API Key"
-        type: "string"
-        required: true
-        help: "Used to authenticate with the analytics service."
-      - key: "mode"
-        label: "Mode"
-        type: "select"
-        options:
-          - value: "fast"
-            label: "Fast"
-          - value: "safe"
-            label: "Safe"
       - key: "enabled"
         label: "Enable Extension"
         type: "boolean"
         default: true
         public: true
 
+# health checks + schedules
 health:
   checks:
     - id: "db"
       label: "Database"
-      description: "Checks analytics database connectivity."
       severity: "critical"
 
 schedules:
   tasks:
     - id: "sync"
       label: "Sync Analytics"
-      description: "Syncs analytics data every hour."
       command: "acme:analytics:sync"
       cron: "0 * * * *"
-      without_overlapping: true
 ```
 
 ### Why the manifest exists
@@ -176,11 +159,11 @@ Key consumers:
 | `name` | UI | Human readable display name in admin and UI surfaces. |
 | `version` | Loader, UI | Used for compatibility checks, upgrades, and debug output. |
 | `requires` | Loader | Hard compatibility constraints for Notur, Pterodactyl, PHP. Prevents invalid installs. |
-| `capabilities` | Loader | Feature flags that enable specific subsystems like schedules and health checks. |
-| `entrypoint` | Loader | PHP class that boots your extension. |
-| `autoload` | Loader | PSR-4 mapping so the entrypoint class can be loaded. |
-| `backend` | Loader | Route files, migrations, and permissions used by the backend runtime. |
-| `frontend` | Bridge | Frontend bundle path, CSS isolation, and slot metadata. |
+| `capabilities` | Loader | Feature flags that enable specific subsystems like schedules and health checks (optional). |
+| `entrypoint` | Loader | PHP class that boots your extension (optional; inferred from id or composer.json). |
+| `autoload` | Loader | PSR-4 mapping so the entrypoint class can be loaded (optional; inferred to `src/`). |
+| `backend` | Loader | Route files, migrations, and permissions used by the backend runtime (optional; defaults available). |
+| `frontend` | Bridge | Frontend bundle path, CSS isolation, and slot metadata (optional; defaults available). |
 | `admin` | Admin UI | Settings schema and metadata for the admin UI. |
 | `health` | Health system | Declares available health checks. |
 | `schedules` | Scheduler | Declares scheduled tasks with cron or schedule objects. |
@@ -209,11 +192,11 @@ capabilities:
   schedules: "^1"
   css_isolation: "^1"
 
-entrypoint: "Acme\\ServerAnalytics\\ServerAnalyticsExtension" # PHP entry class
+entrypoint: "Acme\\ServerAnalytics\\ServerAnalyticsExtension" # Optional (inferred if missing)
 
 autoload:
   psr-4:
-    "Acme\\ServerAnalytics\\": "src/"
+    "Acme\\ServerAnalytics\\": "src/" # Optional (inferred if missing)
 
 backend:
   routes:
@@ -223,7 +206,7 @@ backend:
     - "analytics.view"
 
 frontend:
-  bundle: "resources/frontend/dist/extension.js"
+  bundle: "resources/frontend/dist/extension.js" # Optional (defaults to common paths)
   css_isolation:
     mode: "root-class"
   slots:
@@ -262,8 +245,9 @@ If these drift, your extension will load partially or not at all.
 
 - `extension.yaml` `id` must equal `ExtensionInterface::getId()`.
 - `extension.yaml` `id` must equal `createExtension({ config: { id } })`.
-- `frontend.bundle` must match your build output path.
-- `entrypoint` must point to a class that implements `ExtensionInterface`.
+- If you provide `createExtension({ config: { name, version } })`, they should match the manifest (or omit them to auto-fill).
+- `frontend.bundle` must match your build output path (or use a default path like `resources/frontend/dist/extension.js`).
+- If `entrypoint` is present, it must point to a class that implements `ExtensionInterface` (otherwise it is inferred).
 
 ### How Notur uses the manifest
 
@@ -317,7 +301,9 @@ Optional field properties:
 
 Capabilities declare which Notur features your extension opts into. Each capability is versioned
 using a major-only constraint (e.g. `^1`, `1`, `>=1`). If the `capabilities` section is present,
-any capability not explicitly listed is treated as disabled.
+any capability not explicitly listed is treated as disabled. If `capabilities` is omitted, Notur
+enables routes by default and automatically enables `health`/`schedules` when their config blocks
+are present.
 
 Common capability IDs:
 - `routes` — backend route registration
@@ -427,8 +413,8 @@ flowchart LR
 ## Troubleshooting extension.yaml
 
 - Extension not loading: ensure `id` matches `ExtensionInterface::getId()` and `createExtension().config.id`.
-- Routes return 404: ensure `backend.routes` is set and `capabilities.routes` is declared.
-- Frontend not rendering: ensure `frontend.bundle` exists and matches your build output.
+- Routes return 404: ensure you have route files in `src/routes/*`, or define `backend.routes`, or implement `HasRoutes`.
+- Frontend not rendering: ensure your bundle exists at `resources/frontend/dist/extension.js` (or set `frontend.bundle`).
 - `useExtensionConfig` returns empty: ensure settings fields are marked `public: true`.
 - CSS isolation not applied: ensure `frontend.css_isolation` is present or `createExtension({ cssIsolation: true })`.
 - Admin settings not visible: ensure `admin.settings` has `fields` and the extension is installed.

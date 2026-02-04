@@ -188,7 +188,7 @@ echo ""
 echo "Test Group: Extension Frontend"
 echo "------------------------------"
 
-BUNDLE_STATUS=$(http_status "${APP_URL}/notur/extensions/notur/hello-world/hello-world.js")
+BUNDLE_STATUS=$(http_status "${APP_URL}/notur/extensions/notur/hello-world/resources/frontend/dist/hello-world.js")
 if [ "$BUNDLE_STATUS" = "200" ]; then
     assert_pass "Hello-world JS bundle is accessible"
 else

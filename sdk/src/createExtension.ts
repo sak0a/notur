@@ -22,13 +22,15 @@ export function createExtension(definition: ExtensionDefinition): void {
     const { config, slots = [], routes = [], onInit, onDestroy, cssIsolation } = definition;
     const api = getNoturApi();
 
+    const resolvedConfig = resolveConfig(api, config);
+
     const resolvedCssIsolation = resolveCssIsolation(api, config.id, cssIsolation);
 
     // Register the extension
     api.registry.registerExtension({
-        id: config.id,
-        name: config.name,
-        version: config.version,
+        id: resolvedConfig.id,
+        name: resolvedConfig.name,
+        version: resolvedConfig.version,
         slots: slots.map(s => ({ ...s, extensionId: config.id })),
         routes: routes.map(r => ({ ...r, extensionId: config.id })),
         cssIsolation: resolvedCssIsolation,
@@ -48,7 +50,25 @@ export function createExtension(definition: ExtensionDefinition): void {
         }
     }
 
-    console.log(`[Notur] Extension registered: ${config.id} v${config.version}`);
+    console.log(`[Notur] Extension registered: ${resolvedConfig.id} v${resolvedConfig.version}`);
+}
+
+function resolveConfig(api: ReturnType<typeof getNoturApi>, config: ExtensionDefinition['config']) {
+    const manifestEntry = api.extensions?.find(ext => ext.id === config.id);
+    const name = config.name ?? manifestEntry?.name;
+    const version = config.version ?? manifestEntry?.version;
+
+    if (!name || !version) {
+        throw new Error(
+            `[Notur] Extension ${config.id} is missing name/version. Provide them in createExtension() or in extension.yaml.`,
+        );
+    }
+
+    return {
+        id: config.id,
+        name,
+        version,
+    };
 }
 
 function resolveCssIsolation(

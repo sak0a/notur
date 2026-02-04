@@ -70,7 +70,11 @@ final class FeatureRegistry
         $manifest = $context->manifest;
 
         if (!$manifest->hasCapabilitiesDeclared()) {
-            return $feature->isEnabledByDefault();
+            if ($feature->isEnabledByDefault()) {
+                return true;
+            }
+
+            return $this->isImplicitlyEnabled($capabilityId, $context);
         }
 
         $capabilities = $manifest->getCapabilities();
@@ -79,5 +83,19 @@ final class FeatureRegistry
         }
 
         return CapabilityMatcher::matches((string) $capabilities[$capabilityId], $feature->getCapabilityVersion());
+    }
+
+    private function isImplicitlyEnabled(string $capabilityId, ExtensionContext $context): bool
+    {
+        return match ($capabilityId) {
+            'health' => $this->hasNonEmptyArray($context->manifest->get('health.checks', [])),
+            'schedules' => $this->hasNonEmptyArray($context->manifest->get('schedules.tasks', [])),
+            default => false,
+        };
+    }
+
+    private function hasNonEmptyArray(mixed $value): bool
+    {
+        return is_array($value) && $value !== [];
     }
 }

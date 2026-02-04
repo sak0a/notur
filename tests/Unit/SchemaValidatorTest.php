@@ -45,7 +45,7 @@ class SchemaValidatorTest extends TestCase
         $this->assertTrue($hasIdError, 'Should report missing id field');
     }
 
-    public function test_manifest_missing_required_entrypoint(): void
+    public function test_manifest_missing_entrypoint_is_allowed(): void
     {
         $manifest = [
             'id' => 'acme/test',
@@ -54,15 +54,7 @@ class SchemaValidatorTest extends TestCase
         ];
 
         $errors = SchemaValidator::validateManifest($manifest);
-        $this->assertNotEmpty($errors);
-
-        $hasEntrypointError = false;
-        foreach ($errors as $error) {
-            if (str_contains($error, "'entrypoint'")) {
-                $hasEntrypointError = true;
-            }
-        }
-        $this->assertTrue($hasEntrypointError, 'Should report missing entrypoint field');
+        $this->assertEmpty($errors, implode("\n", $errors));
     }
 
     public function test_manifest_invalid_id_pattern(): void

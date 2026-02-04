@@ -158,15 +158,21 @@ class InstallCommand extends Command
             }
 
             if ($bundle && file_exists($targetPath . '/' . $bundle)) {
-                $bundleDir = dirname($publicPath . '/' . basename($bundle));
+                $bundleTarget = $publicPath . '/' . ltrim($bundle, '/');
+                $bundleDir = dirname($bundleTarget);
                 if (!is_dir($bundleDir)) {
                     mkdir($bundleDir, 0755, true);
                 }
-                copy($targetPath . '/' . $bundle, $publicPath . '/' . basename($bundle));
+                copy($targetPath . '/' . $bundle, $bundleTarget);
             }
 
             if ($styles && file_exists($targetPath . '/' . $styles)) {
-                copy($targetPath . '/' . $styles, $publicPath . '/' . basename($styles));
+                $stylesTarget = $publicPath . '/' . ltrim($styles, '/');
+                $stylesDir = dirname($stylesTarget);
+                if (!is_dir($stylesDir)) {
+                    mkdir($stylesDir, 0755, true);
+                }
+                copy($targetPath . '/' . $styles, $stylesTarget);
             }
         }
 

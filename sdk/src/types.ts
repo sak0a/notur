@@ -1,7 +1,7 @@
 export interface ExtensionConfig {
     id: string;
-    name: string;
-    version: string;
+    name?: string;
+    version?: string;
 }
 
 export interface CssIsolationConfig {
@@ -130,7 +130,7 @@ export interface NoturApi {
     };
     SLOT_IDS: Record<string, string>;
     unregisterExtension: (id: string) => void;
-    extensions?: Array<{ id: string; bundle?: string; styles?: string; cssIsolation?: CssIsolationConfig }>;
+    extensions?: Array<{ id: string; name?: string; version?: string; bundle?: string; styles?: string; cssIsolation?: CssIsolationConfig }>;
 }
 
 /**

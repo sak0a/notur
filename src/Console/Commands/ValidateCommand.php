@@ -52,6 +52,9 @@ class ValidateCommand extends Command
         [$scheduleErrors, $scheduleWarnings] = $this->validateSchedules($manifest);
         $errors = array_merge($errors, $scheduleErrors);
 
+        [$entryErrors, $entryWarnings] = $this->validateEntrypoint($manifest, $path);
+        $errors = array_merge($errors, $entryErrors);
+
         if (!empty($errors)) {
             $this->error('Validation failed:');
             foreach ($errors as $error) {
@@ -62,7 +65,7 @@ class ValidateCommand extends Command
 
         $this->info('Manifest is valid.');
 
-        $warnings = array_merge($settingsWarnings, $capWarnings, $scheduleWarnings);
+        $warnings = array_merge($settingsWarnings, $capWarnings, $scheduleWarnings, $entryWarnings);
 
         if (!empty($warnings)) {
             $this->warn('Warnings:');
@@ -376,6 +379,78 @@ class ValidateCommand extends Command
         }
 
         return [$errors, $warnings];
+    }
+
+    /**
+     * @return array{0: array<int, string>, 1: array<int, string>}
+     */
+    private function validateEntrypoint(array $manifest, string $basePath): array
+    {
+        $errors = [];
+        $warnings = [];
+
+        $entrypoint = $manifest['entrypoint'] ?? null;
+        if (is_string($entrypoint) && $entrypoint !== '') {
+            return [$errors, $warnings];
+        }
+
+        $composerEntrypoint = $this->readComposerEntrypoint($basePath);
+        if ($composerEntrypoint !== null) {
+            return [$errors, $warnings];
+        }
+
+        $id = $manifest['id'] ?? null;
+        if (!is_string($id) || $id === '' || !str_contains($id, '/')) {
+            $warnings[] = 'entrypoint is missing and could not be inferred (invalid id).';
+            return [$errors, $warnings];
+        }
+
+        [, $name] = explode('/', $id, 2);
+        $classBase = $this->toStudly($name);
+        $className = str_ends_with($classBase, 'Extension') ? $classBase : $classBase . 'Extension';
+        $defaultPath = rtrim($basePath, '/') . '/src/' . $className . '.php';
+
+        if (!file_exists($defaultPath)) {
+            $warnings[] = "entrypoint is missing and no default class found at src/{$className}.php.";
+        }
+
+        return [$errors, $warnings];
+    }
+
+    private function readComposerEntrypoint(string $basePath): ?string
+    {
+        $composerPath = rtrim($basePath, '/') . '/composer.json';
+        if (!file_exists($composerPath)) {
+            return null;
+        }
+
+        $raw = file_get_contents($composerPath);
+        if ($raw === false || $raw === '') {
+            return null;
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $extra = $decoded['extra'] ?? null;
+        if (!is_array($extra)) {
+            return null;
+        }
+
+        $notur = $extra['notur'] ?? null;
+        if (!is_array($notur)) {
+            return null;
+        }
+
+        $entrypoint = $notur['entrypoint'] ?? null;
+        return is_string($entrypoint) && $entrypoint !== '' ? $entrypoint : null;
+    }
+
+    private function toStudly(string $value): string
+    {
+        return str_replace(' ', '', ucwords(str_replace('-', ' ', $value)));
     }
 
     private function parsePositiveInt(mixed $value): ?int

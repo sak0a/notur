@@ -395,47 +395,6 @@ class NewCommand extends Command
         $lines[] = '  notur: "^1.0"';
         $lines[] = '  pterodactyl: "^1.11"';
         $lines[] = '  php: "^8.2"';
-        $lines[] = '';
-        $lines[] = 'entrypoint: ' . $this->yamlString($context['namespace'] . '\\' . $context['className']);
-        $lines[] = '';
-        $lines[] = 'autoload:';
-        $lines[] = '  psr-4:';
-        $lines[] = '    ' . $this->yamlString($context['namespace'] . '\\') . ': "src/"';
-        $lines[] = '';
-        $lines[] = 'backend:';
-
-        if ($context['includeApiRoutes'] || $context['includeAdminRoutes']) {
-            $lines[] = '  routes:';
-            if ($context['includeApiRoutes']) {
-                $lines[] = '    api-client: "src/routes/api-client.php"';
-            }
-            if ($context['includeAdminRoutes']) {
-                $lines[] = '    admin: "src/routes/admin.php"';
-            }
-        }
-
-        if ($context['includeMigrations']) {
-            $lines[] = '  migrations: "database/migrations"';
-        }
-
-        $lines[] = '  permissions: []';
-
-        if ($context['includeFrontend']) {
-            $lines[] = '';
-            $lines[] = 'frontend:';
-            $lines[] = '  bundle: "resources/frontend/dist/extension.js"';
-            $lines[] = '  slots:';
-            $lines[] = '    dashboard.widgets:';
-            $lines[] = '      component: "ExampleWidget"';
-            $lines[] = '      order: 100';
-        }
-
-        if ($context['includeAdmin']) {
-            $lines[] = '';
-            $lines[] = 'admin:';
-            $lines[] = '  views:';
-            $lines[] = '    index: "resources/views/admin/index.blade.php"';
-        }
 
         file_put_contents($basePath . '/extension.yaml', implode("\n", $lines) . "\n");
     }

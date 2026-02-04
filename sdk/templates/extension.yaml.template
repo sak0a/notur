@@ -11,33 +11,3 @@ requires:
   notur: "^1.0"
   pterodactyl: "^1.11"
   php: "^8.2"
-
-capabilities:
-  routes: "^1"
-  health: "^1"
-  schedules: "^1"
-  css_isolation: "^1"
-
-entrypoint: "{{namespace}}\\{{className}}"
-
-autoload:
-  psr-4:
-    "{{namespace}}\\": "src/"
-
-backend:
-  routes:
-    api-client: "src/routes/api-client.php"
-  migrations: "database/migrations"
-  permissions: []
-
-frontend:
-  bundle: "resources/frontend/dist/extension.js"
-  css_isolation:
-    mode: "root-class"
-  slots: {}
-
-health:
-  checks: []
-
-schedules:
-  tasks: []

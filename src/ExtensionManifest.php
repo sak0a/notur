@@ -10,26 +10,32 @@ use InvalidArgumentException;
 class ExtensionManifest
 {
     private array $data;
+    private string $path;
+    private string $basePath;
 
-    public function __construct(private readonly string $path)
+    public function __construct(string $path, ?array $data = null, ?string $basePath = null)
     {
-        if (!file_exists($path)) {
-            throw new InvalidArgumentException("Manifest not found: {$path}");
-        }
+        $this->path = $path;
+        $this->basePath = $basePath ?? (is_dir($path) ? rtrim($path, '/') : dirname($path));
 
-        $this->data = Yaml::parseFile($path);
+        if ($data === null) {
+            if (!file_exists($path)) {
+                throw new InvalidArgumentException("Manifest not found: {$path}");
+            }
+
+            $this->data = Yaml::parseFile($path);
+        } else {
+            $this->data = $data;
+        }
         $this->validate();
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data, string $basePath = ''): self
     {
-        $instance = new self(__FILE__); // dummy — overridden below
-        // Reset with provided data instead
-        $ref = new \ReflectionProperty($instance, 'data');
-        $ref->setValue($instance, $data);
-        $ref = new \ReflectionProperty($instance, 'path');
-        $ref->setValue($instance, '');
-        return $instance;
+        $path = $basePath !== '' ? rtrim($basePath, '/') . '/extension.yaml' : '<memory>';
+        $resolvedBase = $basePath !== '' ? rtrim($basePath, '/') : '';
+
+        return new self($path, $data, $resolvedBase);
     }
 
     public static function load(string $extensionPath): self
@@ -50,11 +56,20 @@ class ExtensionManifest
 
     private function validate(): void
     {
-        $required = ['id', 'name', 'version', 'entrypoint'];
+        $required = ['id', 'name', 'version'];
         foreach ($required as $field) {
             if (empty($this->data[$field])) {
                 throw new InvalidArgumentException(
                     "Extension manifest at '{$this->path}' is missing required field: {$field}"
+                );
+            }
+        }
+
+        if (array_key_exists('entrypoint', $this->data)) {
+            $entrypoint = $this->data['entrypoint'];
+            if (!is_string($entrypoint) || $entrypoint === '') {
+                throw new InvalidArgumentException(
+                    "Extension manifest at '{$this->path}' has invalid entrypoint (must be non-empty string)."
                 );
             }
         }
@@ -88,7 +103,7 @@ class ExtensionManifest
 
     public function getEntrypoint(): string
     {
-        return $this->data['entrypoint'];
+        return $this->data['entrypoint'] ?? '';
     }
 
     public function getAuthors(): array
@@ -162,12 +177,22 @@ class ExtensionManifest
 
     public function getRoutes(): array
     {
-        return $this->data['backend']['routes'] ?? [];
+        $routes = $this->data['backend']['routes'] ?? null;
+        if (is_array($routes) && $routes !== []) {
+            return $routes;
+        }
+
+        return $this->resolveDefaultRoutes();
     }
 
     public function getMigrationsPath(): string
     {
-        return $this->data['backend']['migrations'] ?? '';
+        $path = $this->data['backend']['migrations'] ?? null;
+        if (is_string($path) && $path !== '') {
+            return $path;
+        }
+
+        return $this->resolveDefaultDir('database/migrations') ?? '';
     }
 
     public function getCommands(): array
@@ -187,12 +212,32 @@ class ExtensionManifest
 
     public function getFrontendBundle(): string
     {
-        return $this->data['frontend']['bundle'] ?? '';
+        $bundle = $this->data['frontend']['bundle'] ?? null;
+        if (is_string($bundle) && $bundle !== '') {
+            return $bundle;
+        }
+
+        return $this->resolveFirstExistingFile([
+            'resources/frontend/dist/extension.js',
+            'resources/frontend/dist/bundle.js',
+            'dist/extension.js',
+            'dist/bundle.js',
+        ]) ?? '';
     }
 
     public function getFrontendStyles(): string
     {
-        return $this->data['frontend']['styles'] ?? '';
+        $styles = $this->data['frontend']['styles'] ?? null;
+        if (is_string($styles) && $styles !== '') {
+            return $styles;
+        }
+
+        return $this->resolveFirstExistingFile([
+            'resources/frontend/dist/extension.css',
+            'resources/frontend/dist/bundle.css',
+            'dist/extension.css',
+            'dist/bundle.css',
+        ]) ?? '';
     }
 
     public function getFrontendCssIsolation(): array
@@ -218,5 +263,71 @@ class ExtensionManifest
     public function get(string $key, mixed $default = null): mixed
     {
         return data_get($this->data, $key, $default);
+    }
+
+    public function getBasePath(): string
+    {
+        return $this->basePath;
+    }
+
+    private function resolveDefaultFile(string $relativePath): ?string
+    {
+        if ($this->basePath === '') {
+            return null;
+        }
+
+        $fullPath = $this->basePath . '/' . ltrim($relativePath, '/');
+        return file_exists($fullPath) ? $relativePath : null;
+    }
+
+    /**
+     * @param array<int, string> $paths
+     */
+    private function resolveFirstExistingFile(array $paths): ?string
+    {
+        foreach ($paths as $path) {
+            $resolved = $this->resolveDefaultFile($path);
+            if ($resolved !== null) {
+                return $resolved;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveDefaultDir(string $relativePath): ?string
+    {
+        if ($this->basePath === '') {
+            return null;
+        }
+
+        $fullPath = $this->basePath . '/' . ltrim($relativePath, '/');
+        return is_dir($fullPath) ? $relativePath : null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function resolveDefaultRoutes(): array
+    {
+        if ($this->basePath === '') {
+            return [];
+        }
+
+        $defaults = [
+            'api-client' => 'src/routes/api-client.php',
+            'admin' => 'src/routes/admin.php',
+            'web' => 'src/routes/web.php',
+        ];
+
+        $resolved = [];
+        foreach ($defaults as $group => $relativePath) {
+            $fullPath = $this->basePath . '/' . $relativePath;
+            if (file_exists($fullPath)) {
+                $resolved[$group] = $relativePath;
+            }
+        }
+
+        return $resolved;
     }
 }
