@@ -50,11 +50,8 @@ The SDK includes command-line tools for extension development.
 Package your extension into a `.notur` archive for distribution. This can be run directly on your development machine without needing access to a Pterodactyl server.
 
 ```bash
-# From your extension directory
+# From your extension directory (using npx, yarn dlx, pnpm dlx, or bunx)
 npx notur-pack
-
-# Or with bun
-bunx notur-pack
 
 # Specify a different path
 npx notur-pack /path/to/my-extension
@@ -883,11 +880,11 @@ module.exports = {
 ### Building
 
 ```bash
-# Production build
-bunx webpack --mode production
+# Production build (using npx, yarn dlx, pnpm dlx, or bunx)
+npx webpack --mode production
 
 # Development build (with source maps)
-bunx webpack --mode development
+npx webpack --mode development
 ```
 
 ### Important Notes

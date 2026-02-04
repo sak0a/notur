@@ -21,6 +21,7 @@ This guide is for Pterodactyl Panel administrators who want to install and manag
 | Pterodactyl Panel | v1 canary / 1.11.x |
 | PHP | 8.2 or 8.3 |
 | Node.js | 18+ (22+ recommended) |
+| Package Manager | npm, Yarn, pnpm, or Bun |
 | MySQL | 8.0+ |
 | MariaDB | 10.6+ (alternative to MySQL) |
 | Composer | 2.x |

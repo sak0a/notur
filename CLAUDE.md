@@ -19,14 +19,15 @@ composer install
 ./vendor/bin/phpunit tests/Unit/SomeTest.php  # Single test file
 ```
 
-### Frontend (Bun workspaces: bridge + sdk)
+### Frontend (workspaces: bridge + sdk)
+Use npm, yarn, pnpm, or bun:
 ```bash
-bun install
-bun run build              # Build bridge + sdk
-bun run build:bridge       # Build bridge runtime (webpack)
-bun run build:sdk          # Build SDK (tsc)
-bun run dev:bridge         # Watch mode for bridge
-bun run test:frontend      # Jest tests
+npm install
+npm run build              # Build bridge + sdk
+npm run build:bridge       # Build bridge runtime (webpack)
+npm run build:sdk          # Build SDK (tsc)
+npm run dev:bridge         # Watch mode for bridge
+npm run test:frontend      # Jest tests
 ```
 
 ## Architecture

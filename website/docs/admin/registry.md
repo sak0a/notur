@@ -235,9 +235,9 @@ Structure your repository with an `extension.yaml` at the root. See the [manifes
 ### Step 2: Build and Export
 
 ```bash
-# Build the frontend bundle
+# Build the frontend bundle (using npx, yarn dlx, pnpm dlx, or bunx)
 cd your-extension
-bunx webpack --mode production
+npx webpack --mode production
 
 # Export as a .notur archive
 php artisan notur:export /path/to/your-extension

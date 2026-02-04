@@ -526,7 +526,11 @@ sequenceDiagram
 ### Install the SDK
 
 ```bash
-bun install @notur/sdk
+# Using npm, yarn, pnpm, or bun
+npm install @notur/sdk
+# or: yarn add @notur/sdk
+# or: pnpm add @notur/sdk
+# or: bun add @notur/sdk
 ```
 
 ### Create the Frontend Entry
@@ -593,7 +597,8 @@ module.exports = {
 ```
 
 ```bash
-bunx webpack --mode production
+# Using npx, yarn dlx, pnpm dlx, or bunx
+npx webpack --mode production
 ```
 
 The built bundle goes to `resources/frontend/dist/extension.js`.
@@ -625,11 +630,8 @@ php artisan notur:dev /path/to/acme-server-analytics --watch
 The `@notur/sdk` package includes a CLI tool to create `.notur` archives directly on your development machine — no server access required.
 
 ```bash
-# From your extension directory
+# From your extension directory (using npx, yarn dlx, pnpm dlx, or bunx)
 npx notur-pack
-
-# Or with bun
-bunx notur-pack
 
 # Specify a different path
 npx notur-pack /path/to/my-extension

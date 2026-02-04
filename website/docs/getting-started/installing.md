@@ -179,5 +179,6 @@ bun run build:production
 | Pterodactyl Panel | v1 canary / 1.11.x |
 | PHP | 8.2, 8.3 |
 | Node.js | 22+ |
+| Package Manager | npm, Yarn, pnpm, or Bun |
 | MySQL | 8.0+ |
 | MariaDB | 10.6+ |

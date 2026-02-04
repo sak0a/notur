@@ -5,11 +5,11 @@ Notur Extension Developer SDK. This package provides the runtime helpers and Rea
 ## Install
 
 ```bash
+# Using npm, yarn, pnpm, or bun
 npm install @notur/sdk
-```
-
-```bash
-bun add @notur/sdk
+# or: yarn add @notur/sdk
+# or: pnpm add @notur/sdk
+# or: bun add @notur/sdk
 ```
 
 Peer dependencies:
@@ -70,11 +70,8 @@ All hooks are exported from `@notur/sdk`.
 The SDK includes a CLI tool to package your extension into a `.notur` archive that can be uploaded to the Pterodactyl admin panel.
 
 ```bash
-# From your extension directory
+# From your extension directory (using npx, yarn dlx, pnpm dlx, or bunx)
 npx notur-pack
-
-# Or with bun
-bunx notur-pack
 
 # Specify a different path
 npx notur-pack /path/to/my-extension
@@ -123,10 +120,7 @@ The `.sig` file format is compatible with PHP's `SignatureVerifier::verify()` an
 ## Build
 
 ```bash
-bun run build
-```
-
-```bash
+# Using npm, yarn, pnpm, or bun
 npm run build
 ```
 
