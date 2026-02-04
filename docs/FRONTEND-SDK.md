@@ -25,6 +25,19 @@ The Notur frontend has three layers:
 
 React and ReactDOM are **not bundled** with extensions. They are externalized and use the panel's existing instances via `window.React` and `window.ReactDOM`.
 
+### Runtime flow
+
+```mermaid
+flowchart TD
+  A["Panel HTML"] --> B["bridge.js"]
+  B --> C["window.__NOTUR__ registry + hooks"]
+  A --> D["Extension bundle"]
+  D --> E["createExtension()"]
+  E --> F["registry.registerExtension()"]
+  F --> G["SlotRenderer + Router"]
+  G --> H["Your components render"]
+```
+
 ---
 
 ## SDK API: createExtension
@@ -492,6 +505,20 @@ const AdminPanel: React.FC = () => {
 ## Slot System
 
 Slots are predefined injection points in the Pterodactyl panel where extensions can render components.
+
+### Slot render lifecycle
+
+```mermaid
+sequenceDiagram
+  participant Ext as "Extension bundle"
+  participant Reg as "PluginRegistry"
+  participant UI as "Panel UI"
+  Ext->>Reg: "registerExtension(slots, routes)"
+  Reg-->>UI: "emit slot change events"
+  UI->>Reg: "useSlot(slotId)"
+  Reg-->>UI: "list of registrations"
+  UI-->>UI: "render each component in order"
+```
 
 ### Available Slot IDs
 

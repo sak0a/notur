@@ -157,6 +157,57 @@ schedules:
       without_overlapping: true
 ```
 
+### Why the manifest exists
+
+`extension.yaml` is the contract between your extension bundle and the Notur loader. The loader uses it to validate compatibility, discover entrypoints, wire routes, and expose frontend assets before any of your PHP or JS code runs.
+
+Key consumers:
+- The Notur loader reads it at install and boot time to register your extension.
+- The admin UI reads it to build settings screens and expose public config.
+- The frontend bridge reads it to know which bundles and CSS isolation settings to load.
+- The CLI uses it for validation and packaging.
+
+### Manifest fields and purpose
+
+| Field | Consumed by | Purpose |
+|---|---|---|
+| `notur` | Loader | Manifest schema version. Lets the loader parse the correct structure. |
+| `id` | Loader, SDK | Global unique ID. Must match `createExtension().config.id` and `ExtensionInterface::getId()`. |
+| `name` | UI | Human readable display name in admin and UI surfaces. |
+| `version` | Loader, UI | Used for compatibility checks, upgrades, and debug output. |
+| `requires` | Loader | Hard compatibility constraints for Notur, Pterodactyl, PHP. Prevents invalid installs. |
+| `capabilities` | Loader | Feature flags that enable specific subsystems like schedules and health checks. |
+| `entrypoint` | Loader | PHP class that boots your extension. |
+| `autoload` | Loader | PSR-4 mapping so the entrypoint class can be loaded. |
+| `backend` | Loader | Route files, migrations, and permissions used by the backend runtime. |
+| `frontend` | Bridge | Frontend bundle path, CSS isolation, and slot metadata. |
+| `admin` | Admin UI | Settings schema and metadata for the admin UI. |
+| `health` | Health system | Declares available health checks. |
+| `schedules` | Scheduler | Declares scheduled tasks with cron or schedule objects. |
+
+### Critical alignment rules
+
+If these drift, your extension will load partially or not at all.
+
+- `extension.yaml` `id` must equal `ExtensionInterface::getId()`.
+- `extension.yaml` `id` must equal `createExtension({ config: { id } })`.
+- `frontend.bundle` must match your build output path.
+- `entrypoint` must point to a class that implements `ExtensionInterface`.
+
+### How Notur uses the manifest
+
+```mermaid
+flowchart TD
+  A["extension.yaml"] --> B["Notur loader"]
+  B --> C["Validate requirements"]
+  B --> D["Register entrypoint"]
+  B --> E["Register routes, migrations, permissions"]
+  B --> F["Expose frontend bundle path"]
+  B --> G["Expose admin settings schema"]
+  F --> H["bridge.js loads bundle"]
+  H --> I["createExtension registers slots and routes"]
+```
+
 ### Admin Settings Schema
 
 Settings defined under `admin.settings` are rendered in the Notur admin UI and persisted per extension.
@@ -270,11 +321,23 @@ Supported schedule types:
 Use `frontend.css_isolation` to enable the root-class scoping helper. When enabled, Notur wraps
 each rendered component in a root element with a class like `notur-ext--vendor-name`.
 
+Why it matters:
+- It prevents your component styles from leaking into the panel UI.
+- It allows you to scope all your CSS under a predictable root class.
+- It avoids collisions between multiple extensions shipping similarly named classes.
+
 ```yaml
 frontend:
   css_isolation:
     mode: "root-class"
     class: "notur-ext--acme-analytics" # optional override
+```
+
+```mermaid
+flowchart LR
+  A["Your component"] --> B["Notur root wrapper"]
+  B --> C["Class: notur-ext--vendor-name"]
+  C --> D["Your CSS scoped to root class"]
 ```
 
 ## Step 2: Implement the PHP Entrypoint
@@ -362,6 +425,22 @@ Route groups and their prefixes:
 | `api-client` | `/api/client/notur/{extension-id}/` | `client-api` |
 | `admin` | `/admin/notur/{extension-id}/` | `web`, `admin` |
 | `web` | `/notur/{extension-id}/` | `web` |
+
+### Request flow for extension APIs
+
+```mermaid
+sequenceDiagram
+  participant UI as "Extension UI"
+  participant Bridge as "Notur bridge hooks"
+  participant API as "Pterodactyl API"
+  participant Ext as "Extension backend"
+  UI->>Bridge: "useExtensionApi({ extensionId })"
+  Bridge->>API: "GET /api/client/notur/{id}/stats"
+  API->>Ext: "Route file handler"
+  Ext-->>API: "JSON response"
+  API-->>Bridge: "JSON response"
+  Bridge-->>UI: "data, loading, error"
+```
 
 ## Step 4: Build the Frontend
 
