@@ -25,11 +25,7 @@ const ExampleWidget: React.FC<{ extensionId: string }> = ({ extensionId }) => {
 };
 
 createExtension({
-    config: {
-        id: '{{vendor}}/{{name}}',
-        name: '{{displayName}}',
-        version: '1.0.0',
-    },
+    id: '{{vendor}}/{{name}}',
     slots: [
         {
             slot: 'dashboard.widgets',
