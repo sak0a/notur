@@ -29,6 +29,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 WHITE='\033[38;2;255;255;255m'
+PURPLE='\033[38;2;124;58;237m'
 PURPLE_BG='\033[48;2;124;58;237m'
 NC='\033[0m'
 
@@ -37,6 +38,16 @@ ok()    { echo -e "${GREEN}[Notur]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[Notur]${NC} $1"; }
 error() { echo -e "${RED}[Notur]${NC} $1" >&2; }
 die()   { error "$1"; exit 1; }
+
+step() {
+    local num="$1"
+    local msg="$2"
+    if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+        echo -e "${PURPLE_BG} STEP ${num} ${NC} ${WHITE}${msg}${NC}"
+    else
+        echo "==> Step ${num}: ${msg}"
+    fi
+}
 
 # ── Environment Detection ─────────────────────────────────────────────────
 
@@ -156,13 +167,19 @@ PANEL_DIR="${1:-${AUTO_PANEL_DIR:-/var/www/pterodactyl}}"
 
 banner() {
     if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
-        echo -e "  ${PURPLE_BG}      ${NC}"
-        echo -e "  ${PURPLE_BG}  ${WHITE}N${PURPLE_BG}   ${NC}  ${WHITE}Notur${NC}"
-        echo -e "  ${PURPLE_BG}      ${NC}"
+        echo -e "${PURPLE}  ┌─────────┐   ███╗   ██╗ ██████╗ ████████╗██╗   ██╗██████╗${NC}"
+        echo -e "${PURPLE}  │         │   ████╗  ██║██╔═══██╗╚══██╔══╝██║   ██║██╔══██╗${NC}"
+        echo -e "${PURPLE}  │${WHITE}    N    ${PURPLE}│   ██╔██╗ ██║██║   ██║   ██║   ██║   ██║██████╔╝${NC}"
+        echo -e "${PURPLE}  │         │   ██║╚██╗██║██║   ██║   ██║   ██║   ██║██╔══██╗${NC}"
+        echo -e "${PURPLE}  └─────────┘   ██║ ╚████║╚██████╔╝   ██║   ╚██████╔╝██║  ██║${NC}"
+        echo -e "${PURPLE}                ╚═╝  ╚═══╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝${NC}"
     else
-        echo "  +------+  Notur"
-        echo "  |  N  |"
-        echo "  +------+"
+        echo "  ┌─────────┐   ███╗   ██╗ ██████╗ ████████╗██╗   ██╗██████╗"
+        echo "  │         │   ████╗  ██║██╔═══██╗╚══██╔══╝██║   ██║██╔══██╗"
+        echo "  │    N    │   ██╔██╗ ██║██║   ██║   ██║   ██║   ██║██████╔╝"
+        echo "  │         │   ██║╚██╗██║██║   ██║   ██║   ██║   ██║██╔══██╗"
+        echo "  └─────────┘   ██║ ╚████║╚██████╔╝   ██║   ╚██████╔╝██║  ██║"
+        echo "                ╚═╝  ╚═══╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝"
     fi
 }
 
@@ -440,14 +457,14 @@ echo ""
 
 # ── Step 1: Install Composer package ─────────────────────────────────────
 
-info "Step 1/6: Installing notur/notur via Composer..."
+step "1/6" "Installing notur/notur via Composer..."
 cd "${PANEL_DIR}"
 composer require notur/notur --no-interaction || die "Composer install failed."
 ok "Composer package installed."
 
 # ── Step 2: Patch Blade layout ───────────────────────────────────────────
 
-info "Step 2/6: Patching Blade layout..."
+step "2/6" "Patching Blade layout..."
 
 # The panel's wrapper template contains <body> and </body>
 # scripts.blade.php is a minimal binder — we inject into wrapper
@@ -485,7 +502,7 @@ fi
 
 # ── Step 3: Apply React patches ──────────────────────────────────────────
 
-info "Step 3/6: Applying React source patches..."
+step "3/6" "Applying React source patches..."
 
 # Detect panel version
 detect_panel_version() {
@@ -551,7 +568,7 @@ fi
 
 # ── Step 4: Rebuild frontend ─────────────────────────────────────────────
 
-info "Step 4/6: Rebuilding frontend assets..."
+step "4/6" "Rebuilding frontend assets..."
 cd "${PANEL_DIR}"
 
 # Enable legacy OpenSSL provider for Node.js 17+ compatibility with older webpack configs
@@ -579,7 +596,7 @@ ok "Frontend rebuilt."
 
 # ── Step 5: Create directories and copy bridge ───────────────────────────
 
-info "Step 5/6: Setting up Notur directories..."
+step "5/6" "Setting up Notur directories..."
 
 mkdir -p "${PANEL_DIR}/notur/extensions"
 mkdir -p "${PANEL_DIR}/public/notur/extensions"
@@ -623,7 +640,7 @@ ok "Directory permissions set."
 
 # ── Step 6: Run migrations ───────────────────────────────────────────────
 
-info "Step 6/6: Running database migrations..."
+step "6/6" "Running database migrations..."
 cd "${PANEL_DIR}"
 php artisan migrate --force || die "Migration failed."
 ok "Migrations complete."
