@@ -549,13 +549,72 @@ else
     warn "You may need to manually add slot containers to your React files."
 fi
 
+# ── Admin middleware alias sanity check ─────────────────────────────────
+
+ensure_admin_alias() {
+    local kernel="${PANEL_DIR}/app/Http/Kernel.php"
+    local admin_class=""
+    local alias_key=""
+
+    [ -f "${kernel}" ] || return 0
+
+    if [ -f "${PANEL_DIR}/app/Http/Middleware/AdminAuthenticate.php" ]; then
+        admin_class="\\Pterodactyl\\Http\\Middleware\\AdminAuthenticate::class"
+    elif [ -f "${PANEL_DIR}/app/Http/Middleware/AdminOnly.php" ]; then
+        admin_class="\\Pterodactyl\\Http\\Middleware\\AdminOnly::class"
+    fi
+
+    if [ -z "${admin_class}" ]; then
+        warn "Admin middleware class not found. Skipping admin alias check."
+        return 0
+    fi
+
+    if grep -qE "'admin'\\s*=>" "${kernel}"; then
+        return 0
+    fi
+
+    if grep -q "middlewareAliases" "${kernel}"; then
+        alias_key="middlewareAliases"
+    elif grep -q "routeMiddleware" "${kernel}"; then
+        alias_key="routeMiddleware"
+    else
+        warn "Could not locate middleware alias array in Kernel.php. Please add an 'admin' alias manually."
+        return 0
+    fi
+
+    warn "Admin middleware alias is missing in Kernel.php."
+    if confirm "Add 'admin' middleware alias automatically?"; then
+        local tmp_file
+        tmp_file="$(mktemp)"
+        awk -v key="${alias_key}" -v admin_class="${admin_class}" '
+            $0 ~ "protected \\$"key"\\s*=\\s*\\[" { in_block=1 }
+            in_block && $0 ~ /^\\s*\\];/ {
+                print "        '\''admin'\'' => " admin_class ",";
+                in_block=0
+            }
+            { print }
+        ' "${kernel}" > "${tmp_file}" && mv "${tmp_file}" "${kernel}"
+        ok "Admin middleware alias added."
+    else
+        warn "Please add 'admin' => ${admin_class} to ${kernel} to avoid /admin 500 errors."
+    fi
+}
+
+ensure_admin_alias
+
 # ── Step 4: Rebuild frontend ─────────────────────────────────────────────
 
 info "Step 4/6: Rebuilding frontend assets..."
 cd "${PANEL_DIR}"
 
 # Enable legacy OpenSSL provider for Node.js 17+ compatibility with older webpack configs
-export NODE_OPTIONS="${NODE_OPTIONS:-} --openssl-legacy-provider"
+node_major="$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo "")"
+if [ -n "${node_major}" ] && [ "${node_major}" -ge 17 ]; then
+    case " ${NODE_OPTIONS:-} " in
+        *" --openssl-legacy-provider "*) ;;
+        *) export NODE_OPTIONS="${NODE_OPTIONS:-} --openssl-legacy-provider" ;;
+    esac
+fi
 
 # Try normal install first, fall back to --legacy-peer-deps for dependency conflicts
 build_frontend() {
