@@ -159,10 +159,16 @@ final class SettingsNormalizer
     }
 
     /**
-     * Convert a snake_case or kebab-case key to a Title Case label.
+     * Convert a snake_case, kebab-case, or camelCase key to a Title Case label.
      */
     private static function keyToLabel(string $key): string
     {
-        return ucwords(str_replace(['_', '-'], ' ', $key));
+        // Normalize common separators to spaces
+        $key = str_replace(['_', '-'], ' ', $key);
+
+        // Insert spaces before uppercase letters in camelCase strings
+        $key = preg_replace('/(?<!^)[A-Z]/', ' $0', $key);
+
+        return ucwords($key);
     }
 }
