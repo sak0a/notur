@@ -103,27 +103,19 @@ backend:
   permissions:
     - "analytics.view"
 
-# frontend bundle/styles/slots
+# frontend bundle/styles (slots registered via createExtension() in JS)
 frontend:
   bundle: "resources/frontend/dist/extension.js"
   styles: "resources/frontend/dist/extension.css"
   css_isolation:
     mode: "root-class"
-  slots:
-    dashboard.widgets:
-      component: "AnalyticsWidget"
-      order: 10
 
-# admin settings schema
+# admin settings schema (shorthand syntax)
 admin:
   settings:
-    title: "Settings"
-    fields:
-      - key: "enabled"
-        label: "Enable Extension"
-        type: "boolean"
-        default: true
-        public: true
+    enabled: { type: boolean, default: true, public: true }
+    api_key: { type: string, required: true }
+    theme: { type: select, options: [light, dark], default: dark }
 
 # health checks + schedules
 health:
@@ -159,7 +151,7 @@ Key consumers:
 | `name` | UI | Human readable display name in admin and UI surfaces. |
 | `version` | Loader, UI | Used for compatibility checks, upgrades, and debug output. |
 | `requires` | Loader | Hard compatibility constraints for Notur, Pterodactyl, PHP. Prevents invalid installs. |
-| `capabilities` | Loader | Feature flags that enable specific subsystems like schedules and health checks (optional). |
+| `capabilities` | Loader | **Deprecated.** Capabilities are now auto-detected from feature definitions. |
 | `entrypoint` | Loader | PHP class that boots your extension (optional; inferred from id or composer.json). |
 | `autoload` | Loader | PSR-4 mapping so the entrypoint class can be loaded (optional; inferred to `src/`). |
 | `backend` | Loader | Route files, migrations, and permissions used by the backend runtime (optional; defaults available). |
@@ -186,11 +178,7 @@ requires:
   pterodactyl: "^1.11" # Panel compatibility
   php: "^8.2" # PHP runtime requirement
 
-capabilities:
-  routes: "^1"
-  health: "^1"
-  schedules: "^1"
-  css_isolation: "^1"
+# capabilities: auto-detected (deprecated — omit this section)
 
 entrypoint: "Acme\\ServerAnalytics\\ServerAnalyticsExtension" # Optional (inferred if missing)
 
@@ -209,21 +197,20 @@ frontend:
   bundle: "resources/frontend/dist/extension.js" # Optional (defaults to common paths)
   css_isolation:
     mode: "root-class"
-  slots:
-    server.subnav:
-      label: "Analytics"
-      icon: "chart-bar"
-      permission: "analytics.view"
+  # slots: registered via createExtension() in frontend code (deprecated in manifest)
 
 admin:
   settings:
-    title: "Settings"
-    fields:
-      - key: "enabled"
-        label: "Enable Extension"
-        type: "boolean"
-        default: true
-        public: true
+    # Shorthand syntax (auto-generates labels from keys):
+    enabled: { type: boolean, default: true, public: true }
+    api_key: { type: string, required: true }
+    # Full syntax also supported:
+    # fields:
+    #   - key: "enabled"
+    #     label: "Enable Extension"
+    #     type: "boolean"
+    #     default: true
+    #     public: true
 
 health:
   checks:
@@ -243,11 +230,12 @@ schedules:
 
 If these drift, your extension will load partially or not at all.
 
-- `extension.yaml` `id` must equal `ExtensionInterface::getId()`.
-- `extension.yaml` `id` must equal `createExtension({ config: { id } })`.
-- If you provide `createExtension({ config: { name, version } })`, they should match the manifest (or omit them to auto-fill).
+- `extension.yaml` `id` must equal the id passed to `createExtension()`.
+- If using `NoturExtension` base class, the `id` is auto-read from the manifest — no manual alignment needed on the PHP side.
+- If implementing `ExtensionInterface` directly, `getId()` must return the same value as `extension.yaml` `id`.
+- `name` and `version` are auto-resolved from the manifest by both `createExtension()` and `NoturExtension` — you only need to declare them once in `extension.yaml`.
 - `frontend.bundle` must match your build output path (or use a default path like `resources/frontend/dist/extension.js`).
-- If `entrypoint` is present, it must point to a class that implements `ExtensionInterface` (otherwise it is inferred).
+- If `entrypoint` is present, it must point to a class that extends `NoturExtension` or implements `ExtensionInterface` (otherwise it is inferred).
 
 ### How Notur uses the manifest
 
@@ -280,6 +268,18 @@ flowchart TD
 
 Settings defined under `admin.settings` are rendered in the Notur admin UI and persisted per extension.
 
+**Shorthand syntax** (recommended for simple settings):
+
+```yaml
+admin:
+  settings:
+    enabled: { type: boolean, default: true, public: true }
+    api_key: { type: string, required: true }
+    theme: { type: select, options: [light, dark], default: dark }
+```
+
+Labels are auto-generated from field keys (`api_key` becomes "Api Key"). Both shorthand and full `fields` array format are supported.
+
 Supported field types:
 - `string`
 - `text`
@@ -299,17 +299,15 @@ Optional field properties:
 
 ## Capabilities
 
-Capabilities declare which Notur features your extension opts into. Each capability is versioned
-using a major-only constraint (e.g. `^1`, `1`, `>=1`). If the `capabilities` section is present,
-any capability not explicitly listed is treated as disabled. If `capabilities` is omitted, Notur
-enables routes by default and automatically enables `health`/`schedules` when their config blocks
-are present.
+> **Deprecated:** The explicit `capabilities` section in `extension.yaml` is deprecated. Capabilities are now auto-detected from your extension's feature definitions (route files, health checks, schedules, CSS isolation config). You can safely omit the `capabilities` section — Notur will detect what your extension uses automatically.
 
-Common capability IDs:
-- `routes` — backend route registration
-- `health` — health check reporting
-- `schedules` — scheduled tasks
-- `css_isolation` — frontend CSS isolation helper
+If you still include `capabilities`, it will continue to work for backward compatibility, but the validator will emit a deprecation warning.
+
+Previously used capability IDs (all now auto-detected):
+- `routes` — auto-detected from `HasRoutes` interface, manifest routes, or conventional route files
+- `health` — auto-detected from `health.checks` in manifest
+- `schedules` — auto-detected from `schedules.tasks` in manifest
+- `css_isolation` — auto-detected from `frontend.css_isolation` in manifest
 
 ## Health Checks
 
@@ -421,23 +419,19 @@ flowchart LR
 
 ## Step 2: Implement the PHP Entrypoint
 
+**Recommended:** Extend `NoturExtension` — metadata (`getId()`, `getName()`, `getVersion()`, `getBasePath()`) is auto-read from `extension.yaml`:
+
 ```php
 <?php
 
 namespace Acme\ServerAnalytics;
 
-use Notur\Contracts\ExtensionInterface;
+use Notur\Support\NoturExtension;
 use Notur\Contracts\HasRoutes;
 use Notur\Contracts\HasMigrations;
-use Notur\Contracts\HasFrontendSlots;
 
-class ServerAnalyticsExtension implements ExtensionInterface, HasRoutes, HasMigrations, HasFrontendSlots
+class ServerAnalyticsExtension extends NoturExtension implements HasRoutes, HasMigrations
 {
-    public function getId(): string { return 'acme/server-analytics'; }
-    public function getName(): string { return 'Server Analytics'; }
-    public function getVersion(): string { return '1.0.0'; }
-    public function getBasePath(): string { return __DIR__ . '/..'; }
-
     public function register(): void
     {
         // Bind services, configure settings
@@ -457,16 +451,30 @@ class ServerAnalyticsExtension implements ExtensionInterface, HasRoutes, HasMigr
     {
         return $this->getBasePath() . '/database/migrations';
     }
-
-    public function getFrontendSlots(): array
-    {
-        return [
-            'server.subnav' => ['label' => 'Analytics', 'icon' => 'chart-bar'],
-            'dashboard.widgets' => ['component' => 'AnalyticsWidget', 'order' => 10],
-        ];
-    }
 }
 ```
+
+<details>
+<summary>Legacy: Implementing ExtensionInterface directly</summary>
+
+If you need full control, you can implement `ExtensionInterface` directly instead of extending `NoturExtension`. This requires you to manually implement all metadata methods:
+
+```php
+use Notur\Contracts\ExtensionInterface;
+
+class ServerAnalyticsExtension implements ExtensionInterface, HasRoutes, HasMigrations
+{
+    public function getId(): string { return 'acme/server-analytics'; }
+    public function getName(): string { return 'Server Analytics'; }
+    public function getVersion(): string { return '1.0.0'; }
+    public function getBasePath(): string { return __DIR__ . '/..'; }
+    public function register(): void { }
+    public function boot(): void { }
+    // ...
+}
+```
+
+</details>
 
 ### Available Contracts
 
@@ -474,14 +482,15 @@ Implement these interfaces to opt into capabilities:
 
 | Interface | Purpose |
 |---|---|
-| `ExtensionInterface` | Required — base contract |
+| `NoturExtension` | Recommended base class — auto-reads metadata from manifest |
+| `ExtensionInterface` | Required contract (implemented by `NoturExtension`) |
 | `HasRoutes` | Register route files |
 | `HasMigrations` | Database migrations |
 | `HasCommands` | Artisan commands |
 | `HasMiddleware` | HTTP middleware |
 | `HasEventListeners` | Event listeners |
 | `HasBladeViews` | Blade view namespace |
-| `HasFrontendSlots` | Frontend slot metadata |
+| `HasFrontendSlots` | **Deprecated** — register slots via `createExtension()` in frontend code instead |
 
 ## Step 3: Create API Routes
 
@@ -573,13 +582,9 @@ const AnalyticsPage: React.FC = () => {
     return <div>Full analytics page here</div>;
 };
 
-// Register the extension
+// Register the extension (name/version auto-resolved from extension.yaml)
 createExtension({
-    config: {
-        id: 'acme/server-analytics',
-        name: 'Server Analytics',
-        version: '1.0.0',
-    },
+    id: 'acme/server-analytics',
     slots: [
         { slot: 'dashboard.widgets', component: AnalyticsWidget, order: 10 },
     ],

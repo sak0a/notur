@@ -17,52 +17,65 @@ This document covers all PHP contracts, interfaces, services, and systems availa
 
 ## Contracts (Interfaces)
 
-All contracts live in the `Notur\Contracts` namespace. Your extension's entrypoint class must implement `ExtensionInterface`. The remaining interfaces are opt-in and enable specific capabilities.
+All contracts live in the `Notur\Contracts` namespace. Your extension's entrypoint class must implement `ExtensionInterface` (either directly or by extending `NoturExtension`). The remaining interfaces are opt-in and enable specific capabilities.
 
-### `ExtensionInterface` (required)
+### `NoturExtension` (recommended base class)
 
-The base contract that every extension must implement.
+Abstract base class that auto-reads metadata from `extension.yaml`. This is the recommended way to create extensions — it eliminates boilerplate by resolving `getId()`, `getName()`, `getVersion()`, and `getBasePath()` from the manifest automatically.
+
+```php
+namespace Notur\Support;
+
+abstract class NoturExtension implements ExtensionInterface
+{
+    public function getId(): string;       // Auto-resolved from extension.yaml
+    public function getName(): string;     // Auto-resolved from extension.yaml
+    public function getVersion(): string;  // Auto-resolved from extension.yaml
+    public function getBasePath(): string; // Auto-resolved by walking up to find extension.yaml
+    public function register(): void;      // No-op by default
+    public function boot(): void;          // No-op by default
+}
+```
+
+**Example:**
+
+```php
+use Notur\Support\NoturExtension;
+use Notur\Contracts\HasRoutes;
+
+class MyExtension extends NoturExtension implements HasRoutes
+{
+    public function register(): void
+    {
+        // Bind services into the container, set config defaults, etc.
+    }
+
+    public function getRouteFiles(): array
+    {
+        return ['api-client' => 'src/routes/api-client.php'];
+    }
+}
+```
+
+### `ExtensionInterface` (base contract)
+
+The base contract that every extension must implement. If you extend `NoturExtension`, this is already implemented for you.
 
 ```php
 namespace Notur\Contracts;
 
 interface ExtensionInterface
 {
-    /**
-     * Get the unique identifier of the extension (e.g., "acme/server-analytics").
-     */
     public function getId(): string;
-
-    /**
-     * Get the human-readable name of the extension.
-     */
     public function getName(): string;
-
-    /**
-     * Get the extension version string.
-     */
     public function getVersion(): string;
-
-    /**
-     * Register bindings, services, or configuration.
-     * Called during the "register" phase of Laravel's boot cycle.
-     */
     public function register(): void;
-
-    /**
-     * Boot the extension after all extensions have been registered.
-     * Called during the "boot" phase.
-     */
     public function boot(): void;
-
-    /**
-     * Return the absolute path to the extension's root directory.
-     */
     public function getBasePath(): string;
 }
 ```
 
-**Example:**
+**Direct implementation** (use `NoturExtension` instead for less boilerplate):
 
 ```php
 use Notur\Contracts\ExtensionInterface;
@@ -307,7 +320,9 @@ public function getViewNamespace(): string
 
 Views are then usable as `@include('acme-analytics::dashboard')`.
 
-### `HasFrontendSlots`
+### `HasFrontendSlots` (deprecated)
+
+> **Deprecated:** Register frontend slots via `createExtension()` in your frontend code instead. This interface will continue to work but emits a deprecation warning.
 
 Declare frontend slot metadata. This data is passed to the bridge runtime for rendering.
 

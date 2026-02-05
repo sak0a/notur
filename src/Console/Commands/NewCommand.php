@@ -401,19 +401,15 @@ class NewCommand extends Command
 
     private function writePhpClass(string $basePath, array $context): void
     {
-        $interfaces = ['ExtensionInterface'];
+        // Build the list of interfaces to implement (beyond NoturExtension base class)
+        $interfaces = [];
         $uses = [
-            'Notur\\Contracts\\ExtensionInterface',
+            'Notur\\Support\\NoturExtension',
         ];
 
         if ($context['includeApiRoutes'] || $context['includeAdminRoutes']) {
             $interfaces[] = 'HasRoutes';
             $uses[] = 'Notur\\Contracts\\HasRoutes';
-        }
-
-        if ($context['includeFrontend']) {
-            $interfaces[] = 'HasFrontendSlots';
-            $uses[] = 'Notur\\Contracts\\HasFrontendSlots';
         }
 
         if ($context['includeMigrations']) {
@@ -426,6 +422,8 @@ class NewCommand extends Command
             $uses[] = 'Notur\\Contracts\\HasBladeViews';
         }
 
+        // Note: HasFrontendSlots is deprecated - slots should be registered in frontend code
+
         $content = "<?php\n\n";
         $content .= "declare(strict_types=1);\n\n";
         $content .= "namespace {$context['namespace']};\n\n";
@@ -435,34 +433,22 @@ class NewCommand extends Command
         }
 
         $content .= "\n";
-        $content .= 'class ' . $context['className'] . ' implements ' . implode(', ', $interfaces) . "\n";
+
+        // Build class declaration
+        $classDeclaration = 'class ' . $context['className'] . ' extends NoturExtension';
+        if (!empty($interfaces)) {
+            $classDeclaration .= ' implements ' . implode(', ', $interfaces);
+        }
+
+        $content .= $classDeclaration . "\n";
         $content .= "{\n";
-        $content .= "    public function getId(): string\n";
-        $content .= "    {\n";
-        $content .= "        return '{$context['id']}';\n";
-        $content .= "    }\n\n";
-        $content .= "    public function getName(): string\n";
-        $content .= "    {\n";
-        $content .= "        return '{$context['displayName']}';\n";
-        $content .= "    }\n\n";
-        $content .= "    public function getVersion(): string\n";
-        $content .= "    {\n";
-        $content .= "        return '1.0.0';\n";
-        $content .= "    }\n\n";
-        $content .= "    public function register(): void\n";
-        $content .= "    {\n";
-        $content .= "        // Register bindings, services, or configuration here.\n";
-        $content .= "    }\n\n";
-        $content .= "    public function boot(): void\n";
-        $content .= "    {\n";
-        $content .= "        // Boot logic after all extensions are registered.\n";
-        $content .= "    }\n\n";
-        $content .= "    public function getBasePath(): string\n";
-        $content .= "    {\n";
-        $content .= "        return __DIR__ . '/..';\n";
-        $content .= "    }\n\n";
+
+        // Only include methods that are needed - getId/getName/getVersion/getBasePath are inherited from NoturExtension
+
+        $hasCustomMethods = false;
 
         if ($context['includeApiRoutes'] || $context['includeAdminRoutes']) {
+            $hasCustomMethods = true;
             $content .= "    public function getRouteFiles(): array\n";
             $content .= "    {\n";
             $content .= "        return [\n";
@@ -473,37 +459,39 @@ class NewCommand extends Command
                 $content .= "            'admin' => 'src/routes/admin.php',\n";
             }
             $content .= "        ];\n";
-            $content .= "    }\n\n";
+            $content .= "    }\n";
         }
 
         if ($context['includeMigrations']) {
+            if ($hasCustomMethods) {
+                $content .= "\n";
+            }
+            $hasCustomMethods = true;
             $content .= "    public function getMigrationsPath(): string\n";
             $content .= "    {\n";
-            $content .= "        return $this->getBasePath() . '/database/migrations';\n";
-            $content .= "    }\n\n";
-        }
-
-        if ($context['includeFrontend']) {
-            $content .= "    public function getFrontendSlots(): array\n";
-            $content .= "    {\n";
-            $content .= "        return [\n";
-            $content .= "            'dashboard.widgets' => [\n";
-            $content .= "                'component' => 'ExampleWidget',\n";
-            $content .= "                'order' => 100,\n";
-            $content .= "            ],\n";
-            $content .= "        ];\n";
-            $content .= "    }\n\n";
+            $content .= "        return \$this->getBasePath() . '/database/migrations';\n";
+            $content .= "    }\n";
         }
 
         if ($context['includeAdmin']) {
+            if ($hasCustomMethods) {
+                $content .= "\n";
+            }
+            $hasCustomMethods = true;
             $content .= "    public function getViewsPath(): string\n";
             $content .= "    {\n";
-            $content .= "        return $this->getBasePath() . '/resources/views';\n";
+            $content .= "        return \$this->getBasePath() . '/resources/views';\n";
             $content .= "    }\n\n";
             $content .= "    public function getViewNamespace(): string\n";
             $content .= "    {\n";
             $content .= "        return '{$context['viewNamespace']}';\n";
-            $content .= "    }\n\n";
+            $content .= "    }\n";
+        }
+
+        // If no custom methods, add a comment explaining the class
+        if (!$hasCustomMethods) {
+            $content .= "    // Metadata (id, name, version) is read from extension.yaml automatically.\n";
+            $content .= "    // Override register() or boot() to add custom initialization logic.\n";
         }
 
         $content .= "}\n";
@@ -638,12 +626,9 @@ const ExampleWidget: React.FC<{ extensionId: string }> = () => {
     );
 };
 
+// Register extension with slots - name/version are auto-resolved from extension.yaml
 createExtension({
-    config: {
-        id: '{$context['id']}',
-        name: '{$context['displayName']}',
-        version: '1.0.0',
-    },
+    id: '{$context['id']}',
     slots: [
         {
             slot: 'dashboard.widgets',

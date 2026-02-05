@@ -52,15 +52,16 @@
         },
         "capabilities": {
             "type": "object",
-            "description": "Capability flags keyed by feature id (version constraints)",
+            "description": "DEPRECATED: Capabilities are now auto-detected from feature definitions. Only needed for version constraints.",
             "additionalProperties": { "type": "string" }
         },
         "entrypoint": {
             "type": "string",
-            "description": "Fully qualified PHP class name"
+            "description": "Fully qualified PHP class name (optional - auto-inferred from id if omitted)"
         },
         "autoload": {
             "type": "object",
+            "description": "PSR-4 autoload mapping (optional - auto-inferred from id if omitted)",
             "properties": {
                 "psr-4": {
                     "type": "object",
@@ -70,6 +71,7 @@
         },
         "backend": {
             "type": "object",
+            "description": "Backend configuration (routes, migrations, etc. are auto-discovered from conventional paths if omitted)",
             "properties": {
                 "routes": {
                     "type": "object",
@@ -106,6 +108,7 @@
         },
         "frontend": {
             "type": "object",
+            "description": "Frontend configuration (bundle path is auto-discovered from conventional paths if omitted)",
             "properties": {
                 "bundle": { "type": "string" },
                 "styles": { "type": "string" },
@@ -119,6 +122,7 @@
                 },
                 "slots": {
                     "type": "object",
+                    "description": "DEPRECATED: Define slots in frontend code via createExtension({ slots: [...] }) instead.",
                     "additionalProperties": {
                         "type": "object"
                     }
@@ -184,31 +188,53 @@
                 },
                 "settings": {
                     "type": "object",
-                    "properties": {
-                        "title": { "type": "string" },
-                        "description": { "type": "string" },
-                        "fields": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "required": ["key"],
-                                "properties": {
-                                    "key": { "type": "string" },
-                                    "label": { "type": "string" },
-                                    "type": { "type": "string" },
-                                    "required": { "type": "boolean" },
-                                    "default": {},
-                                    "help": { "type": "string" },
-                                    "description": { "type": "string" },
-                                    "placeholder": { "type": "string" },
-                                    "input": { "type": "string" },
-                                    "public": { "type": "boolean" },
-                                    "options": { "type": "array" }
-                                }
-                            }
-                        }
-                    }
+                    "description": "Admin settings schema. Supports full format (with 'fields' array) or shorthand format (field_key: { type, default, ... }).",
+                    "additionalProperties": true
                 }
+            }
+        }
+    },
+    "definitions": {
+        "settingsFieldFull": {
+            "type": "object",
+            "required": ["key"],
+            "properties": {
+                "key": { "type": "string" },
+                "label": { "type": "string" },
+                "type": {
+                    "type": "string",
+                    "enum": ["string", "text", "number", "boolean", "select"]
+                },
+                "required": { "type": "boolean" },
+                "default": {},
+                "help": { "type": "string" },
+                "description": { "type": "string" },
+                "placeholder": { "type": "string" },
+                "input": {
+                    "type": "string",
+                    "enum": ["text", "email", "password", "url", "color", "number"]
+                },
+                "public": { "type": "boolean" },
+                "options": { "type": "array" }
+            }
+        },
+        "settingsFieldShorthand": {
+            "type": "object",
+            "description": "Shorthand field definition: { type, label?, default?, required?, public?, options?, ... }",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": ["string", "text", "number", "boolean", "select"]
+                },
+                "label": { "type": "string" },
+                "required": { "type": "boolean" },
+                "default": {},
+                "help": { "type": "string" },
+                "description": { "type": "string" },
+                "placeholder": { "type": "string" },
+                "input": { "type": "string" },
+                "public": { "type": "boolean" },
+                "options": { "type": "array" }
             }
         }
     }

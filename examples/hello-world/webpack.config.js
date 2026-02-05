@@ -10,6 +10,9 @@ module.exports = {
     },
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        alias: {
+            '@notur/sdk': path.resolve(__dirname, '../../sdk/dist'),
+        },
     },
     module: {
         rules: [

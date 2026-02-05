@@ -1,24 +1,10 @@
 import { getNoturApi } from './types';
-/**
- * Factory for registering a Notur extension.
- *
- * Usage:
- * ```ts
- * import { createExtension } from '@notur/sdk';
- *
- * createExtension({
- *   config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
- *   slots: [
- *     { slot: 'dashboard.widgets', component: AnalyticsWidget, order: 10 },
- *   ],
- *   routes: [
- *     { area: 'server', path: '/analytics', name: 'Analytics', component: AnalyticsPage },
- *   ],
- * });
- * ```
- */
 export function createExtension(definition) {
-    const { config, slots = [], routes = [], onInit, onDestroy, cssIsolation } = definition;
+    // Normalize: if 'id' is at top level (simplified form), wrap in config
+    const normalized = isSimpleDefinition(definition)
+        ? { ...definition, config: { id: definition.id } }
+        : definition;
+    const { config, slots = [], routes = [], onInit, onDestroy, cssIsolation } = normalized;
     const api = getNoturApi();
     const resolvedConfig = resolveConfig(api, config);
     const resolvedCssIsolation = resolveCssIsolation(api, config.id, cssIsolation);
@@ -45,6 +31,12 @@ export function createExtension(definition) {
         }
     }
     console.log(`[Notur] Extension registered: ${resolvedConfig.id} v${resolvedConfig.version}`);
+}
+/**
+ * Check if the definition uses the simplified form (id at top level).
+ */
+function isSimpleDefinition(definition) {
+    return 'id' in definition && !('config' in definition);
 }
 function resolveConfig(api, config) {
     var _a, _b, _c;

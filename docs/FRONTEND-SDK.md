@@ -88,17 +88,37 @@ Upload the `.notur` file via:
 
 ## SDK API: createExtension
 
-The primary entry point for registering an extension.
+The primary entry point for registering an extension. Supports two calling conventions:
 
 ```typescript
 import { createExtension } from '@notur/sdk';
 
-createExtension(definition: ExtensionDefinition): void;
+// Simplified (recommended) — id at top level, name/version auto-resolved from manifest:
+createExtension({
+    id: 'acme/analytics',
+    slots: [{ slot: 'dashboard.widgets', component: Widget }],
+});
+
+// Full — explicit config object (backward compatible):
+createExtension({
+    config: { id: 'acme/analytics', name: 'Analytics', version: '1.0.0' },
+    slots: [{ slot: 'dashboard.widgets', component: Widget }],
+});
 ```
 
 ### Parameters
 
-`definition: ExtensionDefinition` -- The extension registration object:
+`definition: ExtensionDefinition | SimpleExtensionDefinition`
+
+**Simplified form** (recommended):
+
+```typescript
+type SimpleExtensionDefinition = Omit<ExtensionDefinition, 'config'> & {
+    id: string;  // Extension ID — name/version auto-resolved from extension.yaml
+};
+```
+
+**Full form** (backward compatible):
 
 ```typescript
 interface ExtensionDefinition {
@@ -150,11 +170,7 @@ const SettingsPage: React.FC = () => {
 };
 
 createExtension({
-    config: {
-        id: 'acme/my-extension',
-        name: 'My Extension',
-        version: '1.0.0',
-    },
+    id: 'acme/my-extension',
     slots: [
         {
             slot: 'dashboard.widgets',
@@ -910,7 +926,7 @@ export { createExtension } from './createExtension';
 export { getNoturApi } from './types';
 
 // Types
-export type { ExtensionConfig, SlotConfig, RouteConfig, ExtensionDefinition, NoturApi } from './types';
+export type { ExtensionConfig, SlotConfig, RouteConfig, ExtensionDefinition, SimpleExtensionDefinition, NoturApi } from './types';
 
 // Hooks
 export { useServerContext } from './hooks/useServerContext';

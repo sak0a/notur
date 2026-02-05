@@ -5,6 +5,7 @@ export type {
     SlotConfig,
     RouteConfig,
     ExtensionDefinition,
+    SimpleExtensionDefinition,
     NoturApi,
 } from './types';
 export { useServerContext } from './hooks/useServerContext';

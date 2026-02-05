@@ -1,7 +1,5 @@
 import * as React from 'react';
-
-// Access the Notur bridge from the global
-const { registry, hooks } = (window as any).__NOTUR__;
+import { createExtension } from '@notur/sdk';
 
 const HelloWidget: React.FC<{ extensionId: string }> = ({ extensionId }) => {
     const [greeting, setGreeting] = React.useState<string | null>(null);
@@ -54,19 +52,13 @@ const HelloPage: React.FC = () => {
     );
 };
 
-// Register into the Notur plugin registry
-registry.registerSlot({
-    extensionId: 'notur/hello-world',
-    slot: 'dashboard.widgets',
-    component: HelloWidget,
-    order: 100,
+// Register the extension using the simplified syntax
+createExtension({
+    id: 'notur/hello-world',
+    slots: [
+        { slot: 'dashboard.widgets', component: HelloWidget, order: 100 },
+    ],
+    routes: [
+        { area: 'dashboard', path: '/hello', name: 'Hello', component: HelloPage },
+    ],
 });
-
-registry.registerRoute('dashboard', {
-    extensionId: 'notur/hello-world',
-    path: '/hello',
-    name: 'Hello',
-    component: HelloPage,
-});
-
-console.log('[Notur] Hello World extension loaded');
