@@ -7,10 +7,6 @@
         "strict": true,
         "esModuleInterop": true,
         "moduleResolution": "node",
-        "baseUrl": ".",
-        "paths": {
-            "@notur/sdk": ["../../sdk/dist"]
-        },
         "outDir": "./resources/frontend/dist",
         "rootDir": "./resources/frontend/src",
         "baseUrl": ".",
