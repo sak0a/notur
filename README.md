@@ -1,6 +1,6 @@
 # Notur Extension Library
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 ![Status](https://img.shields.io/badge/status-stable-brightgreen)
 
 A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/) v1. Enables community-built extensions (plugins, themes, tools) that modify panel functionality without forking the source.
@@ -9,7 +9,7 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 
 - **No per-extension rebuilds** — extensions ship pre-built JS bundles loaded at runtime
 - **Clean architecture** — no sed-based injection or file patching per extension
-- **One-time install** — patches 4 React files + rebuilds once during Notur setup
+- **One-time install** — patches React files + rebuilds once during Notur setup
 - **Full lifecycle management** — install, enable, disable, update, remove via artisan
 - **Interactive CLI** — beautiful terminal UI with search, wizards, and status dashboard
 - **Frontend slot system** — React portal-based rendering into predefined panel locations
@@ -24,19 +24,19 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 - Composer 2.x
 - Package manager: npm, Yarn, pnpm, or Bun
 
-## Current Status (v1.0.0 — 2026-02-03)
+## Current Status (v1.2.0 — 2026-02-05)
 
 Notur is feature-complete for extension lifecycle, registry distribution, admin management, and theming.
 
 Highlights:
 
 - Full lifecycle CLI: install, enable/disable, update, remove, uninstall
-- Frontend slot system (9 slots) + route rendering
+- Frontend slot system (65 slots) + route rendering
 - Registry support with `.notur` packaging and optional Ed25519 signature verification
 - Admin UI at `/admin/notur/extensions` for extension management
 - Theme extensions: CSS variables + Blade view overrides
 
-See `docs/CHANGELOG.md` for release details.
+See the [Changelog](https://docs.notur.site/reference/changelog) for release details.
 
 ## Roadmap (Next)
 
@@ -60,7 +60,7 @@ curl -sSL https://docs.notur.site/install.sh | bash -s -- /path/to/pterodactyl
 cd /path/to/pterodactyl
 composer require notur/notur
 php artisan migrate
-# Then apply patches and rebuild frontend (see docs/INSTALLING.md)
+# Then apply patches and rebuild frontend (see https://docs.notur.site/getting-started/installing)
 ```
 
 ## Development Setup (working on Notur itself)
@@ -125,12 +125,12 @@ php artisan notur:status                           # System status dashboard
 | `sdk/` | Extension developer SDK — createExtension factory, types, scaffolding |
 | `installer/` | Installer script + React patches for Pterodactyl |
 | `registry/` | JSON schemas + registry build tools |
-| `database/migrations/` | 3 tables: `notur_extensions`, `notur_migrations`, `notur_settings` |
+| `database/migrations/` | 4 tables: `notur_extensions`, `notur_migrations`, `notur_settings`, `notur_activity_logs` |
 | `tests/` | Unit, integration, and frontend tests |
 
 ## Creating an Extension
 
-See [docs/EXTENSIONS.md](docs/EXTENSIONS.md) for the full guide.
+See the [Extension Development Guide](https://docs.notur.site/extensions/guide) for the full guide.
 
 Quick start:
 

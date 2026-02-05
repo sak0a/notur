@@ -74,7 +74,7 @@ jobs:
       - name: Update CHANGELOG.md
         run: |
           DATE=$(date +%Y-%m-%d)
-          sed -i "s/## \[Unreleased\].*/## [${{ inputs.version }}] - $DATE/" docs/CHANGELOG.md
+          sed -i "s/## \[Unreleased\].*/## [${{ inputs.version }}] - $DATE/" website/docs/reference/changelog.md
 
       - name: Commit version bump
         run: |
