@@ -21,6 +21,8 @@
 @endsection
 
 @section('content')
+    @include('notur::admin.partials.brutalist-styles')
+
     <div class="row">
         <div class="col-xs-12">
             @if(session('success'))
@@ -40,7 +42,7 @@
             {{-- Install Extension --}}
             <div class="box box-success">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Install Extension</h3>
+                    <h3 class="box-title"><i class="fa fa-plus" style="margin-right: 8px; opacity: 0.5;"></i>Install Extension</h3>
                     <div class="box-tools pull-right">
                         <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
                     </div>
@@ -57,7 +59,7 @@
                                 </div>
                             </div>
                             <div class="col-md-1 text-center" style="padding-top: 30px;">
-                                <strong>OR</strong>
+                                <span style="color: var(--nb-text-muted, #555); font-family: var(--nb-mono, monospace); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;">or</span>
                             </div>
                             <div class="col-md-5">
                                 <div class="form-group">
@@ -79,7 +81,7 @@
             {{-- Search Registry --}}
             <div class="box box-info">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Search Registry</h3>
+                    <h3 class="box-title"><i class="fa fa-search" style="margin-right: 8px; opacity: 0.5;"></i>Search Registry</h3>
                     <div class="box-tools pull-right">
                         <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
                     </div>
@@ -186,7 +188,7 @@
             {{-- Installed Extensions --}}
             <div class="box box-primary">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Installed Extensions</h3>
+                    <h3 class="box-title"><i class="fa fa-puzzle-piece" style="margin-right: 8px; opacity: 0.5;"></i>Installed Extensions</h3>
                     <div class="box-tools pull-right">
                         <a href="{{ route('admin.notur.slots') }}" class="btn btn-xs btn-default">
                             <i class="fa fa-th"></i> Slots
@@ -227,7 +229,7 @@
                                             </a>
                                         </td>
                                         <td><code>{{ $extension->extension_id }}</code></td>
-                                        <td>{{ $extension->version }}</td>
+                                        <td style="font-family: var(--nb-mono, monospace); font-size: 12px;">{{ $extension->version }}</td>
                                         <td>
                                             @if($description)
                                                 <small>{{ \Illuminate\Support\Str::limit($description, 60) }}</small>
@@ -245,16 +247,16 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <small>{{ $extension->created_at ? $extension->created_at->format('Y-m-d') : 'N/A' }}</small>
+                                            <small style="font-family: var(--nb-mono, monospace);">{{ $extension->created_at ? $extension->created_at->format('Y-m-d') : 'N/A' }}</small>
                                         </td>
                                         <td>
                                             @if($extension->enabled)
-                                                <span class="label label-success">Enabled</span>
+                                                <span class="label label-success"><span class="nb-status nb-status--active"></span>Enabled</span>
                                             @else
-                                                <span class="label label-default">Disabled</span>
+                                                <span class="label label-default"><span class="nb-status nb-status--inactive"></span>Disabled</span>
                                             @endif
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center" style="white-space: nowrap;">
                                             <a href="{{ route('admin.notur.extensions.show', $extension->extension_id) }}" class="btn btn-xs btn-primary" title="Details">
                                                 <i class="fa fa-eye"></i>
                                             </a>
@@ -286,6 +288,12 @@
                         </table>
                     @endif
                 </div>
+            </div>
+
+            {{-- Notur Brand --}}
+            <div class="nb-brand-bar">
+                <div class="nb-brand-bar__logo">N</div>
+                <div class="nb-brand-bar__text">Notur Extension Framework</div>
             </div>
         </div>
     </div>

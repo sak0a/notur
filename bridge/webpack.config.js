@@ -24,10 +24,8 @@ module.exports = {
             },
         ],
     },
-    // React and ReactDOM are provided by the panel's bundle as globals.
-    // The index.tsx.patch exposes them on window before bridge.js loads.
-    externals: {
-        react: 'React',
-        'react-dom': 'ReactDOM',
-    },
+    // React and ReactDOM are bundled into bridge.js so it works on ALL pages,
+    // including admin pages where the panel's React SPA doesn't load.
+    // The bridge (index.ts lines 21-34) re-exposes React on window for
+    // extension bundles and detects duplicate instances automatically.
 };

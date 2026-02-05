@@ -14,6 +14,8 @@
 @endsection
 
 @section('content')
+    @include('notur::admin.partials.brutalist-styles')
+
     @php
         $totals = ['ok' => 0, 'warning' => 0, 'error' => 0, 'unknown' => 0];
         $criticalTotal = 0;
@@ -82,15 +84,16 @@
                 <div class="box box-info">
                     <div class="box-header with-border">
                         <h3 class="box-title">
+                            <i class="fa fa-heartbeat" style="margin-right: 8px; opacity: 0.5;"></i>
                             {{ $extension->name }}
                             <small><code>{{ $extension->extension_id }}</code></small>
                         </h3>
                         <div class="box-tools pull-right">
                             <span class="label {{ $overallClass }}" style="margin-right: 8px;">{{ $overallStatus }}</span>
                             @if($extension->enabled)
-                                <span class="label label-success" style="margin-right: 8px;">Enabled</span>
+                                <span class="label label-success" style="margin-right: 8px;"><span class="nb-status nb-status--active"></span>Enabled</span>
                             @else
-                                <span class="label label-default" style="margin-right: 8px;">Disabled</span>
+                                <span class="label label-default" style="margin-right: 8px;"><span class="nb-status nb-status--inactive"></span>Disabled</span>
                             @endif
                             <a href="{{ route('admin.notur.extensions.show', $extension->extension_id) }}" class="btn btn-xs btn-default">
                                 <i class="fa fa-eye"></i> Details
@@ -165,7 +168,7 @@
                                     });
                                 @endphp
                                 @if(!empty($unknownResults))
-                                    <h4>Undeclared Results</h4>
+                                    <h4 style="font-family: var(--nb-mono, monospace); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; color: var(--nb-text-dim, #888); margin-top: 20px;">Undeclared Results</h4>
                                     <ul class="list-group">
                                         @foreach($unknownResults as $result)
                                             <li class="list-group-item">
@@ -185,4 +188,10 @@
             </div>
         </div>
     @endforeach
+
+    {{-- Notur Brand --}}
+    <div class="nb-brand-bar">
+        <div class="nb-brand-bar__logo">N</div>
+        <div class="nb-brand-bar__text">Notur Extension Framework</div>
+    </div>
 @endsection
