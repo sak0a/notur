@@ -65,7 +65,7 @@ Exposes `window.__NOTUR__` global API on page load. Core components:
 
 ### Installer (`installer/`)
 
-`install.sh` automates: composer require, applying React patches to Pterodactyl Panel v1.11 (25 patch files in `installer/patches/v1.11/`), migrations, directory setup, and bridge build.
+`install.sh` automates: composer require, applying React patches to Pterodactyl Panel v1.11 (26 patches in `installer/patches/v1.11/`), migrations, directory setup, and bridge build.
 
 ## Code Style
 

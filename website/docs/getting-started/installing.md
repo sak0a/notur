@@ -31,12 +31,12 @@ This file is a minimal binder — adding the include here is the cleanest approa
 
 ### Step 3: Apply React Patches
 
-Seven patches add slot containers and dynamic route merging to the panel's React source:
+26 patches add slot containers and dynamic route merging to the panel's React source. The automated installer applies all patches, but for manual installation, here are the core patches:
 
 ```bash
 cd /var/www/pterodactyl
 
-# Apply each patch
+# Apply core patches (required for basic functionality)
 patch -p1 < vendor/notur/notur/installer/patches/v1.11/routes.ts.patch
 patch -p1 < vendor/notur/notur/installer/patches/v1.11/ServerRouter.tsx.patch
 patch -p1 < vendor/notur/notur/installer/patches/v1.11/DashboardRouter.tsx.patch
@@ -44,9 +44,12 @@ patch -p1 < vendor/notur/notur/installer/patches/v1.11/DashboardContainer.tsx.pa
 patch -p1 < vendor/notur/notur/installer/patches/v1.11/NavigationBar.tsx.patch
 patch -p1 < vendor/notur/notur/installer/patches/v1.11/ServerTerminal.tsx.patch
 patch -p1 < vendor/notur/notur/installer/patches/v1.11/FileManager.tsx.patch
+
+# For full functionality, apply all 26 patches from installer/patches/v1.11/
+# (excluding *.reverse.patch files)
 ```
 
-**What the patches do:**
+**What the core patches do:**
 
 | File | Change |
 |---|---|
