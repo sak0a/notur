@@ -626,6 +626,29 @@ else
     die "Bridge runtime could not be built. Please build it manually: cd vendor/notur/notur && npm install && npm run build:bridge"
 fi
 
+# Copy Tailwind CSS to public (build it if missing)
+TAILWIND_CSS="${PANEL_DIR}/vendor/notur/notur/bridge/dist/tailwind.css"
+if [ ! -f "${TAILWIND_CSS}" ]; then
+    warn "Tailwind CSS not found. Building it now..."
+    NOTUR_DIR="${PANEL_DIR}/vendor/notur/notur"
+    if [ -d "${NOTUR_DIR}" ]; then
+        cd "${NOTUR_DIR}"
+        if [ "$PKG_MGR" = "npm" ]; then
+            npm install --legacy-peer-deps && npm run build:tailwind
+        else
+            pkg_install && pkg_run build:tailwind
+        fi
+        cd "${PANEL_DIR}"
+    fi
+fi
+
+if [ -f "${TAILWIND_CSS}" ]; then
+    cp "${TAILWIND_CSS}" "${PANEL_DIR}/public/notur/tailwind.css"
+    ok "Tailwind CSS installed."
+else
+    warn "Tailwind CSS could not be built. Please build it manually: cd vendor/notur/notur && npm install && npm run build:tailwind"
+fi
+
 # Initialize extensions.json
 if [ ! -f "${PANEL_DIR}/notur/extensions.json" ]; then
     echo '{"extensions":{}}' > "${PANEL_DIR}/notur/extensions.json"

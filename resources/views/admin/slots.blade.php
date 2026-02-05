@@ -49,7 +49,7 @@
                                             <span class="text-muted">None</span>
                                         @else
                                             @foreach($entries as $entry)
-                                                <div style="margin-bottom: 6px;">
+                                                <div class="mb-1.5">
                                                     <code>{{ $entry['extensionId'] }}</code>
                                                     @if(!empty($entry['component']))
                                                         <span class="label label-default">{{ $entry['component'] }}</span>
@@ -89,10 +89,10 @@
                     <div class="box-body">
                         <p class="text-muted">These slots are registered by extensions but are not in the built-in slot catalog.</p>
                         @foreach($unknown as $slotId => $entries)
-                            <div style="margin-bottom: 12px;">
+                            <div class="mb-3">
                                 <strong><code>{{ $slotId }}</code></strong>
                                 @foreach($entries as $entry)
-                                    <div style="margin-top: 4px;">
+                                    <div class="mt-1">
                                         <code>{{ $entry['extensionId'] }}</code>
                                         @if(!empty($entry['component']))
                                             <span class="label label-default">{{ $entry['component'] }}</span>

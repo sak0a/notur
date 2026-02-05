@@ -97,27 +97,28 @@ mkdir -p public/notur/extensions
 echo '{"extensions":{}}' > notur/extensions.json
 ```
 
-### Step 7: Install Bridge Runtime
+### Step 7: Install Frontend Runtime Assets
 
-The bridge JS must be built and placed in the panel's public directory:
+Build the bridge JS and the shared Tailwind CSS, then place them in the panel's public directory:
 
 ```bash
-cd vendor/notur/notur/bridge
+cd vendor/notur/notur
 
 # npm
-npm install && npm run build
+npm install && npm run build:bridge && npm run build:tailwind
 
 # Yarn
-yarn install && yarn run build
+yarn install && yarn run build:bridge && yarn run build:tailwind
 
 # pnpm
-pnpm install && pnpm run build
+pnpm install && pnpm run build:bridge && pnpm run build:tailwind
 
 # Bun
-bun install && bun run build
+bun install && bun run build:bridge && bun run build:tailwind
 
-# Then copy the built file
-cp dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js
+# Then copy the built files
+cp bridge/dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js
+cp bridge/dist/tailwind.css /var/www/pterodactyl/public/notur/tailwind.css
 ```
 
 ## Verifying the Installation

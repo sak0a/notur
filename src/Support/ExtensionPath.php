@@ -31,6 +31,11 @@ class ExtensionPath
         return public_path('notur/bridge.js');
     }
 
+    public static function tailwindCss(): string
+    {
+        return public_path('notur/tailwind.css');
+    }
+
     public static function fromId(string $extensionId, string $subPath = ''): string
     {
         $base = self::base($extensionId);

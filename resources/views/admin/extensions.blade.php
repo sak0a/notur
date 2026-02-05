@@ -6,7 +6,7 @@
 
 @section('content-header')
     <h1>Extensions<small>Manage Notur extensions</small></h1>
-    <div class="pull-right" style="margin-top: -35px;">
+    <div class="pull-right -mt-[35px]">
         <a href="{{ route('admin.notur.health') }}" class="btn btn-default btn-sm">
             <i class="fa fa-heartbeat"></i> Health
         </a>
@@ -58,8 +58,13 @@
                                     <p class="help-block">Enter the extension ID to install from the registry.</p>
                                 </div>
                             </div>
+<<<<<<< claude/brutalist-admin-redesign-SiZm3
                             <div class="col-md-1 text-center" style="padding-top: 30px;">
                                 <span style="color: var(--nb-text-muted, #555); font-family: var(--nb-mono, monospace); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;">or</span>
+=======
+                            <div class="col-md-1 text-center pt-[30px]">
+                                <strong>OR</strong>
+>>>>>>> master
                             </div>
                             <div class="col-md-5">
                                 <div class="form-group">
@@ -68,7 +73,7 @@
                                     <p class="help-block">Upload a .notur archive file to install.</p>
                                 </div>
                             </div>
-                            <div class="col-md-1" style="padding-top: 25px;">
+                            <div class="col-md-1 pt-[25px]">
                                 <button type="submit" class="btn btn-success">
                                     <i class="fa fa-download"></i> Install
                                 </button>
@@ -103,7 +108,7 @@
                                     <p class="help-block">Results come from the Notur registry index.</p>
                                 </div>
                             </div>
-                            <div class="col-md-2" style="padding-top: 25px;">
+                            <div class="col-md-2 pt-[25px]">
                                 <button type="submit" class="btn btn-info btn-block">
                                     <i class="fa fa-search"></i> Search
                                 </button>
@@ -112,18 +117,18 @@
                     </form>
 
                     @if(!empty($registryError))
-                        <div class="alert alert-danger" style="margin-top: 15px;">
+                        <div class="alert alert-danger mt-[15px]">
                             Registry search failed: {{ $registryError }}
                         </div>
                     @endif
 
                     @if(!empty($registryQuery))
                         @if(empty($registryResults))
-                            <div class="callout callout-info" style="margin-top: 15px;">
+                            <div class="callout callout-info mt-[15px]">
                                 <p>No registry results found for <strong>{{ $registryQuery }}</strong>.</p>
                             </div>
                         @else
-                            <div class="table-responsive" style="margin-top: 10px;">
+                            <div class="table-responsive mt-[10px]">
                                 <table class="table table-hover">
                                     <thead>
                                         <tr>
@@ -166,7 +171,7 @@
                                                     @if(!empty($installedIds) && in_array($resultId, $installedIds, true))
                                                         <span class="label label-success">Installed</span>
                                                     @else
-                                                        <form action="{{ route('admin.notur.extensions.install') }}" method="POST" style="display: inline;">
+                                                        <form action="{{ route('admin.notur.extensions.install') }}" method="POST" class="inline">
                                                             @csrf
                                                             <input type="hidden" name="registry_id" value="{{ $resultId }}">
                                                             <button type="submit" class="btn btn-xs btn-success" title="Install">
@@ -197,7 +202,7 @@
                 </div>
                 <div class="box-body table-responsive no-padding">
                     @if($extensions->isEmpty())
-                        <div class="callout callout-info" style="margin: 15px;">
+                        <div class="callout callout-info m-[15px]">
                             <p>No extensions are installed. Use the form above or the command line:</p>
                             <code>php artisan notur:install vendor/extension-name</code>
                         </div>
@@ -261,21 +266,21 @@
                                                 <i class="fa fa-eye"></i>
                                             </a>
                                             @if($extension->enabled)
-                                                <form action="{{ route('admin.notur.extensions.disable', $extension->extension_id) }}" method="POST" style="display: inline;">
+                                                <form action="{{ route('admin.notur.extensions.disable', $extension->extension_id) }}" method="POST" class="inline">
                                                     @csrf
                                                     <button type="submit" class="btn btn-xs btn-warning" title="Disable">
                                                         <i class="fa fa-pause"></i>
                                                     </button>
                                                 </form>
                                             @else
-                                                <form action="{{ route('admin.notur.extensions.enable', $extension->extension_id) }}" method="POST" style="display: inline;">
+                                                <form action="{{ route('admin.notur.extensions.enable', $extension->extension_id) }}" method="POST" class="inline">
                                                     @csrf
                                                     <button type="submit" class="btn btn-xs btn-success" title="Enable">
                                                         <i class="fa fa-play"></i>
                                                     </button>
                                                 </form>
                                             @endif
-                                            <form action="{{ route('admin.notur.extensions.remove', $extension->extension_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to remove {{ $extension->extension_id }}? This will delete all extension files and roll back migrations.');">
+                                            <form action="{{ route('admin.notur.extensions.remove', $extension->extension_id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to remove {{ $extension->extension_id }}? This will delete all extension files and roll back migrations.');">
                                                 @csrf
                                                 <button type="submit" class="btn btn-xs btn-danger" title="Remove">
                                                     <i class="fa fa-trash"></i>
