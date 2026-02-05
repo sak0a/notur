@@ -447,6 +447,15 @@ pkg_run() {
     esac
 }
 
+# Check whether a package.json declares a specific script.
+has_pkg_script() {
+    local package_json="$1"
+    local script="$2"
+
+    [ -f "$package_json" ] || return 1
+    grep -q "\"${script}\"[[:space:]]*:" "$package_json"
+}
+
 # Check sodium extension
 if ! php -m | grep -q sodium; then
     warn "PHP sodium extension not found. Signature verification will be unavailable."
@@ -602,11 +611,12 @@ mkdir -p "${PANEL_DIR}/notur/extensions"
 mkdir -p "${PANEL_DIR}/public/notur/extensions"
 mkdir -p "${PANEL_DIR}/storage/notur"
 
+NOTUR_DIR="${PANEL_DIR}/vendor/notur/notur"
+
 # Copy bridge.js to public (build it if missing)
 BRIDGE_JS="${PANEL_DIR}/vendor/notur/notur/bridge/dist/bridge.js"
 if [ ! -f "${BRIDGE_JS}" ]; then
     warn "Bridge runtime not found. Building it now..."
-    NOTUR_DIR="${PANEL_DIR}/vendor/notur/notur"
     if [ -d "${NOTUR_DIR}" ]; then
         cd "${NOTUR_DIR}"
         # Install dependencies and build bridge
@@ -626,27 +636,47 @@ else
     die "Bridge runtime could not be built. Please build it manually: cd vendor/notur/notur && npm install && npm run build:bridge"
 fi
 
-# Copy Tailwind CSS to public (build it if missing)
+# Copy Tailwind CSS to public (build it if missing), but only for package versions that use it
 TAILWIND_CSS="${PANEL_DIR}/vendor/notur/notur/bridge/dist/tailwind.css"
-if [ ! -f "${TAILWIND_CSS}" ]; then
-    warn "Tailwind CSS not found. Building it now..."
-    NOTUR_DIR="${PANEL_DIR}/vendor/notur/notur"
-    if [ -d "${NOTUR_DIR}" ]; then
-        cd "${NOTUR_DIR}"
-        if [ "$PKG_MGR" = "npm" ]; then
-            npm install --legacy-peer-deps && npm run build:tailwind
-        else
-            pkg_install && pkg_run build:tailwind
-        fi
-        cd "${PANEL_DIR}"
-    fi
+NOTUR_SCRIPTS_BLADE="${NOTUR_DIR}/resources/views/scripts.blade.php"
+TAILWIND_REQUIRED=0
+if [ -f "${NOTUR_SCRIPTS_BLADE}" ] && grep -q "/notur/tailwind.css" "${NOTUR_SCRIPTS_BLADE}"; then
+    TAILWIND_REQUIRED=1
 fi
 
-if [ -f "${TAILWIND_CSS}" ]; then
-    cp "${TAILWIND_CSS}" "${PANEL_DIR}/public/notur/tailwind.css"
-    ok "Tailwind CSS installed."
+if [ "${TAILWIND_REQUIRED}" -eq 1 ]; then
+    if [ ! -f "${TAILWIND_CSS}" ]; then
+        warn "Tailwind CSS not found. Building it now..."
+        if [ -d "${NOTUR_DIR}" ]; then
+            cd "${NOTUR_DIR}"
+            if has_pkg_script "${NOTUR_DIR}/package.json" "build:tailwind"; then
+                if [ "$PKG_MGR" = "npm" ]; then
+                    npm install --legacy-peer-deps && npm run build:tailwind
+                else
+                    pkg_install && pkg_run build:tailwind
+                fi
+            elif [ -f "${NOTUR_DIR}/resources/tailwind/notur.css" ]; then
+                warn "build:tailwind script not found. Using direct Tailwind CLI fallback..."
+                if [ "$PKG_MGR" = "npm" ]; then
+                    npm install --legacy-peer-deps && npx @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css
+                else
+                    pkg_install && npx @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css
+                fi
+            else
+                warn "Installed Notur package does not include Tailwind build assets. Skipping Tailwind CSS build."
+            fi
+            cd "${PANEL_DIR}"
+        fi
+    fi
+
+    if [ -f "${TAILWIND_CSS}" ]; then
+        cp "${TAILWIND_CSS}" "${PANEL_DIR}/public/notur/tailwind.css"
+        ok "Tailwind CSS installed."
+    else
+        warn "Tailwind CSS could not be built. Please build it manually: cd vendor/notur/notur && npm install && npm run build:tailwind"
+    fi
 else
-    warn "Tailwind CSS could not be built. Please build it manually: cd vendor/notur/notur && npm install && npm run build:tailwind"
+    info "Installed Notur package does not require shared Tailwind CSS. Skipping Tailwind CSS install."
 fi
 
 # Initialize extensions.json
