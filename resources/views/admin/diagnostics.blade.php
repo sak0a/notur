@@ -14,21 +14,33 @@
 @endsection
 
 @section('content')
+    @include('notur::admin.partials.brutalist-styles')
+
     <div class="row">
         <div class="col-md-12">
             <div class="box box-primary">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Runtime Snapshot</h3>
+                    <h3 class="box-title"><i class="fa fa-terminal" style="margin-right: 8px; opacity: 0.5;"></i>Runtime Snapshot</h3>
                 </div>
                 <div class="box-body">
                     <p class="text-muted">
                         This page captures a live snapshot of the Notur frontend runtime.
                         It requires the bridge and extension bundles to load on this page.
                     </p>
+<<<<<<< claude/brutalist-admin-redesign-SiZm3
+                    <pre id="notur-diagnostics-json" style="max-height: 520px; overflow: auto; background: var(--nb-void, #0a0a0b); color: var(--nb-accent-light, #a78bfa); padding: 16px; border: 1px solid var(--nb-border, #222); font-family: var(--nb-mono, monospace); font-size: 12px; line-height: 1.6;">Loading...</pre>
+=======
                     <pre id="notur-diagnostics-json" class="max-h-[520px] overflow-auto bg-[#111] text-slate-200 p-3 rounded">Loading…</pre>
+>>>>>>> master
                 </div>
             </div>
         </div>
+    </div>
+
+    {{-- Notur Brand --}}
+    <div class="nb-brand-bar">
+        <div class="nb-brand-bar__logo">N</div>
+        <div class="nb-brand-bar__text">Notur Extension Framework</div>
     </div>
 
     @include('notur::scripts')

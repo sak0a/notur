@@ -14,11 +14,13 @@
 @endsection
 
 @section('content')
+    @include('notur::admin.partials.brutalist-styles')
+
     <div class="row">
         <div class="col-xs-12">
             <div class="box box-primary">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Slot Catalog</h3>
+                    <h3 class="box-title"><i class="fa fa-th" style="margin-right: 8px; opacity: 0.5;"></i>Slot Catalog</h3>
                 </div>
                 <div class="box-body table-responsive">
                     <table class="table table-hover">
@@ -39,7 +41,7 @@
                                 @endphp
                                 <tr>
                                     <td><code>{{ $slotId }}</code></td>
-                                    <td>{{ $def['type'] }}</td>
+                                    <td><span class="label label-default">{{ $def['type'] }}</span></td>
                                     <td>{{ $def['description'] }}</td>
                                     <td><code>notur-slot-{{ $slotId }}</code></td>
                                     <td>
@@ -82,7 +84,7 @@
             <div class="col-xs-12">
                 <div class="box box-warning">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Unknown Slot Registrations</h3>
+                        <h3 class="box-title"><i class="fa fa-question-circle" style="margin-right: 8px; opacity: 0.5;"></i>Unknown Slot Registrations</h3>
                     </div>
                     <div class="box-body">
                         <p class="text-muted">These slots are registered by extensions but are not in the built-in slot catalog.</p>
@@ -116,4 +118,10 @@
             </div>
         </div>
     @endif
+
+    {{-- Notur Brand --}}
+    <div class="nb-brand-bar">
+        <div class="nb-brand-bar__logo">N</div>
+        <div class="nb-brand-bar__text">Notur Extension Framework</div>
+    </div>
 @endsection

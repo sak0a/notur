@@ -14,6 +14,8 @@
 @endsection
 
 @section('content')
+    @include('notur::admin.partials.brutalist-styles')
+
     @if(session('success'))
         <div class="alert alert-success alert-dismissible">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
@@ -44,7 +46,7 @@
         <div class="col-md-6">
             <div class="box box-primary">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Overview</h3>
+                    <h3 class="box-title"><i class="fa fa-info-circle" style="margin-right: 8px; opacity: 0.5;"></i>Overview</h3>
                 </div>
                 <div class="box-body">
                     <table class="table table-striped">
@@ -58,7 +60,7 @@
                         </tr>
                         <tr>
                             <th>Version</th>
-                            <td>{{ $extension->version }}</td>
+                            <td style="font-family: var(--nb-mono, monospace); font-size: 12px;">{{ $extension->version }}</td>
                         </tr>
                         <tr>
                             <th>Description</th>
@@ -93,15 +95,15 @@
                             <th>Status</th>
                             <td>
                                 @if($extension->enabled)
-                                    <span class="label label-success">Enabled</span>
+                                    <span class="label label-success"><span class="nb-status nb-status--active"></span>Enabled</span>
                                 @else
-                                    <span class="label label-default">Disabled</span>
+                                    <span class="label label-default"><span class="nb-status nb-status--inactive"></span>Disabled</span>
                                 @endif
                             </td>
                         </tr>
                         <tr>
                             <th>Installed</th>
-                            <td>{{ $extension->created_at ? $extension->created_at->format('Y-m-d H:i:s') : 'N/A' }}</td>
+                            <td style="font-family: var(--nb-mono, monospace); font-size: 12px;">{{ $extension->created_at ? $extension->created_at->format('Y-m-d H:i:s') : 'N/A' }}</td>
                         </tr>
                     </table>
                 </div>
@@ -136,7 +138,7 @@
             {{-- Dependencies --}}
             <div class="box box-info">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Dependencies</h3>
+                    <h3 class="box-title"><i class="fa fa-link" style="margin-right: 8px; opacity: 0.5;"></i>Dependencies</h3>
                 </div>
                 <div class="box-body">
                     @if(!empty($dependencies))
@@ -151,7 +153,7 @@
                                 @foreach($dependencies as $depId => $depVersion)
                                     <tr>
                                         <td><code>{{ $depId }}</code></td>
-                                        <td>{{ $depVersion }}</td>
+                                        <td style="font-family: var(--nb-mono, monospace); font-size: 12px;">{{ $depVersion }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -165,7 +167,7 @@
             {{-- Permissions --}}
             <div class="box box-warning">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Permissions</h3>
+                    <h3 class="box-title"><i class="fa fa-lock" style="margin-right: 8px; opacity: 0.5;"></i>Permissions</h3>
                 </div>
                 <div class="box-body">
                     @if(!empty($permissions))
@@ -196,7 +198,7 @@
             <div class="col-md-12">
                 <div class="box box-info">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Health Checks</h3>
+                        <h3 class="box-title"><i class="fa fa-heartbeat" style="margin-right: 8px; opacity: 0.5;"></i>Health Checks</h3>
                     </div>
                     <div class="box-body">
                         @if(!empty($healthDefinitions))
@@ -254,7 +256,7 @@
                                 });
                             @endphp
                             @if(!empty($unknownResults))
-                                <h4>Undeclared Results</h4>
+                                <h4 style="font-family: var(--nb-mono, monospace); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; color: var(--nb-text-dim, #888); margin-top: 20px;">Undeclared Results</h4>
                                 <ul class="list-group">
                                     @foreach($unknownResults as $result)
                                         <li class="list-group-item">
@@ -279,7 +281,7 @@
             <div class="col-md-12">
                 <div class="box box-warning">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Scheduled Tasks</h3>
+                        <h3 class="box-title"><i class="fa fa-clock-o" style="margin-right: 8px; opacity: 0.5;"></i>Scheduled Tasks</h3>
                     </div>
                     <div class="box-body">
                         <table class="table table-striped">
@@ -345,7 +347,7 @@
             <div class="col-md-8">
                 <div class="box box-success">
                     <div class="box-header with-border">
-                        <h3 class="box-title">{{ $settingsSchema['title'] ?? 'Settings' }}</h3>
+                        <h3 class="box-title"><i class="fa fa-cog" style="margin-right: 8px; opacity: 0.5;"></i>{{ $settingsSchema['title'] ?? 'Settings' }}</h3>
                         <div class="box-tools pull-right">
                             <a href="{{ route('admin.notur.extensions.settings.preview', $extension->extension_id) }}" class="btn btn-xs btn-default" target="_blank" rel="noopener">
                                 <i class="fa fa-code"></i> Preview JSON
@@ -385,7 +387,7 @@
                                     <label for="{{ $fieldId }}">
                                         {{ $field['label'] ?? $fieldKey }}
                                         @if(!empty($field['required']))
-                                            <span class="text-danger">*</span>
+                                            <span style="color: var(--nb-danger, #ef4444);">*</span>
                                         @endif
                                     </label>
 
@@ -459,7 +461,7 @@
         <div class="col-md-12">
             <div class="box box-default">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Activity Log</h3>
+                    <h3 class="box-title"><i class="fa fa-list" style="margin-right: 8px; opacity: 0.5;"></i>Activity Log</h3>
                 </div>
                 <div class="box-body">
                     @if($activityLogs->isNotEmpty())
@@ -474,7 +476,7 @@
                             <tbody>
                                 @foreach($activityLogs as $log)
                                     <tr>
-                                        <td>{{ $log->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</td>
+                                        <td style="font-family: var(--nb-mono, monospace); font-size: 12px;">{{ $log->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</td>
                                         <td><span class="label label-default">{{ $log->action }}</span></td>
                                         <td>
                                             {{ $log->summary ?? '—' }}
@@ -499,7 +501,7 @@
         <div class="col-md-6">
             <div class="box box-info">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Frontend Slots</h3>
+                    <h3 class="box-title"><i class="fa fa-th" style="margin-right: 8px; opacity: 0.5;"></i>Frontend Slots</h3>
                     <div class="box-tools pull-right">
                         <a href="{{ route('admin.notur.slots') }}" class="btn btn-xs btn-default">
                             <i class="fa fa-th"></i> Slot Catalog
@@ -551,7 +553,7 @@
         <div class="col-md-6">
             <div class="box box-default">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Admin Routes</h3>
+                    <h3 class="box-title"><i class="fa fa-road" style="margin-right: 8px; opacity: 0.5;"></i>Admin Routes</h3>
                 </div>
                 <div class="box-body">
                     @if(!empty($adminRouteFile))
@@ -570,9 +572,9 @@
                             <tbody>
                                 @foreach($adminRoutes as $route)
                                     <tr>
-                                        <td>{{ implode(', ', $route['methods']) }}</td>
+                                        <td><span class="label label-primary">{{ implode(', ', $route['methods']) }}</span></td>
                                         <td><code>{{ $route['uri'] }}</code></td>
-                                        <td>{{ $route['name'] ?? '-' }}</td>
+                                        <td style="font-family: var(--nb-mono, monospace); font-size: 12px;">{{ $route['name'] ?? '-' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -590,14 +592,14 @@
         <div class="col-md-6">
             <div class="box box-default">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Migrations</h3>
+                    <h3 class="box-title"><i class="fa fa-database" style="margin-right: 8px; opacity: 0.5;"></i>Migrations</h3>
                 </div>
                 <div class="box-body">
                     @if(!empty($migrationStatus))
                         <ul class="list-group">
                             @foreach($migrationStatus as $migration)
                                 <li class="list-group-item">
-                                    <i class="fa fa-database text-green"></i> {{ $migration }}
+                                    <i class="fa fa-database" style="color: var(--nb-success, #22c55e); margin-right: 6px;"></i> {{ $migration }}
                                 </li>
                             @endforeach
                         </ul>
@@ -612,7 +614,7 @@
         <div class="col-md-6">
             <div class="box box-default">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Raw Manifest</h3>
+                    <h3 class="box-title"><i class="fa fa-file-code-o" style="margin-right: 8px; opacity: 0.5;"></i>Raw Manifest</h3>
                     <div class="box-tools pull-right">
                         <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
                     </div>
@@ -629,7 +631,7 @@
         <div class="col-xs-12">
             <div class="box box-default">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Recent Activity</h3>
+                    <h3 class="box-title"><i class="fa fa-history" style="margin-right: 8px; opacity: 0.5;"></i>Recent Activity</h3>
                 </div>
                 <div class="box-body">
                     <table class="table table-striped">
@@ -642,13 +644,13 @@
                         <tbody>
                             @if($extension->updated_at && $extension->updated_at->ne($extension->created_at))
                                 <tr>
-                                    <td>{{ $extension->updated_at->format('Y-m-d H:i:s') }}</td>
+                                    <td style="font-family: var(--nb-mono, monospace); font-size: 12px;">{{ $extension->updated_at->format('Y-m-d H:i:s') }}</td>
                                     <td>Extension updated (status: {{ $extension->enabled ? 'enabled' : 'disabled' }})</td>
                                 </tr>
                             @endif
                             @if($extension->created_at)
                                 <tr>
-                                    <td>{{ $extension->created_at->format('Y-m-d H:i:s') }}</td>
+                                    <td style="font-family: var(--nb-mono, monospace); font-size: 12px;">{{ $extension->created_at->format('Y-m-d H:i:s') }}</td>
                                     <td>Extension installed (v{{ $extension->version }})</td>
                                 </tr>
                             @endif
@@ -660,5 +662,11 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    {{-- Notur Brand --}}
+    <div class="nb-brand-bar">
+        <div class="nb-brand-bar__logo">N</div>
+        <div class="nb-brand-bar__text">Notur Extension Framework</div>
     </div>
 @endsection
