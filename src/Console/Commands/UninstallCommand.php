@@ -189,7 +189,7 @@ class UninstallCommand extends Command
     {
         $this->info('Step 2/6: Rolling back Notur database migrations...');
 
-        $tables = ['notur_settings', 'notur_migrations', 'notur_extensions'];
+        $tables = ['notur_activity_logs', 'notur_settings', 'notur_migrations', 'notur_extensions'];
 
         foreach ($tables as $table) {
             if (Schema::hasTable($table)) {
@@ -204,6 +204,14 @@ class UninstallCommand extends Command
                 ->where('migration', 'like', '%notur%')
                 ->delete();
             $this->line('  Cleaned Notur entries from migrations table.');
+        }
+
+        $remainingTables = array_values(array_filter($tables, static fn (string $table): bool => Schema::hasTable($table)));
+
+        if (!empty($remainingTables)) {
+            $this->warn('  Some Notur tables still exist after uninstall: ' . implode(', ', $remainingTables));
+        } else {
+            $this->info('  Verified Notur migration tables were removed.');
         }
 
         $this->info('  Database cleanup complete.');
