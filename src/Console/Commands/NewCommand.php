@@ -628,7 +628,7 @@ const ExampleWidget: React.FC<{ extensionId: string }> = () => {
 
 // Register extension with slots - name/version are auto-resolved from extension.yaml
 createExtension({
-    config: { id: '{$context['id']}' },
+    id: '{$context['id']}',
     slots: [
         {
             slot: 'dashboard.widgets',
