@@ -78,7 +78,7 @@ class SettingsNormalizerTest extends TestCase
 
         $this->assertEquals('Api Key', $normalized['fields'][0]['label']);
         $this->assertEquals('Refresh Rate', $normalized['fields'][1]['label']);
-        $this->assertEquals('EnableFeature', $normalized['fields'][2]['label']);
+        $this->assertEquals('Enable Feature', $normalized['fields'][2]['label']);
     }
 
     public function test_custom_label_not_overwritten(): void
