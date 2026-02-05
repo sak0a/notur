@@ -285,7 +285,11 @@ interface NoturApi {
         useExtensionApi: (options: { extensionId: string }) => any;
         useExtensionState: <T>(extensionId: string, initialState: T) => [T, (partial: Partial<T>) => void];
         useNoturTheme: () => any;
+        useRoutes: (area: string) => any[];
     };
+    unregisterExtension: (id: string) => void;
+    emitEvent: (event: string, data?: unknown) => void;
+    onEvent: (event: string, callback: (data?: unknown) => void) => () => void;
     SLOT_IDS: Record<string, string>;
 }
 ```
@@ -933,6 +937,8 @@ export { useServerContext } from './hooks/useServerContext';
 export { useUserContext } from './hooks/useUserContext';
 export { usePermission } from './hooks/usePermission';
 export { useExtensionConfig } from './hooks/useExtensionConfig';
+export { useNoturEvent, useEmitEvent } from './hooks/useNoturEvent';
+export { useNavigate } from './hooks/useNavigate';
 ```
 
 ### `useExtensionConfig(extensionId: string, options?): { config, loading, error, refresh }`
@@ -960,4 +966,56 @@ Options:
 Live reload example:
 ```tsx
 const { config } = useExtensionConfig('acme/server-analytics', { pollInterval: 5000 });
+```
+
+### `useNoturEvent(event: string, callback: (data?: unknown) => void): void`
+
+Subscribe to a Notur event. The callback is invoked whenever the specified event is emitted. The subscription is automatically cleaned up when the component unmounts.
+
+```tsx
+import { useNoturEvent } from '@notur/sdk';
+
+const Notifications: React.FC = () => {
+    useNoturEvent('analytics:updated', (data) => {
+        console.log('Analytics data updated:', data);
+    });
+
+    return <div>Listening for events...</div>;
+};
+```
+
+### `useEmitEvent(): (event: string, data?: unknown) => void`
+
+Returns a function to emit a Notur event. Other extensions or components subscribed to the event via `useNoturEvent` or `onEvent` will receive the data.
+
+```tsx
+import { useEmitEvent } from '@notur/sdk';
+
+const RefreshButton: React.FC = () => {
+    const emit = useEmitEvent();
+
+    return (
+        <button onClick={() => emit('analytics:refresh', { force: true })}>
+            Refresh
+        </button>
+    );
+};
+```
+
+### `useNavigate(): (path: string) => void`
+
+Returns a navigation function that integrates with the panel's client-side router. Use this instead of `window.location` for SPA-style navigation.
+
+```tsx
+import { useNavigate } from '@notur/sdk';
+
+const GoToSettings: React.FC = () => {
+    const navigate = useNavigate();
+
+    return (
+        <button onClick={() => navigate('/account/settings')}>
+            Go to Settings
+        </button>
+    );
+};
 ```

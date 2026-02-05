@@ -40,10 +40,10 @@ Replace `/var/www/pterodactyl` with your panel root path if different. The insta
 
 1. Validates PHP version and panel installation
 2. Runs `composer require notur/notur`
-3. Backs up the 4 React files that will be patched (creates `.notur-backup` copies)
+3. Backs up the React files that will be patched (creates `.notur-backup` copies)
 4. Applies React patches to add slot containers and dynamic route merging
 5. Injects `@include('notur::scripts')` into the Blade layout
-6. Runs `php artisan migrate` to create Notur's 3 database tables
+6. Runs `php artisan migrate` to create Notur's 4 database tables
 7. Creates the `notur/extensions` directory and `notur/extensions.json` manifest
 8. Builds and deploys the bridge runtime (`public/notur/bridge.js`)
 9. Builds and deploys Tailwind CSS (`public/notur/tailwind.css`)
@@ -57,7 +57,7 @@ If the automated installer does not work for your environment, see [Installing](
 
 1. Visit your panel in a browser. It should load normally.
 2. View the page source. Look for `window.__NOTUR__` and a `<script>` tag loading `bridge.js`.
-3. Open the browser console. You should see `[Notur] Bridge runtime v1.0.0 initialized`.
+3. Open the browser console. You should see `[Notur] Bridge runtime v1.2.0 initialized`.
 4. Run `php artisan notur:list`. It should report no extensions installed.
 
 ## Managing Extensions via CLI
@@ -339,7 +339,7 @@ Notur's configuration file is published at `config/notur.php`. The available opt
 ### `version`
 
 ```php
-'version' => '1.0.0',
+'version' => '1.2.0',
 ```
 
 The Notur framework version. Do not modify this manually.
@@ -470,7 +470,7 @@ php artisan notur:uninstall --confirm
 The uninstall command performs:
 
 1. Restores patched React files from `.notur-backup` copies (or applies reverse patches)
-2. Rolls back Notur database migrations (drops `notur_extensions`, `notur_migrations`, `notur_settings`)
+2. Rolls back Notur database migrations (drops `notur_extensions`, `notur_migrations`, `notur_settings`, `notur_activity_logs`)
 3. Removes the `@include('notur::scripts')` Blade injection
 4. Deletes the `notur/` and `public/notur/` directories
 5. Runs `composer remove notur/notur`

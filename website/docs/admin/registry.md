@@ -135,7 +135,12 @@ notur: "1.0"                    # Manifest format version
 id: "acme/server-analytics"     # Unique ID (pattern: ^[a-z0-9\-]+/[a-z0-9\-]+$)
 name: "Server Analytics"        # Human-readable name
 version: "1.0.0"                # Semantic version
-entrypoint: "Acme\\ServerAnalytics\\ServerAnalyticsExtension"  # PHP class
+```
+
+### Optional Fields (commonly used)
+
+```yaml
+entrypoint: "Acme\\ServerAnalytics\\ServerAnalyticsExtension"  # PHP class (optional, can be inferred from id)
 ```
 
 ### Full Manifest Example

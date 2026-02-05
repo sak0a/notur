@@ -206,11 +206,14 @@ interface HasHealthChecks
 **Example:**
 
 ```php
-public function getCommands(): array
+public function getHealthChecks(): array
 {
     return [
-        \Acme\Analytics\Console\SyncCommand::class,
-        \Acme\Analytics\Console\PruneCommand::class,
+        [
+            'id' => 'db',
+            'status' => 'ok',
+            'message' => 'Database reachable',
+        ],
     ];
 }
 ```
@@ -487,13 +490,14 @@ return new class extends Migration {
 
 ### Notur's own tables
 
-Notur creates 3 tables during installation:
+Notur creates 4 tables during installation:
 
 | Table | Purpose |
 |---|---|
 | `notur_extensions` | Installed extension records (ID, name, version, enabled status) |
 | `notur_migrations` | Per-extension migration tracking |
 | `notur_settings` | Per-extension key-value settings store |
+| `notur_activity_logs` | Extension activity audit trail |
 
 ---
 
@@ -563,7 +567,7 @@ The Notur config file (`config/notur.php`) exposes the following keys:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `version` | `string` | `'1.0.0'` | Notur framework version |
+| `version` | `string` | `'1.2.0'` | Notur framework version |
 | `extensions_path` | `string` | `'notur/extensions'` | Extension storage directory (relative to panel root) |
 | `require_signatures` | `bool` | `false` | Require Ed25519 signatures on `.notur` archives |
 | `registry_url` | `string` | `'https://raw.githubusercontent.com/notur/registry/main'` | Remote registry base URL |
@@ -591,6 +595,7 @@ All commands are prefixed with `notur:` in Artisan.
 | `notur:dev` | `notur:dev {path} [--link] [--watch] [--watch-bridge]` | Link a local extension for development |
 | `notur:export` | `notur:export {path?} [--output=] [--sign]` | Export extension as `.notur` archive |
 | `notur:build` | `notur:build` | Build extension frontend assets |
+| `notur:keygen` | `notur:keygen` | Generate an Ed25519 keypair for extension signing |
 | `notur:registry:sync` | `notur:registry:sync [--search=] [--force]` | Sync or search the extension registry |
 | `notur:registry:status` | `notur:registry:status [--json]` | Show registry cache status |
 | `notur:uninstall` | `notur:uninstall [--confirm]` | Completely remove Notur from the panel |

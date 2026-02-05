@@ -4,7 +4,7 @@
 
 - [x] **`notur:uninstall` command** — Full framework removal:
   - Restore patched React files from `.notur-backup` copies
-  - Roll back all Notur database migrations (3 tables)
+  - Roll back all Notur database migrations (4 tables)
   - Remove Blade injection (`@include('notur::scripts')`)
   - Delete `notur/` directory and `public/notur/` assets
   - Run `composer remove notur/notur`

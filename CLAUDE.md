@@ -38,7 +38,7 @@ npm run test:frontend      # Jest tests
 
 **Core flow:**
 1. `ExtensionManager` (singleton) reads `notur/extensions.json`, loads enabled extension manifests (YAML via `ExtensionManifest`), resolves load order via `DependencyResolver` (topological sort with circular dependency detection), registers PSR-4 autoloading per extension, then boots them in order.
-2. Extensions implement `ExtensionInterface` and optionally mix in capability contracts from `Contracts/` (`HasRoutes`, `HasMigrations`, `HasCommands`, `HasMiddleware`, `HasEventListeners`, `HasBladeViews`, `HasFrontendSlots`).
+2. Extensions implement `ExtensionInterface` and optionally mix in capability contracts from `Contracts/` (`HasRoutes`, `HasMigrations`, `HasCommands`, `HasMiddleware`, `HasEventListeners`, `HasBladeViews`, `HasFrontendSlots`, `HasHealthChecks`).
 3. `MigrationManager` handles per-extension DB migrations tracked in `notur_migrations`.
 4. `PermissionBroker` scopes permissions as `notur.{ext-id}.{permission}`.
 
@@ -47,9 +47,9 @@ npm run test:frontend      # Jest tests
 - `admin` → `/admin/notur/{ext-id}/`
 - `web` → `/notur/{ext-id}/`
 
-**Database tables:** `notur_extensions`, `notur_migrations`, `notur_settings` (migrations in `database/migrations/`).
+**Database tables:** `notur_extensions`, `notur_migrations`, `notur_settings`, `notur_activity_logs` (migrations in `database/migrations/`).
 
-**Artisan commands** (10 total in `src/Console/Commands/`): `notur:install`, `notur:remove`, `notur:enable`, `notur:disable`, `notur:list`, `notur:update`, `notur:dev`, `notur:build`, `notur:export`, `notur:registry:sync`.
+**Artisan commands** (16 total in `src/Console/Commands/`): `notur:install`, `notur:remove`, `notur:enable`, `notur:disable`, `notur:list`, `notur:update`, `notur:dev`, `notur:build`, `notur:export`, `notur:registry:sync`, `notur:uninstall`, `notur:new`, `notur:validate`, `notur:status`, `notur:keygen`, `notur:registry:status`.
 
 ### Frontend Bridge (`bridge/src/`)
 
@@ -65,7 +65,7 @@ Exposes `window.__NOTUR__` global API on page load. Core components:
 
 ### Installer (`installer/`)
 
-`install.sh` automates: composer require, applying React patches to Pterodactyl Panel v1.11 (4 patch files in `installer/patches/v1.11/`), migrations, directory setup, and bridge build.
+`install.sh` automates: composer require, applying React patches to Pterodactyl Panel v1.11 (26 patches in `installer/patches/v1.11/`), migrations, directory setup, and bridge build.
 
 ## Code Style
 
