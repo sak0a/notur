@@ -13,6 +13,10 @@
         },
         "outDir": "./resources/frontend/dist",
         "rootDir": "./resources/frontend/src",
+        "baseUrl": ".",
+        "paths": {
+            "@notur/sdk": ["../../sdk/dist"]
+        },
         "skipLibCheck": true
     },
     "include": ["resources/frontend/src/**/*"]
