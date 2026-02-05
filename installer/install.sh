@@ -456,6 +456,12 @@ pkg_exec() {
     esac
 }
 
+run_tailwind_cli() {
+    # Tailwind v4 ships CLI as @tailwindcss/cli; try legacy tailwindcss binary as fallback.
+    pkg_exec @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css || \
+        pkg_exec tailwindcss -i resources/tailwind/notur.css -o bridge/dist/tailwind.css
+}
+
 # Check whether a package.json declares a specific script.
 has_pkg_script() {
     local package_json="$1"
@@ -667,9 +673,9 @@ if [ "${TAILWIND_REQUIRED}" -eq 1 ]; then
             elif [ -f "${NOTUR_DIR}/resources/tailwind/notur.css" ]; then
                 warn "build:tailwind script not found. Using direct Tailwind CLI fallback..."
                 if [ "$PKG_MGR" = "npm" ]; then
-                    npm install --legacy-peer-deps && pkg_exec @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css
+                    npm install --legacy-peer-deps && run_tailwind_cli
                 else
-                    pkg_install && pkg_exec @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css
+                    pkg_install && run_tailwind_cli
                 fi
             else
                 warn "Installed Notur package does not include Tailwind build assets. Skipping Tailwind CSS build."
