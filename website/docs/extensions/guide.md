@@ -709,8 +709,8 @@ For a complete list of all 65 available slot IDs (with constants, types, and des
 | Area | Example Slots | Count |
 |---|---|---|
 | Navbar | `navbar`, `navbar.left`, `navbar.before`, `navbar.after` | 4 |
-| Server | `server.subnav`, `server.header`, `server.page`, `server.footer`, console/files/databases/schedules/users/backups/network/startup/settings slots | 32 |
-| Dashboard | `dashboard.header`, `dashboard.widgets`, `dashboard.footer`, `dashboard.page`, server list/row slots | 13 |
+| Server | `server.subnav`, `server.header`, `server.page`, `server.footer`, console/files/databases/schedules/users/backups/network/startup/settings slots | 36 |
+| Dashboard | `dashboard.header`, `dashboard.widgets`, `dashboard.footer`, `dashboard.page`, server list/row slots | 11 |
 | Account | `account.header`, `account.page`, `account.footer`, `account.subnav`, overview/api/ssh slots | 12 |
 | Auth | `auth.container.before`, `auth.container.after` | 2 |
 | **Total** | | **65** |
