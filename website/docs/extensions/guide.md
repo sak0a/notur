@@ -408,6 +408,20 @@ flowchart LR
   C --> D["Your CSS scoped to root class"]
 ```
 
+## Tailwind CSS (Global)
+
+Notur ships a shared Tailwind CSS build (v4, no prefix) at `/notur/tailwind.css`. You can use standard Tailwind utility classes in extension UIs without bundling your own framework.
+
+Because the CSS is **precompiled**, only classes included at build time are available. If your extension introduces new utilities (especially arbitrary values like `bg-[#342344]`), rebuild the shared Tailwind bundle or ship your own CSS file in `frontend.styles`.
+
+Rebuild the shared Tailwind CSS in the panel:
+
+```bash
+cd /var/www/pterodactyl/vendor/notur/notur
+npm run build:tailwind
+cp bridge/dist/tailwind.css /var/www/pterodactyl/public/notur/tailwind.css
+```
+
 ## Troubleshooting extension.yaml
 
 - Extension not loading: ensure `id` matches `ExtensionInterface::getId()` and `createExtension().config.id`.

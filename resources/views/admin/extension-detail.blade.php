@@ -31,7 +31,7 @@
     @if($errors->any())
         <div class="alert alert-danger">
             <strong>There were issues saving settings.</strong>
-            <ul style="margin-top: 8px;">
+            <ul class="mt-2">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -49,7 +49,7 @@
                 <div class="box-body">
                     <table class="table table-striped">
                         <tr>
-                            <th style="width: 30%;">Extension ID</th>
+                            <th class="w-[30%]">Extension ID</th>
                             <td><code>{{ $extension->extension_id }}</code></td>
                         </tr>
                         <tr>
@@ -107,21 +107,21 @@
                 </div>
                 <div class="box-footer">
                     @if($extension->enabled)
-                        <form action="{{ route('admin.notur.extensions.disable', $extension->extension_id) }}" method="POST" style="display: inline;">
+                        <form action="{{ route('admin.notur.extensions.disable', $extension->extension_id) }}" method="POST" class="inline">
                             @csrf
                             <button type="submit" class="btn btn-warning">
                                 <i class="fa fa-pause"></i> Disable
                             </button>
                         </form>
                     @else
-                        <form action="{{ route('admin.notur.extensions.enable', $extension->extension_id) }}" method="POST" style="display: inline;">
+                        <form action="{{ route('admin.notur.extensions.enable', $extension->extension_id) }}" method="POST" class="inline">
                             @csrf
                             <button type="submit" class="btn btn-success">
                                 <i class="fa fa-play"></i> Enable
                             </button>
                         </form>
                     @endif
-                    <form action="{{ route('admin.notur.extensions.remove', $extension->extension_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to remove {{ $extension->extension_id }}?');">
+                    <form action="{{ route('admin.notur.extensions.remove', $extension->extension_id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to remove {{ $extension->extension_id }}?');">
                         @csrf
                         <button type="submit" class="btn btn-danger pull-right">
                             <i class="fa fa-trash"></i> Remove
@@ -203,9 +203,9 @@
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th style="width: 180px;">Check</th>
-                                        <th style="width: 120px;">Status</th>
-                                        <th style="width: 120px;">Severity</th>
+                                    <th class="w-[180px]">Check</th>
+                                    <th class="w-[120px]">Status</th>
+                                    <th class="w-[120px]">Severity</th>
                                         <th>Message</th>
                                     </tr>
                                 </thead>
@@ -259,7 +259,7 @@
                                     @foreach($unknownResults as $result)
                                         <li class="list-group-item">
                                             <strong>{{ $result['id'] }}</strong>
-                                            <span class="label label-default" style="margin-left: 8px;">{{ $result['status'] ?? 'unknown' }}</span>
+                                            <span class="label label-default ml-2">{{ $result['status'] ?? 'unknown' }}</span>
                                             @if(!empty($result['message']))
                                                 <br><small class="text-muted">{{ $result['message'] }}</small>
                                             @endif
@@ -285,10 +285,10 @@
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th style="width: 200px;">Task</th>
-                                    <th style="width: 180px;">Schedule</th>
-                                    <th style="width: 160px;">Command</th>
-                                    <th style="width: 140px;">Flags</th>
+                                    <th class="w-[200px]">Task</th>
+                                    <th class="w-[180px]">Schedule</th>
+                                    <th class="w-[160px]">Command</th>
+                                    <th class="w-[140px]">Flags</th>
                                     <th>Description</th>
                                 </tr>
                             </thead>
@@ -466,8 +466,8 @@
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th style="width: 160px;">Timestamp</th>
-                                    <th style="width: 120px;">Action</th>
+                                    <th class="w-[160px]">Timestamp</th>
+                                    <th class="w-[120px]">Action</th>
                                     <th>Summary</th>
                                 </tr>
                             </thead>
@@ -618,7 +618,7 @@
                     </div>
                 </div>
                 <div class="box-body">
-                    <pre style="max-height: 400px; overflow-y: auto;">{{ json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                    <pre class="max-h-[400px] overflow-y-auto">{{ json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
                 </div>
             </div>
         </div>
@@ -635,7 +635,7 @@
                     <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th style="width: 20%;">Date</th>
+                                <th class="w-[20%]">Date</th>
                                 <th>Event</th>
                             </tr>
                         </thead>

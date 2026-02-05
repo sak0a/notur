@@ -115,6 +115,10 @@ class DevCommand extends Command
             if ($bridgeProcess) {
                 $processes[] = $bridgeProcess;
             }
+            $tailwindProcess = $this->startTailwindWatcher();
+            if ($tailwindProcess) {
+                $processes[] = $tailwindProcess;
+            }
         }
 
         $this->line('Watching for changes. Press Ctrl+C to stop.');
@@ -177,6 +181,36 @@ class DevCommand extends Command
 
         $this->info('Starting bridge watcher...');
         return $this->startProcess('bun run dev:bridge', $noturRoot, 'Bridge watcher');
+    }
+
+    private function startTailwindWatcher(): ?array
+    {
+        $noturRoot = base_path('vendor/notur/notur');
+        $packageJson = $noturRoot . '/package.json';
+
+        if (!file_exists($packageJson)) {
+            $this->warn('Notur Tailwind sources not found — skipping Tailwind watch.');
+            return null;
+        }
+
+        $publicTailwind = ExtensionPath::tailwindCss();
+        $tailwindSource = $noturRoot . '/bridge/dist/tailwind.css';
+
+        if (file_exists($publicTailwind) && !is_link($publicTailwind)) {
+            $this->warn('public/notur/tailwind.css exists and is not a symlink; skipping auto-link.');
+        } else {
+            if (is_link($publicTailwind)) {
+                unlink($publicTailwind);
+            }
+            if (!is_dir(dirname($publicTailwind))) {
+                mkdir(dirname($publicTailwind), 0755, true);
+            }
+            @symlink($tailwindSource, $publicTailwind);
+            $this->info('Linked Tailwind CSS for watch mode.');
+        }
+
+        $this->info('Starting Tailwind watcher...');
+        return $this->startProcess('bun run dev:tailwind', $noturRoot, 'Tailwind watcher');
     }
 
     private function startProcess(string $command, string $cwd, string $label): array

@@ -51,6 +51,9 @@ Using your preferred package manager (npm, yarn, pnpm, or bun):
 # Build bridge runtime
 npm run build:bridge
 
+# Build shared Tailwind CSS
+npm run build:tailwind
+
 # Build SDK
 npm run build:sdk
 

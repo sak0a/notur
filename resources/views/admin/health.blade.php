@@ -86,11 +86,11 @@
                             <small><code>{{ $extension->extension_id }}</code></small>
                         </h3>
                         <div class="box-tools pull-right">
-                            <span class="label {{ $overallClass }}" style="margin-right: 8px;">{{ $overallStatus }}</span>
+                            <span class="label {{ $overallClass }} mr-2">{{ $overallStatus }}</span>
                             @if($extension->enabled)
-                                <span class="label label-success" style="margin-right: 8px;">Enabled</span>
+                                <span class="label label-success mr-2">Enabled</span>
                             @else
-                                <span class="label label-default" style="margin-right: 8px;">Disabled</span>
+                                <span class="label label-default mr-2">Disabled</span>
                             @endif
                             <a href="{{ route('admin.notur.extensions.show', $extension->extension_id) }}" class="btn btn-xs btn-default">
                                 <i class="fa fa-eye"></i> Details
@@ -105,9 +105,9 @@
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
-                                            <th style="width: 200px;">Check</th>
-                                            <th style="width: 120px;">Status</th>
-                                            <th style="width: 140px;">Severity</th>
+                                            <th class="w-[200px]">Check</th>
+                                            <th class="w-[120px]">Status</th>
+                                            <th class="w-[140px]">Severity</th>
                                             <th>Message</th>
                                         </tr>
                                     </thead>
@@ -170,7 +170,7 @@
                                         @foreach($unknownResults as $result)
                                             <li class="list-group-item">
                                                 <strong>{{ $result['id'] ?? 'Unknown' }}</strong>
-                                                <span class="label label-default" style="margin-left: 8px;">{{ $result['status'] ?? 'unknown' }}</span>
+                                                <span class="label label-default ml-2">{{ $result['status'] ?? 'unknown' }}</span>
                                                 @if(!empty($result['message']))
                                                     <br><small class="text-muted">{{ $result['message'] }}</small>
                                                 @endif

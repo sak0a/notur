@@ -46,7 +46,8 @@ Replace `/var/www/pterodactyl` with your panel root path if different. The insta
 6. Runs `php artisan migrate` to create Notur's 3 database tables
 7. Creates the `notur/extensions` directory and `notur/extensions.json` manifest
 8. Builds and deploys the bridge runtime (`public/notur/bridge.js`)
-9. Triggers a frontend rebuild
+9. Builds and deploys Tailwind CSS (`public/notur/tailwind.css`)
+10. Triggers a frontend rebuild
 
 ### Manual Installation
 
@@ -409,6 +410,7 @@ After installation, Notur creates the following directories:
   public/
     notur/
       bridge.js                  # Notur bridge runtime
+      tailwind.css               # Shared Tailwind CSS (v4, no prefix)
       extensions/
         vendor/
           extension-name/

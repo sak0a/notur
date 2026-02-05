@@ -64,6 +64,9 @@ docs/                 Documentation
 # Build bridge runtime
 npm run build:bridge
 
+# Build shared Tailwind CSS
+npm run build:tailwind
+
 # Build SDK
 npm run build:sdk
 
@@ -74,6 +77,9 @@ npm run build
 ```bash [yarn]
 # Build bridge runtime
 yarn run build:bridge
+
+# Build shared Tailwind CSS
+yarn run build:tailwind
 
 # Build SDK
 yarn run build:sdk
@@ -86,6 +92,9 @@ yarn run build
 # Build bridge runtime
 pnpm run build:bridge
 
+# Build shared Tailwind CSS
+pnpm run build:tailwind
+
 # Build SDK
 pnpm run build:sdk
 
@@ -96,6 +105,9 @@ pnpm run build
 ```bash [bun]
 # Build bridge runtime
 bun run build:bridge
+
+# Build shared Tailwind CSS
+bun run build:tailwind
 
 # Build SDK
 bun run build:sdk

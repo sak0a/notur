@@ -8,15 +8,18 @@
     "sdk"
   ],
   "scripts": {
+    "build:tailwind": "npx @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css",
     "build:bridge": "npx webpack-cli --mode production --config bridge/webpack.config.js",
     "build:sdk": "cd sdk && npx tsc",
-    "build": "npm run build:bridge && npm run build:sdk",
+    "build": "npm run build:tailwind && npm run build:bridge && npm run build:sdk",
     "dev:bridge": "npx webpack-cli --mode development --watch --config bridge/webpack.config.js",
+    "dev:tailwind": "npx @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css --watch",
     "test:frontend": "npx jest --config tests/Frontend/jest.config.js"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^12.1.5",
+    "@tailwindcss/cli": "^4.1.0",
     "@types/jest": "^29.5.0",
     "@types/react": "^16.14.0",
     "@types/react-dom": "^16.9.0",
@@ -24,6 +27,7 @@
     "react-dom": "16.14.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "tailwindcss": "^4.1.0",
     "ts-jest": "^29.1.0",
     "ts-loader": "^9.5.0",
     "typescript": "^5.3.0",

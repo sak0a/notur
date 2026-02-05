@@ -25,7 +25,7 @@
                         This page captures a live snapshot of the Notur frontend runtime.
                         It requires the bridge and extension bundles to load on this page.
                     </p>
-                    <pre id="notur-diagnostics-json" style="max-height: 520px; overflow: auto; background: #111; color: #e2e8f0; padding: 12px; border-radius: 4px;">Loading…</pre>
+                    <pre id="notur-diagnostics-json" class="max-h-[520px] overflow-auto bg-[#111] text-slate-200 p-3 rounded">Loading…</pre>
                 </div>
             </div>
         </div>

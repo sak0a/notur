@@ -5,6 +5,7 @@
     window.__NOTUR__.registry = null; // Populated by bridge.js
 </script>
 <script src="/notur/bridge.js" defer></script>
+<link rel="stylesheet" href="/notur/tailwind.css">
 @foreach($noturConfig['extensions'] ?? [] as $extension)
     @if(!empty($extension['styles']))
         <link rel="stylesheet" href="{{ $extension['styles'] }}">
