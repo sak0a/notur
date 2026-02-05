@@ -132,9 +132,8 @@ abstract class NoturExtension implements ExtensionInterface
 
         // Walk up to find directory containing extension.yaml
         $dir = dirname($filename);
-        $maxDepth = 5; // Safety limit
 
-        for ($i = 0; $i < $maxDepth; $i++) {
+        while (true) {
             if (file_exists($dir . '/extension.yaml') || file_exists($dir . '/extension.yml')) {
                 return $dir;
             }
