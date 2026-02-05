@@ -2,6 +2,15 @@
 
 All notable changes to the Notur Extension Library are documented here.
 
+## [1.2.0] - 2026-02-05
+
+### Added
+- **Admin styles converted to Tailwind** -- Admin UI now uses Tailwind CSS classes instead of custom stylesheets.
+- **Improved installer script** -- Better error handling and support for admin setup.
+
+### Changed
+- **SDK version bumped to 1.2.0** -- All workspace packages updated to 1.2.0.
+
 ## [1.1.1] - 2026-02-04
 
 ### Added

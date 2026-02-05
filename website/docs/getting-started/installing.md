@@ -31,7 +31,7 @@ This file is a minimal binder — adding the include here is the cleanest approa
 
 ### Step 3: Apply React Patches
 
-Four small patches add slot containers and dynamic route merging to the panel's React source:
+Seven patches add slot containers and dynamic route merging to the panel's React source:
 
 ```bash
 cd /var/www/pterodactyl
@@ -90,10 +90,11 @@ bun run build:production
 php artisan migrate
 ```
 
-This creates three tables:
+This creates four tables:
 - `notur_extensions` — installed extension records
 - `notur_migrations` — per-extension migration tracking
 - `notur_settings` — per-extension key-value settings
+- `notur_activity_logs` — extension activity audit trail
 
 ### Step 6: Set Up Directories
 
@@ -150,7 +151,7 @@ cp bridge/dist/tailwind.css /var/www/pterodactyl/public/notur/tailwind.css
 1. Visit your panel — the page should load normally
 2. Check the page source — you should see `window.__NOTUR__` and `bridge.js` script tags
 3. Run `php artisan notur:list` — should show no extensions installed
-4. Open the browser console — you should see `[Notur] Bridge runtime v1.0.0 initialized`
+4. Open the browser console — you should see `[Notur] Bridge runtime v1.2.0 initialized`
 
 ## Uninstalling Notur
 
@@ -176,7 +177,7 @@ bun run build:production
 ```
 :::
 
-4. Remove Notur tables: `php artisan migrate:rollback` (the 3 notur tables)
+4. Remove Notur tables: `php artisan migrate:rollback` (the 4 notur tables)
 5. Remove composer package: `composer remove notur/notur`
 6. Remove directories: `rm -rf notur/ public/notur/`
 

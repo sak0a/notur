@@ -2,7 +2,7 @@
 
 ## Current Release
 
-- Version: 1.0.0 (2026-02-03)
+- Version: 1.2.0
 - Status: Stable
 - Lifecycle CLI, registry distribution, admin UI, and theme extensions are complete
 - Ed25519 signature verification is available and optional via `notur.require_signatures`
@@ -36,8 +36,6 @@ Priorities are listed as P0 (next), P1 (soon), P2 (later).
 - SDK hooks for permissions/config: `useExtensionConfig()` and `usePermission()` helpers for consistent UI gating.
 - Slot metadata + preview: show where slots render and provide a dev preview page.
 - Admin route discovery: list registered admin routes in the extension detail view.
-
-## P1 (Soon)
 - CSS isolation helper: optional class prefixing or scoped style injection for extension bundles.
 - Extension activity log in admin UI: install/update/enable/disable timeline per extension.
 - Extension health checks display: expose a `health()` method and render results in admin UI.
