@@ -244,7 +244,62 @@ class DevPullCommand extends Command
             throw new \RuntimeException("Failed to open zip archive (error code: {$result})");
         }
 
-        $zip->extractTo($targetDir);
+        // Manually extract each entry with path validation to prevent path traversal attacks
+        $targetDir = realpath($targetDir);
+        if ($targetDir === false) {
+            $zip->close();
+            throw new \RuntimeException('Failed to resolve target directory path');
+        }
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entry = $zip->getNameIndex($i);
+            if ($entry === false) {
+                continue;
+            }
+
+            // Validate entry path: no absolute paths, no .. segments
+            if ($this->isUnsafePath($entry)) {
+                $zip->close();
+                throw new \RuntimeException("Archive contains unsafe path: {$entry}");
+            }
+
+            $destination = $targetDir . DIRECTORY_SEPARATOR . $entry;
+
+            // Double-check the resolved path is within target directory
+            $realDestination = realpath(dirname($destination));
+            if ($realDestination === false) {
+                // Directory doesn't exist yet, which is OK - we'll create it
+                $realDestination = $this->normalizePath(dirname($destination));
+            }
+
+            if (!str_starts_with($realDestination, $targetDir)) {
+                $zip->close();
+                throw new \RuntimeException("Archive attempts to extract outside target directory: {$entry}");
+            }
+
+            // Extract the entry
+            if (str_ends_with($entry, '/')) {
+                // Directory entry
+                if (!is_dir($destination)) {
+                    mkdir($destination, 0755, true);
+                }
+            } else {
+                // File entry
+                $dir = dirname($destination);
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                }
+
+                $contents = $zip->getFromIndex($i);
+                if ($contents === false) {
+                    $zip->close();
+                    throw new \RuntimeException("Failed to read entry from archive: {$entry}");
+                }
+
+                file_put_contents($destination, $contents);
+            }
+        }
+
         $zip->close();
 
         // GitHub zipball contains a single top-level directory: {owner}-{repo}-{shortsha}/
@@ -258,6 +313,55 @@ class DevPullCommand extends Command
         }
 
         return $targetDir . '/' . $entries[0];
+    }
+
+    /**
+     * Check if a path contains unsafe components that could lead to path traversal.
+     */
+    private function isUnsafePath(string $path): bool
+    {
+        // Check for absolute paths (Unix or Windows style)
+        if (str_starts_with($path, '/') || preg_match('/^[a-zA-Z]:/', $path)) {
+            return true;
+        }
+
+        // Check for .. segments or null bytes
+        $parts = explode('/', str_replace('\\', '/', $path));
+        foreach ($parts as $part) {
+            if ($part === '..' || str_contains($part, "\0")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Normalize a path by resolving . and .. segments without requiring the path to exist.
+     */
+    private function normalizePath(string $path): string
+    {
+        $path = str_replace('\\', '/', $path);
+        $parts = explode('/', $path);
+        $normalized = [];
+
+        foreach ($parts as $part) {
+            if ($part === '' || $part === '.') {
+                continue;
+            }
+            if ($part === '..') {
+                array_pop($normalized);
+            } else {
+                $normalized[] = $part;
+            }
+        }
+
+        $result = implode(DIRECTORY_SEPARATOR, $normalized);
+        if (str_starts_with($path, '/')) {
+            $result = DIRECTORY_SEPARATOR . $result;
+        }
+
+        return $result;
     }
 
     private function replaceVendorFiles(string $noturRoot, string $sourcePath): void
