@@ -192,7 +192,8 @@ class DevPullCommand extends Command
 
     private function fetchCommitInfo(Client $client, string $repo, string $ref): array
     {
-        $url = self::GITHUB_API_BASE . "/repos/{$repo}/commits/{$ref}";
+        $encodedRef = rawurlencode($ref);
+        $url = self::GITHUB_API_BASE . "/repos/{$repo}/commits/{$encodedRef}";
 
         try {
             $response = $client->get($url);
