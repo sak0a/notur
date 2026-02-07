@@ -317,20 +317,91 @@ class UninstallCommand extends Command
 
         $panelDir = base_path();
         $result = 0;
+        $packageManager = $this->detectPackageManager($panelDir);
 
-        // Use bun for frontend rebuild
+        if ($packageManager === null) {
+            $this->warn('  No supported package manager found (bun, pnpm, yarn, npm).');
+            $this->warn('  Frontend rebuild skipped. Run manually once a package manager is installed:');
+            $this->warn('  bun/pnpm/yarn/npm run build:production');
+            return;
+        }
+
+        $command = match ($packageManager) {
+            'bun' => 'bun run build:production',
+            'pnpm' => 'pnpm run build:production',
+            'yarn' => 'yarn run build:production',
+            'npm' => 'npm run build:production',
+            default => null,
+        };
+
+        if ($command === null) {
+            $this->warn('  Frontend rebuild skipped due to unknown package manager.');
+            return;
+        }
+
         exec(
-            sprintf('cd %s && bun run build:production 2>&1', escapeshellarg($panelDir)),
+            sprintf('cd %s && %s 2>&1', escapeshellarg($panelDir), $command),
             $output,
             $result,
         );
 
         if ($result !== 0) {
             $this->warn('  Frontend rebuild failed. Run manually:');
-            $this->warn('  bun run build:production');
+            $this->warn("  {$command}");
+
+            $outputText = implode("\n", $output);
+            if (str_contains($outputText, 'ERR_OSSL_EVP_UNSUPPORTED')) {
+                $this->warn('  Detected OpenSSL error (ERR_OSSL_EVP_UNSUPPORTED) from Node.js.');
+                $this->warn('  Suggested fix: use Node.js 18/20 LTS or set:');
+                $this->warn('  NODE_OPTIONS=--openssl-legacy-provider');
+            }
         } else {
             $this->info('  Frontend rebuilt successfully.');
         }
+    }
+
+    /**
+     * Detect preferred package manager (bun > pnpm > yarn > npm).
+     */
+    private function detectPackageManager(string $panelDir): ?string
+    {
+        $env = getenv('PKG_MANAGER');
+        if (is_string($env) && in_array($env, ['bun', 'pnpm', 'yarn', 'npm'], true)) {
+            if ($this->commandExists($env)) {
+                return $env;
+            }
+            $this->warn("  PKG_MANAGER={$env} was set, but {$env} is not available. Auto-detecting...");
+        }
+
+        $lockfileMap = [
+            'bun.lockb' => 'bun',
+            'bun.lock' => 'bun',
+            'pnpm-lock.yaml' => 'pnpm',
+            'yarn.lock' => 'yarn',
+            'package-lock.json' => 'npm',
+        ];
+
+        foreach ($lockfileMap as $file => $manager) {
+            if (file_exists($panelDir . '/' . $file) && $this->commandExists($manager)) {
+                return $manager;
+            }
+        }
+
+        foreach (['bun', 'pnpm', 'yarn', 'npm'] as $manager) {
+            if ($this->commandExists($manager)) {
+                return $manager;
+            }
+        }
+
+        return null;
+    }
+
+    private function commandExists(string $command): bool
+    {
+        $result = 0;
+        exec(sprintf('command -v %s >/dev/null 2>&1', escapeshellarg($command)), $output, $result);
+
+        return $result === 0;
     }
 
     /**
