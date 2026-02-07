@@ -1,6 +1,6 @@
 # Notur Extension Library
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.2-blue)
 ![Status](https://img.shields.io/badge/status-stable-brightgreen)
 
 A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/) v1. Enables community-built extensions (plugins, themes, tools) that modify panel functionality without forking the source.
@@ -24,7 +24,7 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 - Composer 2.x
 - Package manager: npm, Yarn, pnpm, or Bun
 
-## Current Status (v1.2.0 — 2026-02-05)
+## Current Status (v1.2.2 — 2026-02-05)
 
 Notur is feature-complete for extension lifecycle, registry distribution, admin management, and theming.
 

@@ -2,6 +2,12 @@
 
 All notable changes to the Notur Extension Library are documented here.
 
+## [1.2.2] - 2026-02-07
+
+### Changed
+- **Framework version bump to 1.2.2** -- Documentation and framework version references updated for the extension framework release.
+- **SDK unchanged** -- SDK package version remains unchanged for this release.
+
 ## [1.2.0] - 2026-02-05
 
 ### Added

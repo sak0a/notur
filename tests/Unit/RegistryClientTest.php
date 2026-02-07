@@ -39,7 +39,7 @@ class RegistryClientTest extends TestCase
                     'id' => 'acme/hello-world',
                     'name' => 'Hello World',
                     'description' => 'A simple hello world extension',
-                    'latest_version' => '1.2.0',
+                    'latest_version' => '1.2.2',
                     'repository' => 'https://github.com/acme/hello-world',
                     'tags' => ['demo', 'starter'],
                 ],

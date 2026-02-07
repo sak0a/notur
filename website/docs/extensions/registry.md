@@ -85,8 +85,8 @@ The registry index file (`registry.json`) has the following structure:
             "id": "acme/server-analytics",
             "name": "Server Analytics",
             "description": "Real-time server analytics and monitoring",
-            "latest_version": "1.2.0",
-            "versions": ["1.0.0", "1.1.0", "1.2.0"],
+            "latest_version": "1.2.2",
+            "versions": ["1.0.0", "1.1.0", "1.2.2"],
             "license": "MIT",
             "authors": [
                 { "name": "John Doe", "email": "john@example.com" }

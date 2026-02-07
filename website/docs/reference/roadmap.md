@@ -2,7 +2,7 @@
 
 ## Current Release
 
-- Version: 1.2.0
+- Version: 1.2.2
 - Status: Stable
 - Lifecycle CLI, registry distribution, admin UI, and theme extensions are complete
 - Ed25519 signature verification is available and optional via `notur.require_signatures`

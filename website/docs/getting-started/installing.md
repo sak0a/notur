@@ -154,7 +154,7 @@ cp bridge/dist/tailwind.css /var/www/pterodactyl/public/notur/tailwind.css
 1. Visit your panel — the page should load normally
 2. Check the page source — you should see `window.__NOTUR__` and `bridge.js` script tags
 3. Run `php artisan notur:list` — should show no extensions installed
-4. Open the browser console — you should see `[Notur] Bridge runtime v1.2.0 initialized`
+4. Open the browser console — you should see `[Notur] Bridge runtime v1.2.2 initialized`
 
 ## Uninstalling Notur
 
