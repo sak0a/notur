@@ -41,6 +41,15 @@ class DevPullCommand extends Command
         $repo = config('notur.repository', self::DEFAULT_REPO);
         $noturRoot = base_path('vendor/notur/notur');
 
+        if (! is_dir($noturRoot)) {
+            $this->error("Notur installation not found at path: {$noturRoot}. Make sure Notur is installed (e.g. via Composer) before running this command.");
+            return 1;
+        }
+
+        if (! is_writable($noturRoot)) {
+            $this->error("The Notur installation directory is not writable: {$noturRoot}. Please adjust filesystem permissions and try again.");
+            return 1;
+        }
         $client = $this->client ?? new Client([
             'timeout' => 30,
             'connect_timeout' => 10,
