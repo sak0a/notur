@@ -263,16 +263,26 @@ class DevPullCommand extends Command
                 throw new \RuntimeException("Archive contains unsafe path: {$entry}");
             }
 
-            $destination = $targetDir . DIRECTORY_SEPARATOR . $entry;
+            // Validate that the normalized relative path doesn't escape
+            try {
+                $normalizedEntry = $this->normalizePath($entry);
+            } catch (\RuntimeException $e) {
+                $zip->close();
+                throw new \RuntimeException("Archive contains path that attempts to escape: {$entry}");
+            }
+
+            $destination = $targetDir . DIRECTORY_SEPARATOR . $normalizedEntry;
 
             // Double-check the resolved path is within target directory
             $realDestination = realpath(dirname($destination));
             if ($realDestination === false) {
-                // Directory doesn't exist yet, which is OK - we'll create it
-                $realDestination = $this->normalizePath(dirname($destination));
-            }
-
-            if (!str_starts_with($realDestination, $targetDir)) {
+                // Directory doesn't exist yet, which is OK - verify the path would be safe
+                $parentPath = dirname($destination);
+                if (!str_starts_with($parentPath, $targetDir)) {
+                    $zip->close();
+                    throw new \RuntimeException("Archive attempts to extract outside target directory: {$entry}");
+                }
+            } elseif (!str_starts_with($realDestination, $targetDir)) {
                 $zip->close();
                 throw new \RuntimeException("Archive attempts to extract outside target directory: {$entry}");
             }
@@ -281,13 +291,13 @@ class DevPullCommand extends Command
             if (str_ends_with($entry, '/')) {
                 // Directory entry
                 if (!is_dir($destination)) {
-                    mkdir($destination, 0755, true);
+                    mkdir($destination, 0750, true);
                 }
             } else {
                 // File entry
                 $dir = dirname($destination);
                 if (!is_dir($dir)) {
-                    mkdir($dir, 0755, true);
+                    mkdir($dir, 0750, true);
                 }
 
                 $contents = $zip->getFromIndex($i);
@@ -350,6 +360,10 @@ class DevPullCommand extends Command
                 continue;
             }
             if ($part === '..') {
+                // If we can't pop (empty array), the path tries to escape - reject it
+                if (empty($normalized)) {
+                    throw new \RuntimeException('Invalid path: attempts to traverse above root');
+                }
                 array_pop($normalized);
             } else {
                 $normalized[] = $part;

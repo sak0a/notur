@@ -87,4 +87,22 @@ class DevPullCommandTest extends TestCase
         $result = $this->invokePrivateMethod($command, 'normalizePath', ['/foo/bar']);
         $this->assertTrue(str_starts_with($result, DIRECTORY_SEPARATOR));
     }
+
+    public function testNormalizePathRejectsPathsEscapingRoot(): void
+    {
+        $command = new DevPullCommand();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('attempts to traverse above root');
+        $this->invokePrivateMethod($command, 'normalizePath', ['../../etc/passwd']);
+    }
+
+    public function testNormalizePathRejectsMultipleEscapeAttempts(): void
+    {
+        $command = new DevPullCommand();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('attempts to traverse above root');
+        $this->invokePrivateMethod($command, 'normalizePath', ['../../../system']);
+    }
 }
