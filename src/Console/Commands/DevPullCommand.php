@@ -272,9 +272,10 @@ class DevPullCommand extends Command
                 if (!is_dir($tmpPreserve)) {
                     mkdir($tmpPreserve, 0755, true);
                 }
-                if (!rename($dirPath, $tmpPreserve . '/' . $dir)) {
+                $tmpDest = $tmpPreserve . '/' . $dir;
+                if (!rename($dirPath, $tmpDest)) {
                     throw new \RuntimeException(
-                        "Failed to preserve directory: {$dirPath}. " .
+                        "Failed to preserve directory from {$dirPath} to {$tmpDest}. " .
                         "Check permissions and ensure the directory is not locked."
                     );
                 }
