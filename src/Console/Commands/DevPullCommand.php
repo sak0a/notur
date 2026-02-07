@@ -22,6 +22,14 @@ class DevPullCommand extends Command
 
     protected $description = 'Pull the latest Notur framework code from GitHub for development';
 
+    private ?Client $client = null;
+
+    public function __construct(?Client $client = null)
+    {
+        parent::__construct();
+        $this->client = $client;
+    }
+
     public function handle(): int
     {
         $branch = $this->argument('branch');
@@ -42,7 +50,7 @@ class DevPullCommand extends Command
             $this->error("The Notur installation directory is not writable: {$noturRoot}. Please adjust filesystem permissions and try again.");
             return 1;
         }
-        $client = new Client([
+        $client = $this->client ?? new Client([
             'timeout' => 30,
             'connect_timeout' => 10,
             'headers' => [
