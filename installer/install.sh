@@ -718,7 +718,16 @@ run_migrations() {
 
     if php artisan tinker --execute="echo \\Illuminate\\Support\\Facades\\Schema::hasTable('notur_activity_logs') ? '1' : '0';" 2>/dev/null | grep -q '^1$'; then
         warn "Detected existing notur_activity_logs table. Marking migration as applied and retrying..."
-        php artisan tinker --execute="if (\Illuminate\Support\Facades\Schema::hasTable('migrations')) { \\$migration = '2026_02_03_000004_create_notur_activity_logs_table'; \\$exists = \Illuminate\Support\Facades\DB::table('migrations')->where('migration', \\$migration)->exists(); if (!\$exists) { \\$batch = ((int) (\Illuminate\Support\Facades\DB::table('migrations')->max('batch') ?? 0)) + 1; \Illuminate\Support\Facades\DB::table('migrations')->insert(['migration' => \\$migration, 'batch' => \\$batch]); } }" >/dev/null 2>&1 || true
+        php artisan tinker --execute="
+            if (\Illuminate\Support\Facades\Schema::hasTable('migrations')) {
+                \$migration = '2026_02_03_000004_create_notur_activity_logs_table';
+                \$exists = \Illuminate\Support\Facades\DB::table('migrations')->where('migration', \$migration)->exists();
+                if (!\$exists) {
+                    \$batch = ((int) (\Illuminate\Support\Facades\DB::table('migrations')->max('batch') ?? 0)) + 1;
+                    \Illuminate\Support\Facades\DB::table('migrations')->insert(['migration' => \$migration, 'batch' => \$batch]);
+                }
+            }
+        " >/dev/null 2>&1 || true
         php artisan migrate --force --isolated && return 0
     fi
 
