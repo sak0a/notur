@@ -108,6 +108,7 @@ class DevPullCommand extends Command
         } catch (\Throwable $e) {
             $this->error("Extraction failed: {$e->getMessage()}");
             @unlink($tmpZip);
+            $this->deleteDirectory($tmpDir);
             return 1;
         }
 
