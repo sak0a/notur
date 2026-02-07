@@ -110,7 +110,7 @@ class DevPullCommandTest extends TestCase
         $mockClient = Mockery::mock(Client::class);
         
         $mockResponse = new Response(200, [], json_encode([
-            'sha' => 'specific123commit456specific123commit456spe',
+            'sha' => 'abcd1234567890abcdef1234567890abcdef1234',
             'commit' => [
                 'message' => 'Specific commit message',
                 'author' => [
@@ -130,7 +130,7 @@ class DevPullCommandTest extends TestCase
         });
 
         $this->artisan('notur:dev:pull', ['commit' => 'specific123', '--dry-run' => true])
-            ->expectsOutput('[DRY RUN] Would download and extract commit specific to ' . base_path('vendor/notur/notur'))
+            ->expectsOutput('[DRY RUN] Would download and extract commit abcd1234 to ' . base_path('vendor/notur/notur'))
             ->assertExitCode(0);
     }
 
