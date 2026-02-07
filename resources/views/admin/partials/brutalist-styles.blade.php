@@ -533,7 +533,7 @@ body.notur-admin-page .label-success {
 
 body.notur-admin-page .label-default {
     background: var(--nb-border);
-    color: var(--nb-text-dim);
+    color: var(--nb-text);
 }
 
 body.notur-admin-page .label-info {
