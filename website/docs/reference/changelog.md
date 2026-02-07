@@ -2,6 +2,22 @@
 
 All notable changes to the Notur Extension Library are documented here.
 
+## [1.2.4] - 2026-02-07
+
+### Added
+- **`notur:dev:pull` command** -- Pull the latest Notur framework code directly from GitHub for development. Downloads a specific branch (default `master`) or commit via the GitHub API, replaces `vendor/notur/notur/`, and automatically rebuilds the frontend bridge. Supports `--no-rebuild` and `--dry-run` flags.
+- **`repository` config key** -- New `notur.repository` setting in `config/notur.php` (defaults to `sak0a/notur`). Used by `notur:dev:pull` to resolve the GitHub repository.
+
+### Changed
+- **Framework version bump to 1.2.4** -- Artisan command count increased from 16 to 17.
+- **SDK unchanged** -- SDK package version remains unchanged for this release.
+
+## [1.2.3] - 2026-02-07
+
+### Changed
+- **Framework version bump to 1.2.3** -- Documentation and framework version references updated for the extension framework release.
+- **SDK unchanged** -- SDK package version remains unchanged for this release.
+
 ## [1.2.2] - 2026-02-07
 
 ### Changed

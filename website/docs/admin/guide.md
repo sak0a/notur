@@ -230,6 +230,42 @@ php artisan notur:dev /path/to/my-extension --watch
 php artisan notur:dev /path/to/my-extension --watch --watch-bridge
 ```
 
+### Pulling Framework Updates from GitHub
+
+For developers working on the Notur framework itself, `notur:dev:pull` lets you quickly test unreleased commits without waiting for a new Composer release. It downloads the specified branch or commit from GitHub, replaces the files in `vendor/notur/notur/`, and rebuilds the frontend bridge automatically.
+
+```bash
+# Pull the latest commit from master (default)
+php artisan notur:dev:pull
+
+# Pull from a specific branch
+php artisan notur:dev:pull develop
+
+# Pull a specific commit
+php artisan notur:dev:pull master abc1234f
+
+# Preview what would happen without making changes
+php artisan notur:dev:pull --dry-run
+
+# Pull without rebuilding the frontend bridge
+php artisan notur:dev:pull --no-rebuild
+```
+
+The command will:
+1. Fetch commit info from GitHub (SHA, author, date, message)
+2. Ask for confirmation before proceeding
+3. Download the zip archive of the exact commit
+4. Replace files in `vendor/notur/notur/` (preserving `vendor/` and `node_modules/`)
+5. Rebuild the bridge runtime and Tailwind CSS (unless `--no-rebuild`)
+6. Copy `bridge.js` and `tailwind.css` to `public/notur/`
+7. Clear caches
+
+::: warning
+This modifies `vendor/notur/notur/` which is normally managed by Composer. Running `composer update notur/notur` will overwrite these changes and revert to the published release.
+:::
+
+The GitHub repository is configured via the `notur.repository` config key (defaults to `sak0a/notur`). See [Configuration](#configuration) below.
+
 ### Scaffolding New Extensions
 
 ```bash
@@ -359,6 +395,14 @@ The directory where extensions are stored, relative to the panel root. Change th
 ```
 
 When `true`, only extensions with valid Ed25519 signatures can be installed. Set to `true` for production environments where you want to ensure extension integrity. Set to `false` for development or trusted environments.
+
+### `repository`
+
+```php
+'repository' => 'sak0a/notur',
+```
+
+The GitHub `owner/repo` for the Notur framework source code. Used by `notur:dev:pull` to download unreleased commits. Change this if you are working with a fork of the framework.
 
 ### `registry_url`
 
