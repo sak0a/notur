@@ -57,7 +57,7 @@ If the automated installer does not work for your environment, see [Installing](
 
 1. Visit your panel in a browser. It should load normally.
 2. View the page source. Look for `window.__NOTUR__` and a `<script>` tag loading `bridge.js`.
-3. Open the browser console. You should see `[Notur] Bridge runtime v1.2.2 initialized`.
+3. Open the browser console. You should see `[Notur] Bridge runtime v1.2.3 initialized`.
 4. Run `php artisan notur:list`. It should report no extensions installed.
 
 ## Managing Extensions via CLI
@@ -339,7 +339,7 @@ Notur's configuration file is published at `config/notur.php`. The available opt
 ### `version`
 
 ```php
-'version' => '1.2.2',
+'version' => '1.X.X',
 ```
 
 The Notur framework version. Do not modify this manually.

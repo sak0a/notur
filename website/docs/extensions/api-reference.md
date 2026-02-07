@@ -567,7 +567,7 @@ The Notur config file (`config/notur.php`) exposes the following keys:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `version` | `string` | `'1.2.2'` | Notur framework version |
+| `version` | `string` | `'1.2.3'` | Notur framework version |
 | `extensions_path` | `string` | `'notur/extensions'` | Extension storage directory (relative to panel root) |
 | `require_signatures` | `bool` | `false` | Require Ed25519 signatures on `.notur` archives |
 | `registry_url` | `string` | `'https://raw.githubusercontent.com/notur/registry/main'` | Remote registry base URL |
