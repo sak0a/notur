@@ -22,14 +22,6 @@ class DevPullCommand extends Command
 
     protected $description = 'Pull the latest Notur framework code from GitHub for development';
 
-    private ?Client $client = null;
-
-    public function __construct(?Client $client = null)
-    {
-        parent::__construct();
-        $this->client = $client;
-    }
-
     public function handle(): int
     {
         $branch = $this->argument('branch');
@@ -41,23 +33,7 @@ class DevPullCommand extends Command
         $repo = config('notur.repository', self::DEFAULT_REPO);
         $noturRoot = base_path('vendor/notur/notur');
 
-        if (! is_dir($noturRoot)) {
-            $this->error("Notur installation not found at path: {$noturRoot}. Make sure Notur is installed (e.g. via Composer) before running this command.");
-            return 1;
-        }
-
-        if (! is_writable($noturRoot)) {
-            $this->error("The Notur installation directory is not writable: {$noturRoot}. Please adjust filesystem permissions and try again.");
-            return 1;
-        }
-        $client = $this->client ?? new Client([
-            'timeout' => 30,
-            'connect_timeout' => 10,
-            'headers' => [
-                'Accept' => 'application/vnd.github.v3+json',
-                'User-Agent' => 'Notur-DevPull/1.0',
-            ],
-        ]);
+        $client = $this->resolveClient();
 
         // Step 1: Fetch commit info
         $this->info("Fetching commit info for '{$ref}' from {$repo}...");
@@ -96,6 +72,17 @@ class DevPullCommand extends Command
                 $this->info('[DRY RUN] Would copy bridge.js and tailwind.css to public/notur/');
             }
             return 0;
+        }
+
+        // Validate vendor directory exists and is writable before making changes
+        if (!is_dir($noturRoot)) {
+            $this->error("Notur installation not found at path: {$noturRoot}. Make sure Notur is installed (e.g. via Composer) before running this command.");
+            return 1;
+        }
+
+        if (!is_writable($noturRoot)) {
+            $this->error("The Notur installation directory is not writable: {$noturRoot}. Please adjust filesystem permissions and try again.");
+            return 1;
         }
 
         if (!$this->confirm("Pull commit {$shortSha} into vendor/notur/notur?")) {
@@ -206,6 +193,23 @@ class DevPullCommand extends Command
         $this->info("Run 'composer update notur/notur' to revert to the published release.");
 
         return 0;
+    }
+
+    private function resolveClient(): Client
+    {
+        // Allow injecting a mock client via the Laravel container (used in tests)
+        if (app()->bound(Client::class)) {
+            return app(Client::class);
+        }
+
+        return new Client([
+            'timeout' => 30,
+            'connect_timeout' => 10,
+            'headers' => [
+                'Accept' => 'application/vnd.github.v3+json',
+                'User-Agent' => 'Notur-DevPull/1.0',
+            ],
+        ]);
     }
 
     private function fetchCommitInfo(Client $client, string $repo, string $ref): array
