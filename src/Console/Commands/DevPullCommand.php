@@ -245,11 +245,15 @@ class DevPullCommand extends Command
         }
 
         // Manually extract each entry with path validation to prevent path traversal attacks
-        $targetDir = realpath($targetDir);
-        if ($targetDir === false) {
+        $realTargetDir = realpath($targetDir);
+        if ($realTargetDir === false) {
             $zip->close();
             throw new \RuntimeException('Failed to resolve target directory path');
         }
+
+        // Use the original (non-symlink-resolved) path for security checks
+        // to prevent symlink-based attacks
+        $secureTargetDir = rtrim($targetDir, '/\\');
 
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $entry = $zip->getNameIndex($i);
@@ -271,18 +275,25 @@ class DevPullCommand extends Command
                 throw new \RuntimeException("Archive contains path that attempts to escape: {$entry}");
             }
 
-            $destination = $targetDir . DIRECTORY_SEPARATOR . $normalizedEntry;
+            $destination = $secureTargetDir . DIRECTORY_SEPARATOR . $normalizedEntry;
 
             // Double-check the resolved path is within target directory
-            $realDestination = realpath(dirname($destination));
-            if ($realDestination === false) {
-                // Directory doesn't exist yet, which is OK - verify the path would be safe
-                $parentPath = dirname($destination);
-                if (!str_starts_with($parentPath, $targetDir)) {
+            // Normalize the parent path to detect any traversal attempts
+            $parentPath = dirname($destination);
+            try {
+                $normalizedParent = $this->normalizePath($parentPath);
+                if (!str_starts_with($normalizedParent, $secureTargetDir)) {
                     $zip->close();
                     throw new \RuntimeException("Archive attempts to extract outside target directory: {$entry}");
                 }
-            } elseif (!str_starts_with($realDestination, $targetDir)) {
+            } catch (\RuntimeException $e) {
+                $zip->close();
+                throw new \RuntimeException("Archive contains path that attempts to escape: {$entry}");
+            }
+
+            // Also verify with realpath if the directory exists
+            $realParent = realpath($parentPath);
+            if ($realParent !== false && !str_starts_with($realParent, $realTargetDir)) {
                 $zip->close();
                 throw new \RuntimeException("Archive attempts to extract outside target directory: {$entry}");
             }
@@ -306,7 +317,11 @@ class DevPullCommand extends Command
                     throw new \RuntimeException("Failed to read entry from archive: {$entry}");
                 }
 
-                file_put_contents($destination, $contents);
+                $written = file_put_contents($destination, $contents);
+                if ($written === false) {
+                    $zip->close();
+                    throw new \RuntimeException("Failed to write extracted file: {$entry}");
+                }
             }
         }
 
@@ -314,15 +329,15 @@ class DevPullCommand extends Command
 
         // GitHub zipball contains a single top-level directory: {owner}-{repo}-{shortsha}/
         $entries = array_values(array_filter(
-            scandir($targetDir),
-            fn ($e) => $e !== '.' && $e !== '..' && is_dir($targetDir . '/' . $e),
+            scandir($secureTargetDir),
+            fn ($e) => $e !== '.' && $e !== '..' && is_dir($secureTargetDir . '/' . $e),
         ));
 
         if (count($entries) !== 1) {
             throw new \RuntimeException('Unexpected archive structure: expected exactly one top-level directory');
         }
 
-        return $targetDir . '/' . $entries[0];
+        return $secureTargetDir . '/' . $entries[0];
     }
 
     /**
