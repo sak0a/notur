@@ -22,6 +22,14 @@ class DevPullCommand extends Command
 
     protected $description = 'Pull the latest Notur framework code from GitHub for development';
 
+    private ?Client $client = null;
+
+    public function __construct(?Client $client = null)
+    {
+        parent::__construct();
+        $this->client = $client;
+    }
+
     public function handle(): int
     {
         $branch = $this->argument('branch');
@@ -33,7 +41,7 @@ class DevPullCommand extends Command
         $repo = config('notur.repository', self::DEFAULT_REPO);
         $noturRoot = base_path('vendor/notur/notur');
 
-        $client = new Client([
+        $client = $this->client ?? new Client([
             'timeout' => 30,
             'connect_timeout' => 10,
             'headers' => [
