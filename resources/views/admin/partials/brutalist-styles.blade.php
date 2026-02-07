@@ -536,6 +536,11 @@ body.notur-admin-page .label-default {
     color: var(--nb-text);
 }
 
+body.notur-admin-page .table .label-default {
+    background: var(--nb-border) !important;
+    color: var(--nb-text) !important;
+}
+
 body.notur-admin-page .label-info {
     background: var(--nb-accent-dim);
     color: var(--nb-accent-light);
