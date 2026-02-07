@@ -313,8 +313,11 @@ class DevPullCommand extends Command
         if (file_exists($cwd . '/yarn.lock')) {
             return 'yarn';
         }
+        if (file_exists($cwd . '/package-lock.json')) {
+            return 'npm';
+        }
 
-        return 'bun';
+        return 'npm';
     }
 
     private function runProcess(string $command, string $cwd): int
