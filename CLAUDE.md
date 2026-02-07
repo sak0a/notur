@@ -49,7 +49,7 @@ npm run test:frontend      # Jest tests
 
 **Database tables:** `notur_extensions`, `notur_migrations`, `notur_settings`, `notur_activity_logs` (migrations in `database/migrations/`).
 
-**Artisan commands** (16 total in `src/Console/Commands/`): `notur:install`, `notur:remove`, `notur:enable`, `notur:disable`, `notur:list`, `notur:update`, `notur:dev`, `notur:build`, `notur:export`, `notur:registry:sync`, `notur:uninstall`, `notur:new`, `notur:validate`, `notur:status`, `notur:keygen`, `notur:registry:status`.
+**Artisan commands** (17 total in `src/Console/Commands/`): `notur:install`, `notur:remove`, `notur:enable`, `notur:disable`, `notur:list`, `notur:update`, `notur:dev`, `notur:dev:pull`, `notur:build`, `notur:export`, `notur:registry:sync`, `notur:uninstall`, `notur:new`, `notur:validate`, `notur:status`, `notur:keygen`, `notur:registry:status`.
 
 ### Frontend Bridge (`bridge/src/`)
 
