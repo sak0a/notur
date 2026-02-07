@@ -272,7 +272,12 @@ class DevPullCommand extends Command
                 if (!is_dir($tmpPreserve)) {
                     mkdir($tmpPreserve, 0755, true);
                 }
-                rename($dirPath, $tmpPreserve . '/' . $dir);
+                if (!rename($dirPath, $tmpPreserve . '/' . $dir)) {
+                    throw new \RuntimeException(
+                        "Failed to preserve directory: {$dirPath}. " .
+                        "Check permissions and ensure the directory is not locked."
+                    );
+                }
             }
         }
 
@@ -292,7 +297,12 @@ class DevPullCommand extends Command
                 if (is_dir($destPath)) {
                     $this->deleteDirectory($destPath);
                 }
-                rename($tmpSource, $destPath);
+                if (!rename($tmpSource, $destPath)) {
+                    throw new \RuntimeException(
+                        "Failed to restore directory: {$tmpSource} to {$destPath}. " .
+                        "Check permissions and ensure the directory is not locked."
+                    );
+                }
             }
         }
 
