@@ -10,6 +10,7 @@ use Illuminate\Console\Events\CommandStarting;
 use Notur\Features\FeatureRegistry;
 use Notur\Console\Commands\BuildCommand;
 use Notur\Console\Commands\DevCommand;
+use Notur\Console\Commands\DevPullCommand;
 use Notur\Console\Commands\DisableCommand;
 use Notur\Console\Commands\EnableCommand;
 use Notur\Console\Commands\ExportCommand;
@@ -92,6 +93,7 @@ class NoturServiceProvider extends ServiceProvider
                 ListCommand::class,
                 UpdateCommand::class,
                 DevCommand::class,
+                DevPullCommand::class,
                 BuildCommand::class,
                 ExportCommand::class,
                 KeygenCommand::class,
