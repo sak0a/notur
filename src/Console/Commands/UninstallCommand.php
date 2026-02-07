@@ -340,21 +340,14 @@ class UninstallCommand extends Command
         }
 
         exec(
-            sprintf('cd %s && %s 2>&1', escapeshellarg($panelDir), $command),
+            sprintf('cd %s && NODE_OPTIONS=--openssl-legacy-provider %s 2>&1', escapeshellarg($panelDir), $command),
             $output,
             $result,
         );
 
         if ($result !== 0) {
             $this->warn('  Frontend rebuild failed. Run manually:');
-            $this->warn("  {$command}");
-
-            $outputText = implode("\n", $output);
-            if (str_contains($outputText, 'ERR_OSSL_EVP_UNSUPPORTED')) {
-                $this->warn('  Detected OpenSSL error (ERR_OSSL_EVP_UNSUPPORTED) from Node.js.');
-                $this->warn('  Suggested fix: use Node.js 18/20 LTS or set:');
-                $this->warn('  NODE_OPTIONS=--openssl-legacy-provider');
-            }
+            $this->warn("  NODE_OPTIONS=--openssl-legacy-provider {$command}");
         } else {
             $this->info('  Frontend rebuilt successfully.');
         }
