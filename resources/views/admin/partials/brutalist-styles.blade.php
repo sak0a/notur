@@ -43,6 +43,7 @@ body.notur-admin-page .content-header {
     background: var(--nb-void);
     border-bottom: 1px solid var(--nb-border);
     padding: 28px 20px 18px;
+    position: relative;
 }
 
 body.notur-admin-page .content-header > h1 {
@@ -67,7 +68,11 @@ body.notur-admin-page .content-header > h1 small {
 }
 
 body.notur-admin-page .content-header .pull-right {
-    margin-top: -30px !important;
+    position: absolute;
+    top: 22px;
+    right: 20px;
+    margin-top: 0 !important;
+    z-index: 2;
 }
 
 body.notur-admin-page .content-header .pull-right .btn {
@@ -150,7 +155,7 @@ body.notur-admin-page .box-default {
 
 body.notur-admin-page .box-primary { border-left-color: var(--nb-accent); }
 body.notur-admin-page .box-info    { border-left-color: var(--nb-accent); }
-body.notur-admin-page .box-success { border-left-color: var(--nb-success); }
+body.notur-admin-page .box-success { border-left-color: var(--nb-accent); }
 body.notur-admin-page .box-warning { border-left-color: var(--nb-warning); }
 body.notur-admin-page .box-default { border-left-color: var(--nb-border-strong); }
 
@@ -491,7 +496,9 @@ body.notur-admin-page .callout {
 }
 
 body.notur-admin-page .callout-info {
+    background: var(--nb-accent-dim);
     border-left-color: var(--nb-accent);
+    color: var(--nb-accent-light);
 }
 
 body.notur-admin-page .callout-danger {
@@ -705,8 +712,47 @@ body.notur-admin-page .label {
     }
 
     body.notur-admin-page .content-header .pull-right {
+        position: static;
         margin-top: 8px !important;
         float: none !important;
     }
 }
 </style>
+
+<script>
+    (function () {
+        const buttons = document.querySelectorAll('.btn-box-tool[data-widget="collapse"]');
+        if (!buttons.length) {
+            return;
+        }
+
+        buttons.forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const box = button.closest('.box');
+                if (!box) {
+                    return;
+                }
+
+                const isCollapsed = box.classList.toggle('nb-collapsed');
+                const body = box.querySelector('.box-body');
+                const footer = box.querySelector('.box-footer');
+                const icon = button.querySelector('i');
+
+                [body, footer].forEach((section) => {
+                    if (!section) {
+                        return;
+                    }
+                    section.style.display = isCollapsed ? 'none' : '';
+                });
+
+                if (icon) {
+                    icon.classList.toggle('fa-plus', isCollapsed);
+                    icon.classList.toggle('fa-minus', !isCollapsed);
+                }
+            });
+        });
+    })();
+</script>

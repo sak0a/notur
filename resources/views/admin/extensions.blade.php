@@ -58,13 +58,8 @@
                                     <p class="help-block">Enter the extension ID to install from the registry.</p>
                                 </div>
                             </div>
-<<<<<<< claude/brutalist-admin-redesign-SiZm3
                             <div class="col-md-1 text-center" style="padding-top: 30px;">
                                 <span style="color: var(--nb-text-muted, #555); font-family: var(--nb-mono, monospace); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;">or</span>
-=======
-                            <div class="col-md-1 text-center pt-[30px]">
-                                <strong>OR</strong>
->>>>>>> master
                             </div>
                             <div class="col-md-5">
                                 <div class="form-group">

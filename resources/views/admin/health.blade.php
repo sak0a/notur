@@ -91,15 +91,9 @@
                         <div class="box-tools pull-right">
                             <span class="label {{ $overallClass }} mr-2">{{ $overallStatus }}</span>
                             @if($extension->enabled)
-<<<<<<< claude/brutalist-admin-redesign-SiZm3
                                 <span class="label label-success" style="margin-right: 8px;"><span class="nb-status nb-status--active"></span>Enabled</span>
                             @else
                                 <span class="label label-default" style="margin-right: 8px;"><span class="nb-status nb-status--inactive"></span>Disabled</span>
-=======
-                                <span class="label label-success mr-2">Enabled</span>
-                            @else
-                                <span class="label label-default mr-2">Disabled</span>
->>>>>>> master
                             @endif
                             <a href="{{ route('admin.notur.extensions.show', $extension->extension_id) }}" class="btn btn-xs btn-default">
                                 <i class="fa fa-eye"></i> Details
