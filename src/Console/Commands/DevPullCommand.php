@@ -137,21 +137,27 @@ class DevPullCommand extends Command
             $this->newLine();
             $this->info('Rebuilding frontend...');
 
-            $packageManager = $this->resolvePackageManager($noturRoot);
+            $packageManager = $this->resolvePackageManager();
+            if ($packageManager === null) {
+                $this->warn('No supported package manager found (npm, yarn, pnpm, bun).');
+                $this->warn('Skipping rebuild commands. Run manually once a package manager is installed.');
+            } else {
+                $this->info("Using package manager: {$packageManager}");
 
-            $result = $this->runProcess("{$packageManager} install", $noturRoot);
-            if ($result !== 0) {
-                $this->warn('Dependency install failed. You may need to run it manually.');
-            }
+                $result = $this->runProcess("{$packageManager} install", $noturRoot);
+                if ($result !== 0) {
+                    $this->warn('Dependency install failed. You may need to run it manually.');
+                }
 
-            $result = $this->runProcess("{$packageManager} run build:bridge", $noturRoot);
-            if ($result !== 0) {
-                $this->warn('Bridge build failed. You may need to run it manually.');
-            }
+                $result = $this->runProcess("{$packageManager} run build:bridge", $noturRoot);
+                if ($result !== 0) {
+                    $this->warn('Bridge build failed. You may need to run it manually.');
+                }
 
-            $result = $this->runProcess("{$packageManager} run build:tailwind", $noturRoot);
-            if ($result !== 0) {
-                $this->warn('Tailwind build failed. You may need to run it manually.');
+                $result = $this->runProcess("{$packageManager} run build:tailwind", $noturRoot);
+                if ($result !== 0) {
+                    $this->warn('Tailwind build failed. You may need to run it manually.');
+                }
             }
 
             // Step 7: Copy built assets to public
@@ -336,22 +342,76 @@ class DevPullCommand extends Command
         }
     }
 
-    private function resolvePackageManager(string $cwd): string
+    private function resolvePackageManager(): ?string
     {
-        if (file_exists($cwd . '/bun.lockb') || file_exists($cwd . '/bun.lock')) {
-            return 'bun';
-        }
-        if (file_exists($cwd . '/pnpm-lock.yaml')) {
-            return 'pnpm';
-        }
-        if (file_exists($cwd . '/yarn.lock')) {
-            return 'yarn';
-        }
-        if (file_exists($cwd . '/package-lock.json')) {
-            return 'npm';
+        foreach (['npm', 'yarn', 'pnpm', 'bun'] as $manager) {
+            if ($this->commandExists($manager)) {
+                return $manager;
+            }
         }
 
-        return 'npm';
+        return null;
+    }
+
+    private function commandExists(string $command): bool
+    {
+        if ($command === '') {
+            return false;
+        }
+
+        // Allow callers to pass absolute/relative executable paths directly.
+        if (str_contains($command, '/') || str_contains($command, '\\')) {
+            return is_file($command) && is_executable($command);
+        }
+
+        $path = getenv('PATH');
+        if (!is_string($path) || $path === '') {
+            return false;
+        }
+
+        $directories = array_filter(explode(PATH_SEPARATOR, $path));
+        $isWindows = PHP_OS_FAMILY === 'Windows';
+
+        $extensions = [''];
+        if ($isWindows) {
+            $pathext = getenv('PATHEXT');
+            $extensions = ['.exe', '.cmd', '.bat', '.com'];
+
+            if (is_string($pathext) && $pathext !== '') {
+                $parsed = array_map(
+                    static fn (string $ext): string => strtolower(trim($ext)),
+                    explode(';', $pathext),
+                );
+                $parsed = array_values(array_filter($parsed, static fn (string $ext): bool => $ext !== ''));
+                if ($parsed !== []) {
+                    $extensions = $parsed;
+                }
+            }
+
+            if (pathinfo($command, PATHINFO_EXTENSION) !== '') {
+                $extensions = [''];
+            }
+        }
+
+        foreach ($directories as $directory) {
+            $directory = rtrim($directory, DIRECTORY_SEPARATOR);
+            if ($directory === '') {
+                continue;
+            }
+
+            foreach ($extensions as $extension) {
+                $candidate = $directory . DIRECTORY_SEPARATOR . $command;
+                if ($extension !== '' && !str_ends_with(strtolower($candidate), $extension)) {
+                    $candidate .= $extension;
+                }
+
+                if (is_file($candidate) && is_executable($candidate)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function runProcess(string $command, string $cwd): int
