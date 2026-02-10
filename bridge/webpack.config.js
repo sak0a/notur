@@ -28,7 +28,17 @@ module.exports = {
     // global React/ReactDOM runtime provided by the panel.
     // This avoids duplicate React instances that can break hooks.
     externals: {
-        react: 'React',
-        'react-dom': 'ReactDOM',
+        react: {
+            root: 'React',
+            commonjs: 'react',
+            commonjs2: 'react',
+            amd: 'react',
+        },
+        'react-dom': {
+            root: 'ReactDOM',
+            commonjs: 'react-dom',
+            commonjs2: 'react-dom',
+            amd: 'react-dom',
+        },
     },
 };
