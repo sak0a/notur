@@ -355,15 +355,63 @@ class DevPullCommand extends Command
 
     private function commandExists(string $command): bool
     {
-        if (!function_exists('exec')) {
+        if ($command === '') {
             return false;
         }
 
-        $output = [];
-        $result = 1;
-        exec(sprintf('command -v %s >/dev/null 2>&1', escapeshellarg($command)), $output, $result);
+        // Allow callers to pass absolute/relative executable paths directly.
+        if (str_contains($command, '/') || str_contains($command, '\\')) {
+            return is_file($command) && is_executable($command);
+        }
 
-        return $result === 0;
+        $path = getenv('PATH');
+        if (!is_string($path) || $path === '') {
+            return false;
+        }
+
+        $directories = array_filter(explode(PATH_SEPARATOR, $path));
+        $isWindows = PHP_OS_FAMILY === 'Windows';
+
+        $extensions = [''];
+        if ($isWindows) {
+            $pathext = getenv('PATHEXT');
+            $extensions = ['.exe', '.cmd', '.bat', '.com'];
+
+            if (is_string($pathext) && $pathext !== '') {
+                $parsed = array_map(
+                    static fn (string $ext): string => strtolower(trim($ext)),
+                    explode(';', $pathext),
+                );
+                $parsed = array_values(array_filter($parsed, static fn (string $ext): bool => $ext !== ''));
+                if ($parsed !== []) {
+                    $extensions = $parsed;
+                }
+            }
+
+            if (pathinfo($command, PATHINFO_EXTENSION) !== '') {
+                $extensions = [''];
+            }
+        }
+
+        foreach ($directories as $directory) {
+            $directory = rtrim($directory, DIRECTORY_SEPARATOR);
+            if ($directory === '') {
+                continue;
+            }
+
+            foreach ($extensions as $extension) {
+                $candidate = $directory . DIRECTORY_SEPARATOR . $command;
+                if ($extension !== '' && !str_ends_with(strtolower($candidate), $extension)) {
+                    $candidate .= $extension;
+                }
+
+                if (is_file($candidate) && is_executable($candidate)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function runProcess(string $command, string $cwd): int
