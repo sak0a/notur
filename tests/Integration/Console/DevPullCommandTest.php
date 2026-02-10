@@ -9,11 +9,14 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Mockery;
+use Notur\Console\Commands\DevPullCommand;
 use Notur\NoturServiceProvider;
 use Orchestra\Testbench\TestCase;
 
 class DevPullCommandTest extends TestCase
 {
+    private string $originalPath;
+
     protected function getPackageProviders($app): array
     {
         return [NoturServiceProvider::class];
@@ -34,12 +37,35 @@ class DevPullCommandTest extends TestCase
     {
         parent::setUp();
         $this->loadMigrationsFrom(__DIR__ . '/../../../database/migrations');
+        $this->originalPath = (string) getenv('PATH');
     }
 
     protected function tearDown(): void
     {
+        putenv("PATH={$this->originalPath}");
         Mockery::close();
         parent::tearDown();
+    }
+
+    public function test_package_manager_resolution_prefers_npm_then_yarn_then_pnpm_then_bun(): void
+    {
+        // Only yarn and bun available -> yarn is preferred
+        $this->setPathToBinaries(['yarn', 'bun']);
+        $this->assertSame('yarn', $this->invokeResolvePackageManager());
+
+        // npm available -> it wins over all others
+        $this->setPathToBinaries(['npm', 'yarn', 'pnpm', 'bun']);
+        $this->assertSame('npm', $this->invokeResolvePackageManager());
+
+        // pnpm available (without npm/yarn) -> pnpm selected before bun
+        $this->setPathToBinaries(['pnpm', 'bun']);
+        $this->assertSame('pnpm', $this->invokeResolvePackageManager());
+    }
+
+    public function test_package_manager_resolution_returns_null_when_no_supported_binary_is_available(): void
+    {
+        $this->setPathToBinaries([]);
+        $this->assertNull($this->invokeResolvePackageManager());
     }
 
     public function test_dry_run_shows_what_would_be_done_without_making_changes(): void
@@ -270,5 +296,33 @@ class DevPullCommandTest extends TestCase
 
         $this->artisan('notur:dev:pull', ['--dry-run' => true])
             ->assertExitCode(0);
+    }
+
+    private function invokeResolvePackageManager(): ?string
+    {
+        $command = app(DevPullCommand::class);
+        $method = new \ReflectionMethod(DevPullCommand::class, 'resolvePackageManager');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($command);
+
+        return is_string($result) ? $result : null;
+    }
+
+    /**
+     * @param array<int, string> $binaries
+     */
+    private function setPathToBinaries(array $binaries): void
+    {
+        $binDir = sys_get_temp_dir() . '/notur-dev-pull-bin-' . uniqid('', true);
+        mkdir($binDir, 0755, true);
+
+        foreach ($binaries as $binary) {
+            $path = $binDir . DIRECTORY_SEPARATOR . $binary;
+            file_put_contents($path, "#!/bin/sh\nexit 0\n");
+            chmod($path, 0755);
+        }
+
+        putenv("PATH={$binDir}");
     }
 }

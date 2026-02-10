@@ -137,21 +137,27 @@ class DevPullCommand extends Command
             $this->newLine();
             $this->info('Rebuilding frontend...');
 
-            $packageManager = $this->resolvePackageManager($noturRoot);
+            $packageManager = $this->resolvePackageManager();
+            if ($packageManager === null) {
+                $this->warn('No supported package manager found (npm, yarn, pnpm, bun).');
+                $this->warn('Skipping rebuild commands. Run manually once a package manager is installed.');
+            } else {
+                $this->info("Using package manager: {$packageManager}");
 
-            $result = $this->runProcess("{$packageManager} install", $noturRoot);
-            if ($result !== 0) {
-                $this->warn('Dependency install failed. You may need to run it manually.');
-            }
+                $result = $this->runProcess("{$packageManager} install", $noturRoot);
+                if ($result !== 0) {
+                    $this->warn('Dependency install failed. You may need to run it manually.');
+                }
 
-            $result = $this->runProcess("{$packageManager} run build:bridge", $noturRoot);
-            if ($result !== 0) {
-                $this->warn('Bridge build failed. You may need to run it manually.');
-            }
+                $result = $this->runProcess("{$packageManager} run build:bridge", $noturRoot);
+                if ($result !== 0) {
+                    $this->warn('Bridge build failed. You may need to run it manually.');
+                }
 
-            $result = $this->runProcess("{$packageManager} run build:tailwind", $noturRoot);
-            if ($result !== 0) {
-                $this->warn('Tailwind build failed. You may need to run it manually.');
+                $result = $this->runProcess("{$packageManager} run build:tailwind", $noturRoot);
+                if ($result !== 0) {
+                    $this->warn('Tailwind build failed. You may need to run it manually.');
+                }
             }
 
             // Step 7: Copy built assets to public
@@ -336,22 +342,28 @@ class DevPullCommand extends Command
         }
     }
 
-    private function resolvePackageManager(string $cwd): string
+    private function resolvePackageManager(): ?string
     {
-        if (file_exists($cwd . '/bun.lockb') || file_exists($cwd . '/bun.lock')) {
-            return 'bun';
-        }
-        if (file_exists($cwd . '/pnpm-lock.yaml')) {
-            return 'pnpm';
-        }
-        if (file_exists($cwd . '/yarn.lock')) {
-            return 'yarn';
-        }
-        if (file_exists($cwd . '/package-lock.json')) {
-            return 'npm';
+        foreach (['npm', 'yarn', 'pnpm', 'bun'] as $manager) {
+            if ($this->commandExists($manager)) {
+                return $manager;
+            }
         }
 
-        return 'npm';
+        return null;
+    }
+
+    private function commandExists(string $command): bool
+    {
+        if (!function_exists('exec')) {
+            return false;
+        }
+
+        $output = [];
+        $result = 1;
+        exec(sprintf('command -v %s >/dev/null 2>&1', escapeshellarg($command)), $output, $result);
+
+        return $result === 0;
     }
 
     private function runProcess(string $command, string $cwd): int
