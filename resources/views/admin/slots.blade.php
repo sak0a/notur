@@ -21,6 +21,16 @@
             <div class="box box-primary">
                 <div class="box-header with-border">
                     <h3 class="box-title"><i class="fa fa-th" style="margin-right: 8px; opacity: 0.5;"></i>Slot Catalog</h3>
+                    <div class="box-tools pull-right">
+                        <div class="input-group input-group-sm" style="width: 250px;">
+                            <input type="text" class="form-control" id="slot-search" placeholder="Filter slots...">
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-default" id="slot-search-clear">
+                                    <i class="fa fa-times"></i>
+                                </button>
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 <div class="box-body table-responsive">
                     <table class="table table-hover">
@@ -72,6 +82,11 @@
                                     </td>
                                 </tr>
                             @endforeach
+                            <tr id="slot-no-results" style="display: none;">
+                                <td colspan="5" class="text-center text-muted" style="padding: 20px;">
+                                    No slots match your search.
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -124,4 +139,33 @@
         <div class="nb-brand-bar__logo">N</div>
         <div class="nb-brand-bar__text">Notur Extension Framework</div>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var input = document.getElementById('slot-search');
+        var clearBtn = document.getElementById('slot-search-clear');
+        var table = input.closest('.box').querySelector('table.table tbody');
+        var rows = table.querySelectorAll('tr:not(#slot-no-results)');
+        var noResults = document.getElementById('slot-no-results');
+
+        function filterSlots() {
+            var query = input.value.toLowerCase().trim();
+            var visible = 0;
+            rows.forEach(function (row) {
+                var text = row.textContent.toLowerCase();
+                var match = !query || text.indexOf(query) !== -1;
+                row.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            noResults.style.display = visible === 0 ? '' : 'none';
+        }
+
+        input.addEventListener('input', filterSlots);
+        clearBtn.addEventListener('click', function () {
+            input.value = '';
+            filterSlots();
+            input.focus();
+        });
+    });
+    </script>
 @endsection
