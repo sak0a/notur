@@ -99,7 +99,7 @@ body.notur-admin-page .content-header .pull-right .btn:hover {
 
 body.notur-admin-page .breadcrumb {
     background: transparent;
-    padding: 4px 0 0;
+    padding: 12px 0 0;
     margin: 0;
 }
 
@@ -223,6 +223,7 @@ body.notur-admin-page .box-tools .btn {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     font-weight: 600;
+    margin-top: 4px;
 }
 
 body.notur-admin-page .box-tools .btn:hover {
