@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Notur\Console\UI\Components;
 
 use Illuminate\Console\Command;
-use Composer\InstalledVersions;
 use Notur\Console\UI\Themes\NoturTheme;
 use Notur\ExtensionManager;
 use Notur\Models\InstalledExtension;
+use Notur\Support\SystemDiagnostics;
 use Notur\Support\ConsoleBanner;
 
 /**
@@ -22,6 +22,7 @@ class StatusDashboard
     public function __construct(
         private readonly Command $command,
         private readonly ExtensionManager $manager,
+        private readonly SystemDiagnostics $diagnostics,
     ) {}
 
     /**
@@ -74,7 +75,7 @@ class StatusDashboard
         $checks = [];
 
         // Notur Version
-        $noturVersion = $this->getNoturVersion();
+        $noturVersion = $this->diagnostics->getNoturVersion();
         $checks[] = [
             'label' => 'Notur Version',
             'value' => $noturVersion,
@@ -103,7 +104,7 @@ class StatusDashboard
         ];
 
         // Panel Version
-        $panelVersion = $this->getPanelVersion();
+        $panelVersion = $this->diagnostics->getPanelVersion();
         $checks[] = [
             'label' => 'Panel Version',
             'value' => $panelVersion ?: 'Unknown',
@@ -261,56 +262,6 @@ class StatusDashboard
     }
 
     /**
-     * Get Notur version.
-     */
-    private function getNoturVersion(): string
-    {
-        if (class_exists(InstalledVersions::class)) {
-            $version = InstalledVersions::getPrettyVersion('notur/notur');
-            if ($version) {
-                return $version;
-            }
-        }
-
-        $lockFile = base_path('composer.lock');
-        if (file_exists($lockFile)) {
-            $lock = json_decode(file_get_contents($lockFile), true);
-            foreach (array_merge($lock['packages'] ?? [], $lock['packages-dev'] ?? []) as $package) {
-                if (($package['name'] ?? null) === 'notur/notur') {
-                    return $package['version'] ?? $package['pretty_version'] ?? '1.x';
-                }
-            }
-        }
-
-        return '1.x';
-    }
-
-    /**
-     * Get Pterodactyl Panel version.
-     */
-    private function getPanelVersion(): ?string
-    {
-        // Try config
-        $version = config('app.version');
-        if ($version) {
-            return $version;
-        }
-
-        // Try composer.lock
-        $lockFile = base_path('composer.lock');
-        if (file_exists($lockFile)) {
-            $lock = json_decode(file_get_contents($lockFile), true);
-            foreach ($lock['packages'] ?? [] as $package) {
-                if ($package['name'] === 'pterodactyl/panel') {
-                    return $package['version'] ?? null;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Render as JSON.
      *
      * @return array<string, mixed>
@@ -326,10 +277,10 @@ class StatusDashboard
         ])->toArray();
 
         return [
-            'notur_version' => $this->getNoturVersion(),
+            'notur_version' => $this->diagnostics->getNoturVersion(),
             'php_version' => PHP_VERSION,
             'laravel_version' => app()->version(),
-            'panel_version' => $this->getPanelVersion(),
+            'panel_version' => $this->diagnostics->getPanelVersion(),
             'extensions' => $extensions,
             'extensions_total' => count($extensions),
             'extensions_enabled' => $installedExtensions->where('enabled', true)->count(),

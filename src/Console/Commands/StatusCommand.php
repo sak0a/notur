@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Notur\Console\UI\Components\StatusDashboard;
 use Notur\Console\UI\Concerns\HasInteractiveUI;
 use Notur\ExtensionManager;
+use Notur\Support\SystemDiagnostics;
 
 /**
  * Display Notur system status dashboard.
@@ -28,13 +29,14 @@ class StatusCommand extends Command
 
     public function __construct(
         private readonly ExtensionManager $manager,
+        private readonly SystemDiagnostics $diagnostics,
     ) {
         parent::__construct();
     }
 
     public function handle(): int
     {
-        $dashboard = new StatusDashboard($this, $this->manager);
+        $dashboard = new StatusDashboard($this, $this->manager, $this->diagnostics);
 
         // JSON output
         if ($this->option('json')) {

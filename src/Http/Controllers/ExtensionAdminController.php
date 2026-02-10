@@ -16,6 +16,7 @@ use Notur\Models\ExtensionActivity;
 use Notur\Models\ExtensionSetting;
 use Notur\Models\InstalledExtension;
 use Notur\Support\RegistryClient;
+use Notur\Support\SystemDiagnostics;
 use Notur\Support\SlotDefinitions;
 
 class ExtensionAdminController extends Controller
@@ -215,9 +216,11 @@ class ExtensionAdminController extends Controller
     /**
      * Show the frontend diagnostics page.
      */
-    public function diagnostics(): View
+    public function diagnostics(SystemDiagnostics $diagnostics): View
     {
-        return view('notur::admin.diagnostics');
+        return view('notur::admin.diagnostics', [
+            'generalInfo' => $diagnostics->summary(),
+        ]);
     }
 
     /**
