@@ -78,4 +78,20 @@ class SystemDiagnosticsTest extends TestCase
         $this->assertSame('update_available', $updateInfo['status']);
         $this->assertTrue($updateInfo['update_available']);
     }
+
+    public function test_failed_latest_version_lookup_is_cached_to_throttle_retries(): void
+    {
+        Http::fake([
+            'repo.packagist.org/*' => Http::response([], 503),
+        ]);
+
+        $diagnostics = $this->app->make(SystemDiagnostics::class);
+
+        $first = $diagnostics->summary();
+        $second = $diagnostics->summary();
+
+        $this->assertNull($first['updates']['notur']['latest_version']);
+        $this->assertNull($second['updates']['notur']['latest_version']);
+        Http::assertSentCount(1);
+    }
 }

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Http;
 
 final class SystemDiagnostics
 {
+    private const LATEST_VERSION_CACHE_MISS = '__notur_latest_version_cache_miss__';
+
     /**
      * Build a full diagnostics payload for the admin diagnostics page.
      *
@@ -188,11 +190,17 @@ final class SystemDiagnostics
     private function getLatestNoturVersion(): ?string
     {
         try {
-            return Cache::remember(
+            $cached = Cache::remember(
                 'notur:diagnostics:latest-version',
                 now()->addMinutes(30),
-                fn (): ?string => $this->fetchLatestNoturVersion(),
+                fn (): string => $this->fetchLatestNoturVersion() ?? self::LATEST_VERSION_CACHE_MISS,
             );
+
+            if ($cached === self::LATEST_VERSION_CACHE_MISS) {
+                return null;
+            }
+
+            return is_string($cached) && $cached !== '' ? $cached : null;
         } catch (\Throwable) {
             return $this->fetchLatestNoturVersion();
         }
