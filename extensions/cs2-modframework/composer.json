@@ -1,0 +1,15 @@
+{
+    "name": "notur/cs2-modframework",
+    "description": "One-click install of SwiftlyS2, CounterStrikeSharp & Metamod for CS2 servers",
+    "type": "notur-extension",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "guzzlehttp/guzzle": "^7.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Notur\\Cs2Modframework\\": "src/"
+        }
+    }
+}

@@ -1,0 +1,28 @@
+notur: "1.0"
+id: "notur/cs2-modframework"
+name: "CS2 Mod Frameworks"
+version: "1.0.0"
+description: "One-click install of SwiftlyS2, CounterStrikeSharp & Metamod for CS2 servers"
+authors:
+  - name: "Notur Team"
+license: "MIT"
+
+requires:
+  notur: "^1.0"
+  pterodactyl: "^1.11"
+  php: "^8.2"
+
+entrypoint: 'Notur\Cs2Modframework\Cs2ModframeworkExtension'
+
+autoload:
+  psr-4:
+    'Notur\Cs2Modframework\': "src/"
+
+backend:
+  routes:
+    api-client: "src/routes/api-client.php"
+  permissions:
+    - "cs2-modframework.manage"
+
+frontend:
+  bundle: "resources/frontend/dist/cs2-modframework.js"
