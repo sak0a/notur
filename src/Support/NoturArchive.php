@@ -133,15 +133,23 @@ class NoturArchive
             mkdir($targetPath, 0755, true);
         }
 
+        // PharData infers format from file extension — .notur is not recognised,
+        // so we rename to .tar.gz, extract, then rename back.
         try {
-            $phar = new \PharData($archivePath);
+            [$phar, $renamedPath] = self::openArchive($archivePath);
             $phar->extractTo($targetPath, null, true);
+        } catch (RuntimeException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             throw new RuntimeException(
                 "Failed to extract archive {$archivePath}: {$e->getMessage()}",
                 0,
                 $e,
             );
+        } finally {
+            if (isset($renamedPath) && $renamedPath !== null && file_exists($renamedPath)) {
+                rename($renamedPath, $archivePath);
+            }
         }
 
         // Read checksums
@@ -200,7 +208,7 @@ class NoturArchive
     public static function readChecksums(string $archivePath): ?array
     {
         try {
-            $phar = new \PharData($archivePath);
+            [$phar, $renamedPath] = self::openArchive($archivePath);
 
             if (!isset($phar['checksums.json'])) {
                 return null;
@@ -212,6 +220,10 @@ class NoturArchive
             return is_array($decoded) ? $decoded : null;
         } catch (\Throwable) {
             return null;
+        } finally {
+            if (isset($renamedPath) && $renamedPath !== null && file_exists($renamedPath)) {
+                rename($renamedPath, $archivePath);
+            }
         }
     }
 
@@ -292,5 +304,34 @@ class NoturArchive
     private static function relativePath(string $basePath, string $fullPath): string
     {
         return ltrim(str_replace($basePath, '', $fullPath), '/\\');
+    }
+
+    /**
+     * Open a .notur (or other non-standard extension) archive as PharData.
+     *
+     * PharData infers format from the file extension. A .notur file is a
+     * .tar.gz but PharData doesn't recognise that suffix, so we rename it
+     * to .tar.gz first and return the new path for the caller to use.
+     *
+     * @return array{0: \PharData, 1: string|null} The PharData instance and the renamed path (null if no rename was needed).
+     */
+    private static function openArchive(string $archivePath): array
+    {
+        if (preg_match('/\.tar(\.gz|\.bz2)?$/i', $archivePath)) {
+            return [new \PharData($archivePath), null];
+        }
+
+        $renamedPath = $archivePath . '.tar.gz';
+        rename($archivePath, $renamedPath);
+
+        try {
+            $phar = new \PharData($renamedPath);
+        } catch (\Throwable $e) {
+            // Restore original name on failure
+            rename($renamedPath, $archivePath);
+            throw $e;
+        }
+
+        return [$phar, $renamedPath];
     }
 }
