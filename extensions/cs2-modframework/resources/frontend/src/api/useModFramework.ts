@@ -83,7 +83,8 @@ export function useModFramework(serverUuid: string) {
         setError(null);
         try {
             const res = await apiPostRef.current('/install', { framework }) as { data: InstallResult };
-            await fetchStatus();
+            // Refresh status separately — a refresh failure must not mask a successful install
+            fetchStatus().catch(() => {});
             return res.data;
         } catch (e: any) {
             const message = e.message || `Failed to install ${framework}`;
@@ -99,7 +100,8 @@ export function useModFramework(serverUuid: string) {
         setError(null);
         try {
             const res = await apiPostRef.current('/uninstall', { framework }) as { data: InstallResult };
-            await fetchStatus();
+            // Refresh status separately — a refresh failure must not mask a successful uninstall
+            fetchStatus().catch(() => {});
             return res.data;
         } catch (e: any) {
             const message = e.message || `Failed to uninstall ${framework}`;
