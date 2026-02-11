@@ -133,8 +133,17 @@ class NoturArchive
             mkdir($targetPath, 0755, true);
         }
 
+        // PharData infers archive format from file extension. Since .notur is
+        // actually a .tar.gz, we symlink to a recognisable name so PharData
+        // can open it correctly.
+        $aliasPath = null;
+        if (!preg_match('/\.tar(\.gz|\.bz2)?$/i', $archivePath)) {
+            $aliasPath = $archivePath . '.tar.gz';
+            symlink($archivePath, $aliasPath);
+        }
+
         try {
-            $phar = new \PharData($archivePath);
+            $phar = new \PharData($aliasPath ?? $archivePath);
             $phar->extractTo($targetPath, null, true);
         } catch (\Throwable $e) {
             throw new RuntimeException(
@@ -142,6 +151,10 @@ class NoturArchive
                 0,
                 $e,
             );
+        } finally {
+            if ($aliasPath !== null && file_exists($aliasPath)) {
+                unlink($aliasPath);
+            }
         }
 
         // Read checksums
@@ -199,8 +212,14 @@ class NoturArchive
      */
     public static function readChecksums(string $archivePath): ?array
     {
+        $aliasPath = null;
+        if (!preg_match('/\.tar(\.gz|\.bz2)?$/i', $archivePath)) {
+            $aliasPath = $archivePath . '.tar.gz';
+            symlink($archivePath, $aliasPath);
+        }
+
         try {
-            $phar = new \PharData($archivePath);
+            $phar = new \PharData($aliasPath ?? $archivePath);
 
             if (!isset($phar['checksums.json'])) {
                 return null;
@@ -212,6 +231,10 @@ class NoturArchive
             return is_array($decoded) ? $decoded : null;
         } catch (\Throwable) {
             return null;
+        } finally {
+            if ($aliasPath !== null && file_exists($aliasPath)) {
+                unlink($aliasPath);
+            }
         }
     }
 
