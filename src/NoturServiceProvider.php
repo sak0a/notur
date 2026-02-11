@@ -83,28 +83,28 @@ class NoturServiceProvider extends ServiceProvider
 
         $this->mergeConfigFrom(__DIR__ . '/../config/notur.php', 'notur');
 
-        // Register artisan commands
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                InstallCommand::class,
-                RemoveCommand::class,
-                EnableCommand::class,
-                DisableCommand::class,
-                ListCommand::class,
-                UpdateCommand::class,
-                DevCommand::class,
-                DevPullCommand::class,
-                BuildCommand::class,
-                ExportCommand::class,
-                KeygenCommand::class,
-                RegistrySyncCommand::class,
-                RegistryStatusCommand::class,
-                NewCommand::class,
-                ValidateCommand::class,
-                UninstallCommand::class,
-                StatusCommand::class,
-            ]);
+        // Register artisan commands (unconditionally so Artisan::call() works from web controllers)
+        $this->commands([
+            InstallCommand::class,
+            RemoveCommand::class,
+            EnableCommand::class,
+            DisableCommand::class,
+            ListCommand::class,
+            UpdateCommand::class,
+            DevCommand::class,
+            DevPullCommand::class,
+            BuildCommand::class,
+            ExportCommand::class,
+            KeygenCommand::class,
+            RegistrySyncCommand::class,
+            RegistryStatusCommand::class,
+            NewCommand::class,
+            ValidateCommand::class,
+            UninstallCommand::class,
+            StatusCommand::class,
+        ]);
 
+        if ($this->app->runningInConsole()) {
             Event::listen(CommandStarting::class, function (CommandStarting $event): void {
                 $name = $event->command;
                 if (!is_string($name) || !str_starts_with($name, 'notur:')) {
