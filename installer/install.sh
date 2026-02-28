@@ -511,6 +511,15 @@ has_pkg_script() {
     grep -q "\"${script}\"[[:space:]]*:" "$package_json"
 }
 
+# Check whether a package.json script command references yarn directly.
+script_uses_yarn() {
+    local package_json="$1"
+    local script="$2"
+
+    [ -f "$package_json" ] || return 1
+    tr -d '\n' < "$package_json" | grep -q "\"${script}\"[[:space:]]*:[[:space:]]*\"[^\"]*yarn[[:space:]]"
+}
+
 # Check sodium extension
 if ! php -m | grep -q sodium; then
     warn "PHP sodium extension not found. Signature verification will be unavailable."
@@ -644,6 +653,35 @@ export NODE_OPTIONS="${NODE_OPTIONS:-} --openssl-legacy-provider"
 # Try normal install first, fall back to --legacy-peer-deps for dependency conflicts
 build_frontend() {
     if pkg_install && pkg_run build:production; then
+        return 0
+    fi
+
+    # Some panel builds hardcode yarn in package.json scripts
+    # (e.g. "build:production": "yarn run clean && ...").
+    # If yarn is missing, try a package-manager-agnostic fallback.
+    if ! command -v yarn &> /dev/null && script_uses_yarn "${PANEL_DIR}/package.json" "build:production"; then
+        warn "build:production references yarn, but yarn is not installed. Trying fallback build path..."
+
+        # Run clean script with any available manager.
+        if has_pkg_script "${PANEL_DIR}/package.json" "clean"; then
+            if command -v bun &> /dev/null; then
+                bun run clean || return 1
+            elif command -v pnpm &> /dev/null; then
+                pnpm run clean || return 1
+            elif command -v npm &> /dev/null; then
+                npm run clean || return 1
+            else
+                return 1
+            fi
+        fi
+
+        # Run webpack directly in production mode.
+        if [ -x "${PANEL_DIR}/node_modules/.bin/webpack" ]; then
+            NODE_ENV=production "${PANEL_DIR}/node_modules/.bin/webpack" --mode production || return 1
+            return 0
+        fi
+
+        pkg_exec webpack --mode production || return 1
         return 0
     fi
 
