@@ -272,6 +272,53 @@ class RegistryClientTest extends TestCase
         $registry->download('unknown/ext', '1.0.0', '/tmp/test.notur');
     }
 
+    public function test_get_expected_archive_checksum_reads_string_value(): void
+    {
+        $index = $this->sampleIndex();
+        $index['extensions'][0]['sha256'] = strtoupper(str_repeat('a1', 32));
+
+        $client = $this->makeClient([
+            new Response(200, [], json_encode($index)),
+        ]);
+
+        $registry = new RegistryClient($client);
+        $checksum = $registry->getExpectedArchiveChecksum('acme/hello-world', '1.2.2');
+
+        $this->assertSame(strtolower(str_repeat('a1', 32)), $checksum);
+    }
+
+    public function test_get_expected_archive_checksum_reads_versioned_value(): void
+    {
+        $index = $this->sampleIndex();
+        $index['extensions'][0]['sha256'] = [
+            '1.2.2' => strtoupper(str_repeat('b2', 32)),
+        ];
+
+        $client = $this->makeClient([
+            new Response(200, [], json_encode($index)),
+        ]);
+
+        $registry = new RegistryClient($client);
+        $checksum = $registry->getExpectedArchiveChecksum('acme/hello-world', '1.2.2');
+
+        $this->assertSame(strtolower(str_repeat('b2', 32)), $checksum);
+    }
+
+    public function test_download_signature_writes_sidecar_file(): void
+    {
+        $target = $this->cacheDir . '/archive.notur.sig';
+        $client = $this->makeClient([
+            new Response(200, [], json_encode($this->sampleIndex())),
+            new Response(200, [], 'signature-bytes'),
+        ]);
+
+        $registry = new RegistryClient($client);
+        $registry->downloadSignature('acme/hello-world', '1.2.2', $target);
+
+        $this->assertFileExists($target);
+        $this->assertSame('signature-bytes', file_get_contents($target));
+    }
+
     private function deleteDir(string $dir): void
     {
         if (!is_dir($dir)) {

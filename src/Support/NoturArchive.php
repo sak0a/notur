@@ -120,11 +120,16 @@ class NoturArchive
      * @param string $archivePath  Path to the .notur archive.
      * @param string $targetPath   Directory to extract into.
      * @param bool   $verifyChecksums  Whether to verify file checksums after extraction.
+     * @param bool   $requireChecksums Whether checksums.json must exist and be valid.
      * @return array<string, string> The checksums from the archive.
      * @throws RuntimeException If extraction or verification fails.
      */
-    public static function unpack(string $archivePath, string $targetPath, bool $verifyChecksums = true): array
-    {
+    public static function unpack(
+        string $archivePath,
+        string $targetPath,
+        bool $verifyChecksums = true,
+        bool $requireChecksums = true,
+    ): array {
         if (!file_exists($archivePath)) {
             throw new RuntimeException("Archive not found: {$archivePath}");
         }
@@ -161,14 +166,25 @@ class NoturArchive
         $checksumsFile = $targetPath . '/checksums.json';
         $checksums = [];
 
-        if (file_exists($checksumsFile)) {
+        if (!file_exists($checksumsFile)) {
+            if ($requireChecksums) {
+                throw new RuntimeException('Archive is missing required checksums.json');
+            }
+        } else {
             $raw = file_get_contents($checksumsFile);
             $decoded = json_decode($raw !== false ? $raw : '', true);
-            $checksums = is_array($decoded) ? $decoded : [];
+
+            if (!is_array($decoded) || $decoded === []) {
+                if ($requireChecksums) {
+                    throw new RuntimeException('checksums.json is missing or invalid');
+                }
+            } else {
+                $checksums = $decoded;
+            }
         }
 
         // Verify checksums if requested
-        if ($verifyChecksums && !empty($checksums)) {
+        if ($verifyChecksums && $checksums !== []) {
             self::verifyChecksums($targetPath, $checksums);
         }
 
@@ -183,8 +199,20 @@ class NoturArchive
     public static function verifyChecksums(string $basePath, array $checksums): void
     {
         $failed = [];
+        $expectedPaths = [];
 
         foreach ($checksums as $relativePath => $expectedHash) {
+            if (!is_string($relativePath) || $relativePath === '') {
+                $failed[] = '<invalid path key>';
+                continue;
+            }
+
+            if (!is_string($expectedHash) || !preg_match('/^[a-f0-9]{64}$/i', $expectedHash)) {
+                $failed[] = "{$relativePath} (invalid checksum format)";
+                continue;
+            }
+
+            $expectedPaths[] = $relativePath;
             $fullPath = $basePath . '/' . $relativePath;
 
             if (!file_exists($fullPath)) {
@@ -193,9 +221,18 @@ class NoturArchive
             }
 
             $actualHash = hash_file(self::HASH_ALGO, $fullPath);
-            if (!hash_equals($expectedHash, $actualHash)) {
+            if (!is_string($actualHash) || !hash_equals($expectedHash, $actualHash)) {
                 $failed[] = "{$relativePath} (hash mismatch)";
             }
+        }
+
+        $actualFiles = self::collectExtractedFiles($basePath);
+        sort($actualFiles);
+        sort($expectedPaths);
+
+        $extraFiles = array_values(array_diff($actualFiles, $expectedPaths));
+        if ($extraFiles !== []) {
+            $failed[] = 'unexpected files: ' . implode(', ', $extraFiles);
         }
 
         if (!empty($failed)) {
@@ -315,5 +352,35 @@ class NoturArchive
     private static function relativePath(string $basePath, string $fullPath): string
     {
         return ltrim(str_replace($basePath, '', $fullPath), '/\\');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function collectExtractedFiles(string $basePath): array
+    {
+        if (!is_dir($basePath)) {
+            return [];
+        }
+
+        $files = [];
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($basePath, \FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($iterator as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $relativePath = self::relativePath($basePath, $file->getPathname());
+            if ($relativePath === 'checksums.json') {
+                continue;
+            }
+
+            $files[] = $relativePath;
+        }
+
+        return $files;
     }
 }

@@ -126,6 +126,40 @@ class NoturArchiveTest extends TestCase
         NoturArchive::verifyChecksums($this->extractDir, $checksums);
     }
 
+    public function test_unpack_fails_when_checksums_are_missing_by_default(): void
+    {
+        $outputPath = $this->tempDir . '/missing-checksums.notur';
+        $this->createArchiveWithoutChecksums($outputPath);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('missing required checksums.json');
+
+        NoturArchive::unpack($outputPath, $this->extractDir);
+    }
+
+    public function test_unpack_allows_missing_checksums_when_disabled(): void
+    {
+        $outputPath = $this->tempDir . '/missing-checksums.notur';
+        $this->createArchiveWithoutChecksums($outputPath);
+
+        $checksums = NoturArchive::unpack($outputPath, $this->extractDir, false, false);
+
+        $this->assertSame([], $checksums);
+        $this->assertFileExists($this->extractDir . '/extension.yaml');
+        $this->assertFileExists($this->extractDir . '/src/TestExtension.php');
+    }
+
+    public function test_unpack_fails_when_archive_contains_untracked_files(): void
+    {
+        $outputPath = $this->tempDir . '/unexpected-file.notur';
+        $this->createArchiveWithUnexpectedFile($outputPath);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('unexpected files');
+
+        NoturArchive::unpack($outputPath, $this->extractDir, true, true);
+    }
+
     public function test_read_checksums_from_archive(): void
     {
         $outputPath = $this->tempDir . '/test.notur';
@@ -186,5 +220,62 @@ class NoturArchiveTest extends TestCase
         }
 
         rmdir($dir);
+    }
+
+    private function createArchiveWithoutChecksums(string $archivePath): void
+    {
+        $staging = $this->tempDir . '/no-checksum-staging';
+        mkdir($staging . '/src', 0755, true);
+        copy($this->sourceDir . '/extension.yaml', $staging . '/extension.yaml');
+        copy($this->sourceDir . '/src/TestExtension.php', $staging . '/src/TestExtension.php');
+
+        $this->createArchiveFromDirectory($staging, $archivePath);
+    }
+
+    private function createArchiveWithUnexpectedFile(string $archivePath): void
+    {
+        $staging = $this->tempDir . '/unexpected-staging';
+        mkdir($staging . '/src', 0755, true);
+        copy($this->sourceDir . '/extension.yaml', $staging . '/extension.yaml');
+        copy($this->sourceDir . '/src/TestExtension.php', $staging . '/src/TestExtension.php');
+
+        $checksums = [
+            'extension.yaml' => hash_file('sha256', $staging . '/extension.yaml'),
+            'src/TestExtension.php' => hash_file('sha256', $staging . '/src/TestExtension.php'),
+        ];
+        file_put_contents(
+            $staging . '/checksums.json',
+            json_encode($checksums, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
+        );
+        file_put_contents($staging . '/unexpected.txt', 'not listed in checksums');
+
+        $this->createArchiveFromDirectory($staging, $archivePath);
+    }
+
+    private function createArchiveFromDirectory(string $sourceDir, string $archivePath): void
+    {
+        $tarPath = $this->tempDir . '/' . uniqid('archive-', true) . '.tar';
+
+        $phar = new \PharData($tarPath);
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($sourceDir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::LEAVES_ONLY,
+        );
+
+        foreach ($iterator as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $relative = str_replace('\\', '/', $iterator->getSubPathname());
+            $phar->addFile($file->getPathname(), $relative);
+        }
+
+        $phar->compress(\Phar::GZ);
+        unset($phar);
+
+        @unlink($archivePath);
+        rename($tarPath . '.gz', $archivePath);
+        @unlink($tarPath);
     }
 }

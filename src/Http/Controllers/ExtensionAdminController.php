@@ -413,7 +413,16 @@ class ExtensionAdminController extends Controller
      */
     public function install(Request $request): RedirectResponse
     {
-        $registryId = $request->input('registry_id');
+        $validated = $request->validate([
+            'registry_id' => ['nullable', 'string', 'regex:/^[a-z0-9\\-]+\\/[a-z0-9\\-]+$/'],
+            'archive' => ['nullable', 'file', 'max:51200', 'extensions:notur'],
+        ], [
+            'registry_id.regex' => 'Registry ID must be in vendor/name format.',
+            'archive.extensions' => 'Archive must be a .notur file.',
+            'archive.max' => 'Archive may not be greater than 50 MB.',
+        ]);
+
+        $registryId = isset($validated['registry_id']) ? trim((string) $validated['registry_id']) : '';
         $uploadedFile = $request->file('archive');
 
         if (!$registryId && !$uploadedFile) {
@@ -422,23 +431,30 @@ class ExtensionAdminController extends Controller
                 ->with('error', 'Please provide a registry ID or upload a .notur file.');
         }
 
+        $tmpPath = null;
+
         try {
             if ($uploadedFile) {
-                $tmpPath = sys_get_temp_dir() . '/notur-upload-' . uniqid() . '.notur';
+                $tmpPath = sys_get_temp_dir() . '/notur-upload-' . uniqid('', true) . '.notur';
                 $uploadedFile->move(dirname($tmpPath), basename($tmpPath));
 
-                Artisan::call('notur:install', [
+                $exitCode = Artisan::call('notur:install', [
                     'extension' => $tmpPath,
                     '--force' => true,
                 ]);
             } else {
-                Artisan::call('notur:install', [
+                $exitCode = Artisan::call('notur:install', [
                     'extension' => $registryId,
                     '--force' => true,
                 ]);
             }
 
             $output = Artisan::output();
+            if ($exitCode !== 0) {
+                return redirect()
+                    ->route('admin.notur.extensions')
+                    ->with('error', 'Installation failed: ' . trim($output));
+            }
 
             return redirect()
                 ->route('admin.notur.extensions')
@@ -447,6 +463,13 @@ class ExtensionAdminController extends Controller
             return redirect()
                 ->route('admin.notur.extensions')
                 ->with('error', 'Installation failed: ' . $e->getMessage());
+        } finally {
+            if (is_string($tmpPath) && $tmpPath !== '' && file_exists($tmpPath)) {
+                @unlink($tmpPath);
+            }
+            if (is_string($tmpPath) && $tmpPath !== '' && file_exists($tmpPath . '.sig')) {
+                @unlink($tmpPath . '.sig');
+            }
         }
     }
 
