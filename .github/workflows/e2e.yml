@@ -90,9 +90,9 @@ jobs:
 
             # Apply React source patches (skip reverse patches)
             PATCH_DIR=""
-            if grep -q '"name": "pterodactyl/panel"' composer.lock && grep -q '"version": "v1.12' composer.lock; then
+            if grep -q "\"name\": \"pterodactyl/panel\"" composer.lock && grep -q "\"version\": \"v1.12" composer.lock; then
               PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
-            elif grep -q '"name": "pterodactyl/panel"' composer.lock && grep -q '"version": "v1.11' composer.lock; then
+            elif grep -q "\"name\": \"pterodactyl/panel\"" composer.lock && grep -q "\"version\": \"v1.11" composer.lock; then
               PATCH_DIR="vendor/notur/notur/installer/patches/v1.11"
             else
               for candidate in vendor/notur/notur/installer/patches/v1.12 vendor/notur/notur/installer/patches/v1.11; do
