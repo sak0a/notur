@@ -3,8 +3,8 @@
     "version": "1.0.0",
     "private": true,
     "scripts": {
-        "build": "npx webpack-cli --mode production",
-        "dev": "npx webpack-cli --mode development --watch"
+        "build": "./node_modules/.bin/webpack-cli --mode production",
+        "dev": "./node_modules/.bin/webpack-cli --mode development --watch"
     },
     "devDependencies": {
         "@types/react": "^16.14.0",
