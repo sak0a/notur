@@ -27,6 +27,7 @@ use Notur\Console\Commands\UpdateCommand;
 use Notur\Console\Commands\ValidateCommand;
 use Notur\Support\ActivityLogger;
 use Notur\Support\ConsoleBanner;
+use Notur\Support\ExtensionPath;
 
 class NoturServiceProvider extends ServiceProvider
 {
@@ -156,12 +157,12 @@ class NoturServiceProvider extends ServiceProvider
 
                 if ($bundle = $manifest->getFrontendBundle()) {
                     $bundlePath = ltrim($bundle, '/');
-                    $asset['bundle'] = "/notur/extensions/{$id}/{$bundlePath}";
+                    $asset['bundle'] = ExtensionPath::publicUrl($id, $bundlePath);
                 }
 
                 if ($styles = $manifest->getFrontendStyles()) {
                     $stylesPath = ltrim($styles, '/');
-                    $asset['styles'] = "/notur/extensions/{$id}/{$stylesPath}";
+                    $asset['styles'] = ExtensionPath::publicUrl($id, $stylesPath);
                 }
 
                 $cssIsolation = $manifest->getFrontendCssIsolation();
@@ -182,7 +183,7 @@ class NoturServiceProvider extends ServiceProvider
             }
 
             $view->with('noturConfig', [
-                'version' => '1.0.0',
+                'version' => (string) config('notur.version', '1.0.0'),
                 'slots' => $manager->getFrontendSlots(),
                 'extensions' => $extensionAssets,
             ]);

@@ -31,21 +31,26 @@ This file is a minimal binder — adding the include here is the cleanest approa
 
 ### Step 3: Apply React Patches
 
-26 patches add slot containers and dynamic route merging to the panel's React source. The automated installer applies all patches, but for manual installation, here are the core patches:
+The patch set adds slot containers and dynamic route merging to the panel's React source. The automated installer selects the right patch version (`v1.11` or `v1.12`) automatically. For manual installation, pick the folder that matches your panel version and apply the core patches:
 
 ```bash
 cd /var/www/pterodactyl
 
-# Apply core patches (required for basic functionality)
-patch -p1 < vendor/notur/notur/installer/patches/v1.11/routes.ts.patch
-patch -p1 < vendor/notur/notur/installer/patches/v1.11/ServerRouter.tsx.patch
-patch -p1 < vendor/notur/notur/installer/patches/v1.11/DashboardRouter.tsx.patch
-patch -p1 < vendor/notur/notur/installer/patches/v1.11/DashboardContainer.tsx.patch
-patch -p1 < vendor/notur/notur/installer/patches/v1.11/NavigationBar.tsx.patch
-patch -p1 < vendor/notur/notur/installer/patches/v1.11/ServerTerminal.tsx.patch
-patch -p1 < vendor/notur/notur/installer/patches/v1.11/FileManager.tsx.patch
+# Choose the matching patch set for your panel version:
+# PATCH_SET=v1.11
+# PATCH_SET=v1.12
+PATCH_SET=v1.12
 
-# For full functionality, apply all 26 patches from installer/patches/v1.11/
+# Apply core patches (required for basic functionality)
+patch -p1 < vendor/notur/notur/installer/patches/${PATCH_SET}/routes.ts.patch
+patch -p1 < vendor/notur/notur/installer/patches/${PATCH_SET}/ServerRouter.tsx.patch
+patch -p1 < vendor/notur/notur/installer/patches/${PATCH_SET}/DashboardRouter.tsx.patch
+patch -p1 < vendor/notur/notur/installer/patches/${PATCH_SET}/DashboardContainer.tsx.patch
+patch -p1 < vendor/notur/notur/installer/patches/${PATCH_SET}/NavigationBar.tsx.patch
+patch -p1 < vendor/notur/notur/installer/patches/${PATCH_SET}/ServerTerminal.tsx.patch
+patch -p1 < vendor/notur/notur/installer/patches/${PATCH_SET}/FileManager.tsx.patch
+
+# For full functionality, apply all patches from installer/patches/${PATCH_SET}/
 # (excluding *.reverse.patch files)
 ```
 

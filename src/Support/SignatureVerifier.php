@@ -17,13 +17,24 @@ class SignatureVerifier
             throw new RuntimeException('The sodium extension is required for signature verification');
         }
 
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            throw new RuntimeException("Cannot read file: {$filePath}");
+        }
+
         $content = file_get_contents($filePath);
         if ($content === false) {
             throw new RuntimeException("Cannot read file: {$filePath}");
         }
 
-        $sigBin = sodium_hex2bin($signature);
-        $keyBin = sodium_hex2bin($publicKey);
+        $sigBin = @sodium_hex2bin(trim($signature));
+        if ($sigBin === false) {
+            throw new RuntimeException('Invalid signature format (expected hex-encoded Ed25519 signature)');
+        }
+
+        $keyBin = @sodium_hex2bin(trim($publicKey));
+        if ($keyBin === false) {
+            throw new RuntimeException('Invalid public key format (expected hex-encoded Ed25519 key)');
+        }
 
         return sodium_crypto_sign_verify_detached($sigBin, $content, $keyBin);
     }
@@ -37,12 +48,19 @@ class SignatureVerifier
             throw new RuntimeException('The sodium extension is required for signature generation');
         }
 
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            throw new RuntimeException("Cannot read file: {$filePath}");
+        }
+
         $content = file_get_contents($filePath);
         if ($content === false) {
             throw new RuntimeException("Cannot read file: {$filePath}");
         }
 
-        $keyBin = sodium_hex2bin($secretKey);
+        $keyBin = @sodium_hex2bin(trim($secretKey));
+        if ($keyBin === false) {
+            throw new RuntimeException('Invalid secret key format (expected hex-encoded Ed25519 key)');
+        }
         $signature = sodium_crypto_sign_detached($content, $keyBin);
 
         return sodium_bin2hex($signature);
@@ -72,7 +90,15 @@ class SignatureVerifier
      */
     public function verifyChecksum(string $filePath, string $expectedHash, string $algo = 'sha256'): bool
     {
+        if (!file_exists($filePath)) {
+            throw new RuntimeException("Cannot read file: {$filePath}");
+        }
+
         $hash = hash_file($algo, $filePath);
+        if (!is_string($hash)) {
+            return false;
+        }
+
         return hash_equals($expectedHash, $hash);
     }
 }

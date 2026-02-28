@@ -128,14 +128,7 @@ class RegistryClient
             throw new RuntimeException("Extension '{$extensionId}' not found in registry");
         }
 
-        $repo = $ext['repository'] ?? null;
-        if (!$repo) {
-            throw new RuntimeException("Extension '{$extensionId}' has no repository URL");
-        }
-
-        // Build download URL: {repo}/releases/download/v{version}/{vendor-name}-{version}.notur
-        $archiveName = str_replace('/', '-', $extensionId) . "-{$version}.notur";
-        $downloadUrl = rtrim($repo, '/') . "/releases/download/v{$version}/{$archiveName}";
+        $downloadUrl = $this->resolveArchiveUrl($ext, $extensionId, $version);
 
         try {
             $response = $this->client->get($downloadUrl, [
@@ -157,6 +150,46 @@ class RegistryClient
                 "Download returned HTTP {$response->getStatusCode()} for '{$extensionId}' v{$version}"
             );
         }
+    }
+
+    /**
+     * Download an extension signature sidecar file.
+     *
+     * @throws RuntimeException If the extension is not found or download fails.
+     */
+    public function downloadSignature(string $extensionId, string $version, string $targetPath): void
+    {
+        $ext = $this->getExtension($extensionId);
+
+        if ($ext === null) {
+            throw new RuntimeException("Extension '{$extensionId}' not found in registry");
+        }
+
+        $url = $this->resolveSignatureUrl($ext, $extensionId, $version);
+        $this->downloadSidecar($url, $targetPath, "signature for '{$extensionId}' v{$version}");
+    }
+
+    /**
+     * Resolve expected SHA-256 hash for a version from registry metadata.
+     */
+    public function getExpectedArchiveChecksum(string $extensionId, string $version): ?string
+    {
+        $ext = $this->getExtension($extensionId);
+
+        if ($ext === null) {
+            return null;
+        }
+
+        $sha256 = $ext['sha256'] ?? null;
+        if (is_string($sha256) && $sha256 !== '') {
+            return strtolower(trim($sha256));
+        }
+
+        if (is_array($sha256) && isset($sha256[$version]) && is_string($sha256[$version])) {
+            return strtolower(trim($sha256[$version]));
+        }
+
+        return null;
     }
 
     /**
@@ -305,5 +338,71 @@ class RegistryClient
         }
 
         return false;
+    }
+
+    /**
+     * @param array<string, mixed> $extension
+     */
+    private function resolveArchiveUrl(array $extension, string $extensionId, string $version): string
+    {
+        $archiveUrl = $extension['archive_url'] ?? null;
+        if (is_string($archiveUrl) && $archiveUrl !== '') {
+            return $this->replaceTemplateTokens($archiveUrl, $extensionId, $version);
+        }
+
+        $repo = $extension['repository'] ?? null;
+        if (!is_string($repo) || $repo === '') {
+            throw new RuntimeException("Extension '{$extensionId}' has no repository URL");
+        }
+
+        $archiveName = str_replace('/', '-', $extensionId) . "-{$version}.notur";
+
+        return rtrim($repo, '/') . "/releases/download/v{$version}/{$archiveName}";
+    }
+
+    /**
+     * @param array<string, mixed> $extension
+     */
+    private function resolveSignatureUrl(array $extension, string $extensionId, string $version): string
+    {
+        $signatureUrl = $extension['signature_url'] ?? null;
+        if (is_string($signatureUrl) && $signatureUrl !== '') {
+            return $this->replaceTemplateTokens($signatureUrl, $extensionId, $version);
+        }
+
+        return $this->resolveArchiveUrl($extension, $extensionId, $version) . '.sig';
+    }
+
+    private function downloadSidecar(string $url, string $targetPath, string $what): void
+    {
+        try {
+            $response = $this->client->get($url, [
+                'sink' => $targetPath,
+                'timeout' => 30,
+                'connect_timeout' => 10,
+            ]);
+        } catch (GuzzleException $e) {
+            throw new RuntimeException(
+                "Failed to download {$what}: {$e->getMessage()}",
+                (int) $e->getCode(),
+                $e,
+            );
+        }
+
+        if ($response->getStatusCode() !== 200) {
+            @unlink($targetPath);
+            throw new RuntimeException(
+                "Download returned HTTP {$response->getStatusCode()} for {$what}"
+            );
+        }
+    }
+
+    private function replaceTemplateTokens(string $template, string $extensionId, string $version): string
+    {
+        return strtr($template, [
+            '{id}' => $extensionId,
+            '{version}' => $version,
+            '{archive}' => str_replace('/', '-', $extensionId) . "-{$version}.notur",
+        ]);
     }
 }

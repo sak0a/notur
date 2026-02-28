@@ -119,18 +119,55 @@ class UninstallCommand extends Command
      */
     private function findPatchDirectory(): ?string
     {
-        $vendorPath = base_path('vendor/notur/notur/installer/patches/v1.11');
-        if (is_dir($vendorPath)) {
-            return $vendorPath;
-        }
+        $patchVersion = $this->detectPatchVersion();
 
-        // Try alongside the install script
-        $installerPath = dirname(__DIR__, 3) . '/installer/patches/v1.11';
-        if (is_dir($installerPath)) {
-            return $installerPath;
+        $candidates = [
+            base_path("vendor/notur/notur/installer/patches/{$patchVersion}"),
+            dirname(__DIR__, 3) . "/installer/patches/{$patchVersion}",
+            base_path('vendor/notur/notur/installer/patches/v1.12'),
+            base_path('vendor/notur/notur/installer/patches/v1.11'),
+            dirname(__DIR__, 3) . '/installer/patches/v1.12',
+            dirname(__DIR__, 3) . '/installer/patches/v1.11',
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_dir($candidate)) {
+                return $candidate;
+            }
         }
 
         return null;
+    }
+
+    private function detectPatchVersion(): string
+    {
+        $lockFile = base_path('composer.lock');
+        if (!file_exists($lockFile)) {
+            return 'v1.11';
+        }
+
+        $decoded = json_decode((string) file_get_contents($lockFile), true);
+        if (!is_array($decoded)) {
+            return 'v1.11';
+        }
+
+        $packages = array_merge($decoded['packages'] ?? [], $decoded['packages-dev'] ?? []);
+        foreach ($packages as $package) {
+            if (!is_array($package) || ($package['name'] ?? null) !== 'pterodactyl/panel') {
+                continue;
+            }
+
+            $version = (string) ($package['version'] ?? $package['pretty_version'] ?? '');
+            $version = ltrim($version, 'v');
+            if (str_starts_with($version, '1.12.')) {
+                return 'v1.12';
+            }
+            if (str_starts_with($version, '1.11.')) {
+                return 'v1.11';
+            }
+        }
+
+        return 'v1.11';
     }
 
     /**

@@ -18,7 +18,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const yaml = require('yaml');
 
 const EXCLUDE_PATTERNS = [
@@ -38,6 +38,7 @@ function parseArgs() {
         output: null,
         sign: false,
         secretKey: null,
+        dryRun: false,
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -47,12 +48,28 @@ function parseArgs() {
             options.sign = true;
         } else if (args[i] === '--secret-key') {
             options.secretKey = args[++i];
+        } else if (args[i] === '--dry-run') {
+            options.dryRun = true;
         } else if (!args[i].startsWith('-')) {
             options.path = args[i];
         }
     }
 
     return options;
+}
+
+function isGnuTarAvailable() {
+    const result = spawnSync('tar', ['--version'], {
+        stdio: 'pipe',
+        encoding: 'utf8',
+    });
+
+    if (result.error || result.status !== 0) {
+        return false;
+    }
+
+    const stdout = `${result.stdout || ''}${result.stderr || ''}`;
+    return /gnu tar/i.test(stdout);
 }
 
 function loadManifest(dir) {
@@ -188,6 +205,10 @@ async function pack(sourceDir, outputPath, options = {}) {
 
     // Collect files and compute checksums
     const files = collectFiles(resolvedDir);
+    if (files.length === 0) {
+        console.error('Error: no packageable files found in extension directory.');
+        process.exit(1);
+    }
     const checksums = computeChecksums(resolvedDir, files);
 
     console.log(`  Found ${files.length} files`);
@@ -201,15 +222,46 @@ async function pack(sourceDir, outputPath, options = {}) {
     const filename = outputPath || `${manifest.id.replace('/', '-')}-${manifest.version}.notur`;
     const outputFullPath = path.resolve(filename);
 
-    // Build exclude args for tar
-    const excludeArgs = EXCLUDE_PATTERNS.map(p => `--exclude='${p}'`).join(' ');
+    // Build safe argument list for tar (no shell interpolation).
+    const deterministicArgs = isGnuTarAvailable()
+        ? ['--sort=name', '--mtime=UTC 1970-01-01', '--owner=0', '--group=0', '--numeric-owner']
+        : [];
+
+    const tarArgs = [
+        ...deterministicArgs,
+        ...EXCLUDE_PATTERNS.flatMap(p => ['--exclude', p]),
+        '-czf',
+        outputFullPath,
+        '.',
+    ];
+
+    if (options.dryRun) {
+        console.log('\nDry run mode (no archive written).');
+        console.log(`Would create: ${outputFullPath}`);
+        console.log(`Would include: ${files.length} files`);
+        if (deterministicArgs.length > 0) {
+            console.log('Deterministic archive mode: enabled (GNU tar flags).');
+        } else {
+            console.log('Deterministic archive mode: not available (GNU tar not detected).');
+        }
+        return;
+    }
 
     try {
-        // Create tar.gz archive
-        execSync(
-            `tar ${excludeArgs} -czvf "${outputFullPath}" .`,
-            { cwd: resolvedDir, stdio: 'pipe' }
-        );
+        const tarResult = spawnSync('tar', tarArgs, {
+            cwd: resolvedDir,
+            stdio: 'pipe',
+            encoding: 'utf8',
+        });
+
+        if (tarResult.error) {
+            throw new Error(`Failed to execute tar: ${tarResult.error.message}`);
+        }
+
+        if (tarResult.status !== 0) {
+            const stderr = (tarResult.stderr || '').trim();
+            throw new Error(`tar failed with exit code ${tarResult.status}${stderr ? `: ${stderr}` : ''}`);
+        }
 
         // Compute archive checksum
         const archiveChecksum = computeChecksum(outputFullPath);

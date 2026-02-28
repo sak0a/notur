@@ -163,4 +163,23 @@ describe('createExtension', () => {
         );
         jest.restoreAllMocks();
     });
+
+    it('warns for invalid extension id format and duplicate route paths', () => {
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+        jest.spyOn(console, 'log').mockImplementation();
+
+        createExtension({
+            config: { id: 'INVALID_ID', name: 'Test', version: '1.0.0' },
+            routes: [
+                { area: 'server', path: 'stats', name: 'Stats', component: DummyComponent, permission: 'stats' },
+                { area: 'server', path: 'stats', name: 'Stats 2', component: DummyComponent },
+            ],
+        });
+
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('does not match vendor/name format'));
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('should start with "/"'));
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('without namespace'));
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('duplicate route path'));
+        jest.restoreAllMocks();
+    });
 });

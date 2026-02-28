@@ -47,45 +47,64 @@ class InstallCommand extends Command
         ExtensionManager $manager,
         MigrationManager $migrationManager,
         SignatureVerifier $verifier,
+        bool $cleanupArchive = false,
     ): int {
         $this->info("Installing from local file: {$filePath}");
 
-        // Verify signature if required
-        if (config('notur.require_signatures')) {
-            $sigFile = $filePath . '.sig';
-            if (!file_exists($sigFile)) {
-                $this->error('Signature file not found and signatures are required.');
-                return 1;
-            }
-
-            $signature = file_get_contents($sigFile);
-            $publicKey = config('notur.public_key');
-
-            if (!$verifier->verify($filePath, trim($signature), $publicKey)) {
-                $this->error('Signature verification failed.');
-                return 1;
-            }
-
-            $this->info('Signature verified.');
-        }
-
-        // Extract archive using NoturArchive (validates checksums)
-        $tmpDir = sys_get_temp_dir() . '/notur-' . uniqid();
-
         try {
-            NoturArchive::unpack($filePath, $tmpDir, true);
-        } catch (\Throwable $e) {
-            $this->error("Archive extraction failed: {$e->getMessage()}");
-            return 1;
+            // Verify signature if required
+            if (config('notur.require_signatures')) {
+                $sigFile = $filePath . '.sig';
+                if (!file_exists($sigFile)) {
+                    $this->error('Signature file not found and signatures are required.');
+                    return 1;
+                }
+
+                $signature = file_get_contents($sigFile);
+                if (!is_string($signature)) {
+                    $this->error('Failed to read signature file.');
+                    return 1;
+                }
+
+                $publicKey = config('notur.public_key');
+
+                if (!$verifier->verify($filePath, trim($signature), $publicKey)) {
+                    $this->error('Signature verification failed.');
+                    return 1;
+                }
+
+                $this->info('Signature verified.');
+            }
+
+            // Extract archive using NoturArchive (validates checksums)
+            $tmpDir = sys_get_temp_dir() . '/notur-' . uniqid();
+            $manifest = null;
+            try {
+                NoturArchive::unpack($filePath, $tmpDir, true, true);
+                $manifest = ExtensionManifest::load($tmpDir);
+            } catch (\Throwable $e) {
+                $this->error("Archive extraction failed: {$e->getMessage()}");
+                return 1;
+            }
+
+            $this->info('Archive extracted and checksums verified.');
+            if (!$manifest instanceof ExtensionManifest) {
+                $this->error('Archive extraction failed: manifest not found.');
+                return 1;
+            }
+
+            $extensionId = $manifest->getId();
+            try {
+                return $this->finalizeInstall($extensionId, $tmpDir, $manifest, $manager, $migrationManager);
+            } finally {
+                $this->cleanupPath($tmpDir);
+            }
+        } finally {
+            if ($cleanupArchive) {
+                $this->cleanupPath($filePath);
+                $this->cleanupPath($filePath . '.sig');
+            }
         }
-
-        $this->info('Archive extracted and checksums verified.');
-
-        // Load manifest
-        $manifest = ExtensionManifest::load($tmpDir);
-        $extensionId = $manifest->getId();
-
-        return $this->finalizeInstall($extensionId, $tmpDir, $manifest, $manager, $migrationManager);
     }
 
     private function installFromRegistry(
@@ -118,7 +137,33 @@ class InstallCommand extends Command
             return 1;
         }
 
-        return $this->installFromFile($tmpFile, $manager, $migrationManager, $verifier);
+        $expectedChecksum = $registry->getExpectedArchiveChecksum($extensionId, $version);
+        if (is_string($expectedChecksum) && $expectedChecksum !== '') {
+            if (!$verifier->verifyChecksum($tmpFile, $expectedChecksum)) {
+                $this->error("Checksum verification failed for '{$extensionId}' v{$version}.");
+                $this->cleanupPath($tmpFile);
+                return 1;
+            }
+            $this->info('Registry checksum verified.');
+        }
+
+        if (config('notur.require_signatures')) {
+            try {
+                $registry->downloadSignature($extensionId, $version, $tmpFile . '.sig');
+            } catch (\Throwable $e) {
+                $this->error("Signature download failed: {$e->getMessage()}");
+                $this->cleanupPath($tmpFile);
+                return 1;
+            }
+        }
+
+        return $this->installFromFile(
+            $tmpFile,
+            $manager,
+            $migrationManager,
+            $verifier,
+            cleanupArchive: true,
+        );
     }
 
     private function finalizeInstall(
@@ -259,5 +304,17 @@ class InstallCommand extends Command
         }
 
         rmdir($dir);
+    }
+
+    private function cleanupPath(string $path): void
+    {
+        if (is_file($path) || is_link($path)) {
+            @unlink($path);
+            return;
+        }
+
+        if (is_dir($path)) {
+            $this->deleteDirectory($path);
+        }
     }
 }

@@ -5,7 +5,7 @@ import { useExtensionApi } from '../../../bridge/src/hooks/useExtensionApi';
 
 // Mock fetch
 const mockFetch = jest.fn();
-(global as any).fetch = mockFetch;
+(globalThis as any).fetch = mockFetch;
 
 // Helper to capture hook result via a wrapper component
 function createHookRenderer(extensionId: string) {

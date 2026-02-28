@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Notur\Console\Commands;
 
 use Illuminate\Console\Command;
+use Notur\Support\PackageManagerResolver;
 
 class NewCommand extends Command
 {
@@ -120,7 +121,9 @@ class NewCommand extends Command
             $this->writePhpunitTest($basePath, $context);
         }
 
-        $this->writeReadme($basePath, $context);
+        $packageManager = $this->detectPackageManager($basePath);
+
+        $this->writeReadme($basePath, $context, $packageManager);
         $this->writeGitignore($basePath);
 
         $this->newLine();
@@ -134,9 +137,9 @@ class NewCommand extends Command
 
         $step = 2;
         if ($context['includeFrontend']) {
-            $this->line("    {$step}. bun install");
+            $this->line("    {$step}. {$this->frontendInstallCommand($packageManager)}");
             $step++;
-            $this->line("    {$step}. bun run build");
+            $this->line("    {$step}. {$this->frontendRunScriptCommand($packageManager, 'build')}");
             $step++;
         }
 
@@ -602,6 +605,15 @@ PHP;
 
     private function writeFrontendIndex(string $basePath, array $context): void
     {
+        $stubContent = $this->renderStub('frontend-index.tsx.stub', [
+            'id' => $context['id'],
+            'displayName' => $context['displayName'],
+        ]);
+        if ($stubContent !== null) {
+            file_put_contents($basePath . '/resources/frontend/src/index.tsx', $stubContent . "\n");
+            return;
+        }
+
         $content = <<<TSX
 import * as React from 'react';
 import { createExtension } from '@notur/sdk';
@@ -644,24 +656,34 @@ TSX;
 
     private function writeFrontendPackageJson(string $basePath, array $context): void
     {
+        $stubContent = $this->renderStub('frontend-package.json.stub', [
+            'id' => $context['id'],
+        ]);
+        if ($stubContent !== null) {
+            file_put_contents($basePath . '/package.json', $stubContent . "\n");
+            return;
+        }
+
         $content = json_encode([
             'name' => $context['id'],
             'version' => '1.0.0',
             'private' => true,
             'scripts' => [
-                'build' => 'bunx webpack --mode production',
-                'dev' => 'bunx webpack --mode development --watch',
+                'build' => 'webpack-cli --mode production --config webpack.config.js',
+                'dev' => 'webpack-cli --mode development --watch --config webpack.config.js',
             ],
             'peerDependencies' => [
                 'react' => '^16.14.0',
                 'react-dom' => '^16.14.0',
             ],
             'devDependencies' => [
-                '@notur/sdk' => '^1.0.0',
+                '@notur/sdk' => '^1.2.0',
                 '@types/react' => '^16.14.0',
                 '@types/react-dom' => '^16.9.0',
+                'css-loader' => '^7.1.2',
                 'react' => '^16.14.0',
                 'react-dom' => '^16.14.0',
+                'style-loader' => '^4.0.0',
                 'ts-loader' => '^9.5.0',
                 'typescript' => '^5.3.0',
                 'webpack' => '^5.90.0',
@@ -698,6 +720,14 @@ TSX;
     private function writeFrontendWebpackConfig(string $basePath, array $context): void
     {
         $libraryName = $this->toClassName($context['name']);
+
+        $stubContent = $this->renderStub('webpack.config.js.stub', [
+            'libraryName' => $libraryName,
+        ]);
+        if ($stubContent !== null) {
+            file_put_contents($basePath . '/webpack.config.js', $stubContent . "\n");
+            return;
+        }
 
         $content = <<<JS
 const path = require('path');
@@ -855,7 +885,7 @@ PHP;
         file_put_contents($basePath . '/tests/Unit/ExtensionTest.php', $content . "\n");
     }
 
-    private function writeReadme(string $basePath, array $context): void
+    private function writeReadme(string $basePath, array $context, string $packageManager): void
     {
         $lines = [];
         $lines[] = '# ' . $context['displayName'];
@@ -880,8 +910,8 @@ PHP;
             $lines[] = '## Frontend Development';
             $lines[] = '';
             $lines[] = "```bash";
-            $lines[] = 'bun install';
-            $lines[] = 'bun run dev';
+            $lines[] = $this->frontendInstallCommand($packageManager);
+            $lines[] = $this->frontendRunScriptCommand($packageManager, 'dev');
             $lines[] = "```";
         }
 
@@ -956,5 +986,46 @@ TXT;
     private function toViewNamespace(string $vendor, string $name): string
     {
         return $vendor . '-' . $name;
+    }
+
+    private function renderStub(string $filename, array $variables): ?string
+    {
+        $stubPath = dirname(__DIR__, 3) . '/resources/stubs/new-extension/' . $filename;
+        if (!is_file($stubPath)) {
+            return null;
+        }
+
+        $content = file_get_contents($stubPath);
+        if (!is_string($content)) {
+            return null;
+        }
+
+        $replacements = [];
+        foreach ($variables as $key => $value) {
+            $replacements['{{' . $key . '}}'] = (string) $value;
+        }
+
+        return strtr($content, $replacements);
+    }
+
+    private function detectPackageManager(string $basePath): string
+    {
+        $resolver = new PackageManagerResolver();
+
+        return $resolver->detect($basePath) ?? 'npm';
+    }
+
+    private function frontendInstallCommand(string $manager): string
+    {
+        $resolver = new PackageManagerResolver();
+
+        return $resolver->installCommand($manager);
+    }
+
+    private function frontendRunScriptCommand(string $manager, string $script): string
+    {
+        $resolver = new PackageManagerResolver();
+
+        return $resolver->runScriptCommand($manager, $script);
     }
 }

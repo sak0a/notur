@@ -1,0 +1,17 @@
+const path = require('path');
+const base = require('@notur/sdk/webpack.extension.config');
+
+module.exports = {
+    ...base,
+    entry: './resources/frontend/src/index.tsx',
+    output: {
+        ...base.output,
+        filename: 'extension.js',
+        path: path.resolve(__dirname, 'resources/frontend/dist'),
+        library: {
+            ...base.output.library,
+            name: '__NOTUR_EXT_{{libraryName}}__',
+            type: 'umd',
+        },
+    },
+};

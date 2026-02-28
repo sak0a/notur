@@ -7,12 +7,14 @@ namespace Notur\Console\Commands;
 use Illuminate\Console\Command;
 use Notur\ExtensionManifest;
 use Notur\Support\ExtensionPath;
+use Notur\Support\PackageManagerResolver;
 
 class DevCommand extends Command
 {
     protected $signature = 'notur:dev
         {path : Path to the extension being developed}
-        {--link : Create a symlink instead of copying}
+        {--link : Use symlink mode (default)}
+        {--copy : Copy files instead of symlinking}
         {--watch : Watch and rebuild the frontend bundle}
         {--watch-bridge : Also watch the Notur bridge runtime}';
 
@@ -38,24 +40,43 @@ class DevCommand extends Command
         $targetPath = ExtensionPath::base($extensionId);
         $watch = (bool) $this->option('watch');
         $watchBridge = (bool) $this->option('watch-bridge');
+        $useCopy = (bool) $this->option('copy');
+        $useLink = (bool) $this->option('link');
 
-        // Create symlink
+        if ($useCopy && $useLink) {
+            $this->error('Use either --copy or --link, not both.');
+            return 1;
+        }
+
+        $useSymlink = !$useCopy;
+
+        if ($watch && !$useSymlink) {
+            $this->error('Watch mode requires symlink mode. Use --link (or omit --copy).');
+            return 1;
+        }
+
         $parentDir = dirname($targetPath);
         if (!is_dir($parentDir)) {
             mkdir($parentDir, 0755, true);
         }
 
-        if (is_link($targetPath)) {
-            unlink($targetPath);
-        } elseif (is_dir($targetPath)) {
-            $this->error("Extension '{$extensionId}' is already installed (not a symlink). Remove it first.");
-            return 1;
+        if ($useSymlink) {
+            if (is_link($targetPath)) {
+                unlink($targetPath);
+            } elseif (is_dir($targetPath)) {
+                $this->error("Extension '{$extensionId}' is already installed (not a symlink). Remove it first.");
+                return 1;
+            }
+
+            symlink($devPath, $targetPath);
+            $this->info("Linked {$devPath} → {$targetPath}");
+        } else {
+            $this->removePath($targetPath);
+            $this->copyDirectory($devPath, $targetPath);
+            $this->info("Copied {$devPath} → {$targetPath}");
         }
 
-        symlink($devPath, $targetPath);
-        $this->info("Linked {$devPath} → {$targetPath}");
-
-        // Also symlink frontend bundle to public
+        // Also expose frontend bundle in public path.
         $bundle = $manifest->getFrontendBundle();
         if ($bundle) {
             $publicPath = ExtensionPath::public($extensionId);
@@ -70,16 +91,25 @@ class DevCommand extends Command
                 mkdir($bundleDir, 0755, true);
             }
 
-            if (is_link($bundleTarget)) {
+            if (is_link($bundleTarget) || is_file($bundleTarget)) {
                 unlink($bundleTarget);
             }
 
-            if (file_exists($bundleSource) || $watch) {
+            if ($useSymlink && (file_exists($bundleSource) || $watch)) {
                 @symlink($bundleSource, $bundleTarget);
                 if (file_exists($bundleSource)) {
                     $this->info('Linked frontend bundle.');
                 } else {
                     $this->warn('Frontend bundle not found yet — symlink created for watch mode.');
+                }
+            } elseif (file_exists($bundleSource)) {
+                copy($bundleSource, $bundleTarget);
+                $this->info('Copied frontend bundle.');
+            } else {
+                if ($useSymlink) {
+                    $this->warn('Frontend bundle not found yet — symlink created for watch mode.');
+                } else {
+                    $this->warn('Frontend bundle not found; run your extension build to generate it.');
                 }
             }
         }
@@ -87,8 +117,13 @@ class DevCommand extends Command
         // Register in manifest
         app(\Notur\ExtensionManager::class)->registerExtension($extensionId, $manifest->getVersion());
 
-        $this->info("Extension '{$extensionId}' is now in development mode.");
-        $this->info('Changes to PHP files will take effect immediately.');
+        $modeLabel = $useSymlink ? 'symlink' : 'copy';
+        $this->info("Extension '{$extensionId}' is now in development mode ({$modeLabel}).");
+        if ($useSymlink) {
+            $this->info('Changes to PHP files will take effect immediately.');
+        } else {
+            $this->warn('Copy mode does not sync PHP changes automatically. Re-run this command after edits.');
+        }
         $this->info('For frontend changes, rebuild the extension\'s JS bundle.');
 
         if ($watch) {
@@ -128,14 +163,21 @@ class DevCommand extends Command
 
     private function resolveWatchCommand(string $devPath): ?string
     {
+        $resolver = new PackageManagerResolver();
+        $packageManager = $resolver->detect($devPath);
+        if ($packageManager === null) {
+            $this->warn('No supported package manager found for watch mode (bun, pnpm, yarn, npm).');
+            return null;
+        }
+
         $packageJson = $devPath . '/package.json';
         if (!file_exists($packageJson)) {
             return null;
         }
 
-        $package = json_decode(file_get_contents($packageJson), true);
+        $package = json_decode((string) file_get_contents($packageJson), true);
         if (is_array($package) && isset($package['scripts']['dev'])) {
-            return 'bun run dev';
+            return $resolver->runScriptCommand($packageManager, 'dev');
         }
 
         $webpackConfig = $devPath . '/webpack.config.js';
@@ -147,7 +189,14 @@ class DevCommand extends Command
         }
 
         if (file_exists($webpackConfig)) {
-            return 'bunx webpack --mode development --watch --config ' . escapeshellarg($webpackConfig);
+            return $resolver->execCommand($packageManager, [
+                'webpack-cli',
+                '--mode',
+                'development',
+                '--watch',
+                '--config',
+                $webpackConfig,
+            ]);
         }
 
         return null;
@@ -179,8 +228,15 @@ class DevCommand extends Command
             $this->info('Linked bridge runtime for watch mode.');
         }
 
+        $resolver = new PackageManagerResolver();
+        $packageManager = $resolver->detect($noturRoot);
+        if ($packageManager === null) {
+            $this->warn('No supported package manager found for bridge watcher.');
+            return null;
+        }
+
         $this->info('Starting bridge watcher...');
-        return $this->startProcess('bun run dev:bridge', $noturRoot, 'Bridge watcher');
+        return $this->startProcess($resolver->runScriptCommand($packageManager, 'dev:bridge'), $noturRoot, 'Bridge watcher');
     }
 
     private function startTailwindWatcher(): ?array
@@ -209,8 +265,15 @@ class DevCommand extends Command
             $this->info('Linked Tailwind CSS for watch mode.');
         }
 
+        $resolver = new PackageManagerResolver();
+        $packageManager = $resolver->detect($noturRoot);
+        if ($packageManager === null) {
+            $this->warn('No supported package manager found for Tailwind watcher.');
+            return null;
+        }
+
         $this->info('Starting Tailwind watcher...');
-        return $this->startProcess('bun run dev:tailwind', $noturRoot, 'Tailwind watcher');
+        return $this->startProcess($resolver->runScriptCommand($packageManager, 'dev:tailwind'), $noturRoot, 'Tailwind watcher');
     }
 
     private function startProcess(string $command, string $cwd, string $label): array
@@ -279,5 +342,62 @@ class DevCommand extends Command
         }
 
         return $exitCode;
+    }
+
+    private function removePath(string $path): void
+    {
+        if (is_link($path) || is_file($path)) {
+            unlink($path);
+            return;
+        }
+
+        if (is_dir($path)) {
+            $this->deleteDirectory($path);
+        }
+    }
+
+    private function copyDirectory(string $source, string $dest): void
+    {
+        if (!is_dir($dest)) {
+            mkdir($dest, 0755, true);
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+
+        foreach ($iterator as $item) {
+            $target = $dest . '/' . $iterator->getSubPathname();
+            if ($item->isDir()) {
+                if (!is_dir($target)) {
+                    mkdir($target, 0755, true);
+                }
+            } else {
+                copy($item->getPathname(), $target);
+            }
+        }
+    }
+
+    private function deleteDirectory(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+
+        foreach ($iterator as $item) {
+            if ($item->isDir()) {
+                rmdir($item->getPathname());
+            } else {
+                unlink($item->getPathname());
+            }
+        }
+
+        rmdir($dir);
     }
 }

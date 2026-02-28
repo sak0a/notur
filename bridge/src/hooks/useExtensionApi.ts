@@ -110,7 +110,25 @@ export function useExtensionApi<T = any>({ extensionId, baseUrl }: UseExtensionA
                         if (errorBody.message) {
                             errorMessage = errorBody.message;
                         } else if (errorBody.errors) {
-                            errorMessage = Object.values(errorBody.errors).flat().join(', ');
+                            const messages: string[] = [];
+                            for (const field in errorBody.errors) {
+                                if (!Object.prototype.hasOwnProperty.call(errorBody.errors, field)) {
+                                    continue;
+                                }
+
+                                const value = errorBody.errors[field];
+                                if (Array.isArray(value)) {
+                                    for (const item of value) {
+                                        messages.push(String(item));
+                                    }
+                                } else if (value != null) {
+                                    messages.push(String(value));
+                                }
+                            }
+
+                            if (messages.length > 0) {
+                                errorMessage = messages.join(', ');
+                            }
                         }
                     } catch {
                         // Response body was not JSON — use the status text

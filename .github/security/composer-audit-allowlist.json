@@ -1,0 +1,5 @@
+{
+  "allowed_advisory_ids": [],
+  "allow_abandoned": [],
+  "notes": "Keep empty by default. Add explicit IDs only with review justification."
+}

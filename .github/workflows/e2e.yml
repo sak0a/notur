@@ -89,8 +89,38 @@ jobs:
             fi
 
             # Apply React source patches (skip reverse patches)
-            PATCH_DIR="vendor/notur/notur/installer/patches/v1.11"
-            if [ -d "${PATCH_DIR}" ]; then
+            PATCH_DIR=""
+            PANEL_VERSION=""
+            if [ -f "composer.lock" ]; then
+              PANEL_VERSION=$(php -r " \
+                \$lock = json_decode(file_get_contents(\"composer.lock\"), true); \
+                if (!is_array(\$lock)) { exit(0); } \
+                foreach ([\"packages\", \"packages-dev\"] as \$section) { \
+                  if (empty(\$lock[\$section]) || !is_array(\$lock[\$section])) { continue; } \
+                  foreach (\$lock[\$section] as \$pkg) { \
+                    if ((\$pkg[\"name\"] ?? \"\") === \"pterodactyl/panel\") { \
+                      echo (string) (\$pkg[\"version\"] ?? \"\"); \
+                      exit(0); \
+                    } \
+                  } \
+                }" 2>/dev/null || true)
+            fi
+
+            if echo "${PANEL_VERSION}" | grep -q "^v1\\.12"; then
+              PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
+            elif echo "${PANEL_VERSION}" | grep -q "^v1\\.11"; then
+              PATCH_DIR="vendor/notur/notur/installer/patches/v1.11"
+            else
+              for candidate in vendor/notur/notur/installer/patches/v1.12 vendor/notur/notur/installer/patches/v1.11; do
+                if [ -d "${candidate}" ]; then
+                  PATCH_DIR="${candidate}"
+                  break
+                fi
+              done
+            fi
+
+            if [ -n "${PATCH_DIR}" ] && [ -d "${PATCH_DIR}" ]; then
+              echo "Using patch set: ${PATCH_DIR##*/}"
               for patch in "${PATCH_DIR}"/*.patch; do
                 [ -f "${patch}" ] || continue
                 PATCH_NAME=$(basename "${patch}")
@@ -188,12 +218,12 @@ jobs:
           docker compose exec -T app bash -c '
             cd /var/www/pterodactyl
             set -euo pipefail
-            mkdir -p notur/extensions/notur/hello-world
-            cp -r /opt/notur/examples/hello-world/* notur/extensions/notur/hello-world/
-            echo "{\"extensions\":{\"notur/hello-world\":{\"enabled\":true,\"version\":\"1.0.0\"}}}" > notur/extensions.json
-            mkdir -p public/notur/extensions/notur/hello-world
-            cp notur/extensions/notur/hello-world/resources/frontend/dist/hello-world.js \
-               public/notur/extensions/notur/hello-world/hello-world.js 2>/dev/null || true
+
+            # Pack example extension into a real .notur archive and install via CLI.
+            rm -rf /tmp/hello-world-src /tmp/hello-world.notur
+            cp -R /opt/notur/examples/hello-world /tmp/hello-world-src
+            php -r "require \"vendor/autoload.php\"; \\Notur\\Support\\NoturArchive::pack(\"/tmp/hello-world-src\", \"/tmp/hello-world.notur\");"
+            php artisan notur:install /tmp/hello-world.notur --force
 
             # Refresh caches and ensure Notur migrations are applied
             php artisan config:clear 2>/dev/null || true
@@ -213,6 +243,39 @@ jobs:
 
           # Run tests
           docker compose run --rm test-runner
+
+          # Verify real CLI lifecycle commands inside panel container
+          docker compose exec -T app bash -c '
+            cd /var/www/pterodactyl
+            set -euo pipefail
+
+            php artisan notur:list > /tmp/notur-list-before.txt
+            if ! grep -q "notur/hello-world" /tmp/notur-list-before.txt; then
+              echo "notur:install did not register hello-world in notur:list"
+              cat /tmp/notur-list-before.txt
+              exit 1
+            fi
+
+            if ! php artisan notur:disable notur/hello-world; then
+              echo "notur:disable failed for notur/hello-world"
+              exit 1
+            fi
+
+            if ! php artisan notur:enable notur/hello-world; then
+              echo "notur:enable failed for notur/hello-world"
+              exit 1
+            fi
+
+            if ! printf "yes\n" | php artisan notur:remove notur/hello-world; then
+              echo "notur:remove failed for notur/hello-world"
+              exit 1
+            fi
+
+            if php artisan notur:list | grep -q "notur/hello-world"; then
+              echo "notur/hello-world still present after notur:remove"
+              exit 1
+            fi
+          '
 
       - name: Collect logs on failure
         if: failure()

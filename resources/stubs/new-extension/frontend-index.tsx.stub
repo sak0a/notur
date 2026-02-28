@@ -1,0 +1,34 @@
+import * as React from 'react';
+import { createExtension } from '@notur/sdk';
+
+const ExampleWidget: React.FC<{ extensionId: string }> = () => {
+    return (
+        <div
+            style={{
+                padding: '1rem',
+                background: 'var(--notur-bg-secondary)',
+                border: '1px solid var(--notur-border)',
+                borderRadius: 'var(--notur-radius-md)',
+            }}
+        >
+            <h3 style={{ color: 'var(--notur-text-primary)' }}>
+                {{displayName}}
+            </h3>
+            <p style={{ color: 'var(--notur-text-secondary)' }}>
+                Hello from {{id}}!
+            </p>
+        </div>
+    );
+};
+
+// Register extension with slots - name/version are auto-resolved from extension.yaml
+createExtension({
+    id: '{{id}}',
+    slots: [
+        {
+            slot: 'dashboard.widgets',
+            component: ExampleWidget,
+            order: 100,
+        },
+    ],
+});
