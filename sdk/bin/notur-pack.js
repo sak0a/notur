@@ -28,6 +28,9 @@ const EXCLUDE_PATTERNS = [
     '.idea',
     '.vscode',
     '.DS_Store',
+    '._*',
+    '.pack-verify',
+    '.pack-verify*',
     'checksums.json',
 ];
 
@@ -104,6 +107,16 @@ function loadManifest(dir) {
 }
 
 function shouldExclude(relativePath) {
+    const baseName = path.basename(relativePath);
+    if (
+        baseName.startsWith('._') ||
+        baseName.endsWith('.notur') ||
+        baseName.endsWith('.notur.sha256') ||
+        baseName.endsWith('.notur.sig')
+    ) {
+        return true;
+    }
+
     for (const pattern of EXCLUDE_PATTERNS) {
         if (relativePath === pattern || relativePath.startsWith(pattern + '/') || relativePath.startsWith(pattern + path.sep)) {
             return true;
@@ -203,8 +216,18 @@ async function pack(sourceDir, outputPath, options = {}) {
 
     console.log(`Packing ${manifest.name || manifest.id} v${manifest.version}...`);
 
+    // Determine output filename early so generated artifacts can be excluded.
+    const filename = outputPath || `${manifest.id.replace('/', '-')}-${manifest.version}.notur`;
+    const outputFullPath = path.resolve(filename);
+    const outputBasename = path.basename(outputFullPath);
+    const generatedArtifacts = new Set([
+        outputBasename,
+        `${outputBasename}.sha256`,
+        `${outputBasename}.sig`,
+    ]);
+
     // Collect files and compute checksums
-    const files = collectFiles(resolvedDir);
+    const files = collectFiles(resolvedDir).filter(file => !generatedArtifacts.has(file));
     if (files.length === 0) {
         console.error('Error: no packageable files found in extension directory.');
         process.exit(1);
@@ -218,27 +241,25 @@ async function pack(sourceDir, outputPath, options = {}) {
     const checksumsExisted = fs.existsSync(checksumsPath);
     fs.writeFileSync(checksumsPath, JSON.stringify(checksums, null, 2) + '\n');
 
-    // Determine output filename
-    const filename = outputPath || `${manifest.id.replace('/', '-')}-${manifest.version}.notur`;
-    const outputFullPath = path.resolve(filename);
-
     // Build safe argument list for tar (no shell interpolation).
+    // Use explicit file entries instead of "." because Phar extraction can fail
+    // on archives containing a top-level "." entry.
     const deterministicArgs = isGnuTarAvailable()
         ? ['--sort=name', '--mtime=UTC 1970-01-01', '--owner=0', '--group=0', '--numeric-owner']
         : [];
 
+    const archiveEntries = ['checksums.json', ...files];
     const tarArgs = [
         ...deterministicArgs,
-        ...EXCLUDE_PATTERNS.flatMap(p => ['--exclude', p]),
         '-czf',
         outputFullPath,
-        '.',
+        ...archiveEntries,
     ];
 
     if (options.dryRun) {
         console.log('\nDry run mode (no archive written).');
         console.log(`Would create: ${outputFullPath}`);
-        console.log(`Would include: ${files.length} files`);
+        console.log(`Would include: ${archiveEntries.length} files`);
         if (deterministicArgs.length > 0) {
             console.log('Deterministic archive mode: enabled (GNU tar flags).');
         } else {
@@ -250,6 +271,13 @@ async function pack(sourceDir, outputPath, options = {}) {
     try {
         const tarResult = spawnSync('tar', tarArgs, {
             cwd: resolvedDir,
+            env: {
+                ...process.env,
+                // Prevent macOS BSD tar from writing AppleDouble metadata files
+                // (._*) into archives, which breaks Phar extraction/integrity.
+                COPYFILE_DISABLE: '1',
+                COPY_EXTENDED_ATTRIBUTES_DISABLE: '1',
+            },
             stdio: 'pipe',
             encoding: 'utf8',
         });
