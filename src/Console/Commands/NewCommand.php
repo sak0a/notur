@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Notur\Console\Commands;
 
 use Illuminate\Console\Command;
+use Notur\Support\PackageManagerResolver;
 
 class NewCommand extends Command
 {
@@ -120,7 +121,9 @@ class NewCommand extends Command
             $this->writePhpunitTest($basePath, $context);
         }
 
-        $this->writeReadme($basePath, $context);
+        $packageManager = $this->detectPackageManager($basePath);
+
+        $this->writeReadme($basePath, $context, $packageManager);
         $this->writeGitignore($basePath);
 
         $this->newLine();
@@ -134,9 +137,9 @@ class NewCommand extends Command
 
         $step = 2;
         if ($context['includeFrontend']) {
-            $this->line("    {$step}. bun install");
+            $this->line("    {$step}. {$this->frontendInstallCommand($packageManager)}");
             $step++;
-            $this->line("    {$step}. bun run build");
+            $this->line("    {$step}. {$this->frontendRunScriptCommand($packageManager, 'build')}");
             $step++;
         }
 
@@ -649,19 +652,21 @@ TSX;
             'version' => '1.0.0',
             'private' => true,
             'scripts' => [
-                'build' => 'bunx webpack --mode production',
-                'dev' => 'bunx webpack --mode development --watch',
+                'build' => 'webpack-cli --mode production --config webpack.config.js',
+                'dev' => 'webpack-cli --mode development --watch --config webpack.config.js',
             ],
             'peerDependencies' => [
                 'react' => '^16.14.0',
                 'react-dom' => '^16.14.0',
             ],
             'devDependencies' => [
-                '@notur/sdk' => '^1.0.0',
+                '@notur/sdk' => '^1.2.0',
                 '@types/react' => '^16.14.0',
                 '@types/react-dom' => '^16.9.0',
+                'css-loader' => '^7.1.2',
                 'react' => '^16.14.0',
                 'react-dom' => '^16.14.0',
+                'style-loader' => '^4.0.0',
                 'ts-loader' => '^9.5.0',
                 'typescript' => '^5.3.0',
                 'webpack' => '^5.90.0',
@@ -855,7 +860,7 @@ PHP;
         file_put_contents($basePath . '/tests/Unit/ExtensionTest.php', $content . "\n");
     }
 
-    private function writeReadme(string $basePath, array $context): void
+    private function writeReadme(string $basePath, array $context, string $packageManager): void
     {
         $lines = [];
         $lines[] = '# ' . $context['displayName'];
@@ -880,8 +885,8 @@ PHP;
             $lines[] = '## Frontend Development';
             $lines[] = '';
             $lines[] = "```bash";
-            $lines[] = 'bun install';
-            $lines[] = 'bun run dev';
+            $lines[] = $this->frontendInstallCommand($packageManager);
+            $lines[] = $this->frontendRunScriptCommand($packageManager, 'dev');
             $lines[] = "```";
         }
 
@@ -956,5 +961,26 @@ TXT;
     private function toViewNamespace(string $vendor, string $name): string
     {
         return $vendor . '-' . $name;
+    }
+
+    private function detectPackageManager(string $basePath): string
+    {
+        $resolver = new PackageManagerResolver();
+
+        return $resolver->detect($basePath) ?? 'npm';
+    }
+
+    private function frontendInstallCommand(string $manager): string
+    {
+        $resolver = new PackageManagerResolver();
+
+        return $resolver->installCommand($manager);
+    }
+
+    private function frontendRunScriptCommand(string $manager, string $script): string
+    {
+        $resolver = new PackageManagerResolver();
+
+        return $resolver->runScriptCommand($manager, $script);
     }
 }

@@ -19,6 +19,7 @@ use Notur\Contracts\HasMigrations;
 use Notur\Features\ExtensionContext;
 use Notur\Features\FeatureRegistry;
 use Notur\Models\InstalledExtension;
+use Notur\Support\ExtensionPath;
 use Notur\Support\HealthCheckNormalizer;
 use Notur\Support\ThemeCompiler;
 use RuntimeException;
@@ -405,7 +406,7 @@ class ExtensionManager
      */
     public function getExtensionsPath(): string
     {
-        return base_path('notur/extensions');
+        return ExtensionPath::extensionsDir();
     }
 
     /**
@@ -413,7 +414,7 @@ class ExtensionManager
      */
     public function getManifestPath(): string
     {
-        return base_path('notur/extensions.json');
+        return ExtensionPath::manifest();
     }
 
     /**
@@ -421,7 +422,7 @@ class ExtensionManager
      */
     public function getPublicPath(): string
     {
-        return public_path('notur/extensions');
+        return ExtensionPath::publicExtensionsDir();
     }
 
     /**

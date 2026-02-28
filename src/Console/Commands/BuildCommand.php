@@ -6,6 +6,7 @@ namespace Notur\Console\Commands;
 
 use Illuminate\Console\Command;
 use Notur\ExtensionManifest;
+use Notur\Support\PackageManagerResolver;
 
 class BuildCommand extends Command
 {
@@ -35,14 +36,27 @@ class BuildCommand extends Command
         $this->info("Building {$manifest->getName()} v{$manifest->getVersion()}...");
 
         // Check for package.json
-        if (!file_exists($path . '/package.json')) {
+        $packageJsonPath = $path . '/package.json';
+        if (!file_exists($packageJsonPath)) {
             $this->warn('No package.json found — skipping frontend build.');
             return 0;
         }
 
+        $resolver = new PackageManagerResolver();
+        $packageManager = $resolver->detect($path);
+        if ($packageManager === null) {
+            $this->error('No supported package manager found (bun, pnpm, yarn, npm).');
+            return 1;
+        }
+
+        $package = json_decode((string) file_get_contents($packageJsonPath), true);
+        $scripts = is_array($package) && isset($package['scripts']) && is_array($package['scripts'])
+            ? $package['scripts']
+            : [];
+
         // Install dependencies
-        $this->info('Installing dependencies...');
-        $result = $this->runProcess('bun install', $path);
+        $this->info("Installing dependencies with {$packageManager}...");
+        $result = $this->runProcess($resolver->installCommand($packageManager), $path);
         if ($result !== 0) {
             $this->error('Failed to install dependencies.');
             return 1;
@@ -61,7 +75,20 @@ class BuildCommand extends Command
             }
         }
 
-        $cmd = "bunx webpack --mode {$mode} --config " . escapeshellarg($webpackConfig);
+        if ($mode === 'production' && isset($scripts['build:production'])) {
+            $cmd = $resolver->runScriptCommand($packageManager, 'build:production');
+        } elseif (isset($scripts['build'])) {
+            $cmd = $resolver->runScriptCommand($packageManager, 'build');
+        } else {
+            $cmd = $resolver->execCommand($packageManager, [
+                'webpack-cli',
+                '--mode',
+                $mode,
+                '--config',
+                $webpackConfig,
+            ]);
+        }
+
         $result = $this->runProcess($cmd, $path);
 
         if ($result !== 0) {
