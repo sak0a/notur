@@ -1,5 +1,7 @@
 const path = require('path');
 const base = require('../../sdk/webpack.extension.config');
+const externals = { ...base.externals };
+delete externals['@notur/sdk'];
 
 module.exports = {
     ...base,
@@ -16,7 +18,10 @@ module.exports = {
     resolve: {
         ...base.resolve,
         alias: {
-            '@notur/sdk': path.resolve(__dirname, '../../sdk/src'),
+            '@notur/sdk': path.resolve(__dirname, '../../sdk/dist'),
         },
     },
+    // Bundle SDK helpers (createExtension/hooks) into the extension bundle.
+    // Only React/ReactDOM remain external and provided by the panel runtime.
+    externals,
 };

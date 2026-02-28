@@ -1,6 +1,6 @@
 {
     "name": "notur-cs2-modframework",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "private": true,
     "scripts": {
         "build": "./node_modules/.bin/webpack-cli --mode production",
