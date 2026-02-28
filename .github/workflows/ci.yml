@@ -148,6 +148,41 @@ jobs:
       - name: Run frontend tests
         run: bun run test:frontend
 
+  security-audit:
+    name: Security Audit Policies
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sodium, mbstring, json
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run composer audit and enforce allowlist policy
+        run: |
+          composer audit --format=json > composer-audit.json || true
+          php scripts/ci/check-composer-audit.php composer-audit.json .github/security/composer-audit-allowlist.json
+
+      - name: Install npm dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run npm audit and enforce allowlist policy
+        run: |
+          npm audit --audit-level=moderate --json > npm-audit.json || true
+          node scripts/ci/check-npm-audit.js npm-audit.json .github/security/npm-audit-allowlist.json
+
   patch-validation:
     name: Validate Patches (${{ matrix.panel-version }})
     runs-on: ubuntu-latest

@@ -228,6 +228,25 @@ jobs:
           # Run tests
           docker compose run --rm test-runner
 
+          # Verify real CLI lifecycle commands inside panel container
+          docker compose exec -T app bash -c '
+            cd /var/www/pterodactyl
+            set -euo pipefail
+
+            php artisan notur:list > /tmp/notur-list-before.txt
+            grep -q "notur/hello-world" /tmp/notur-list-before.txt
+
+            php artisan notur:disable notur/hello-world
+            php artisan notur:enable notur/hello-world
+
+            printf "yes\n" | php artisan notur:remove notur/hello-world
+
+            if php artisan notur:list | grep -q "notur/hello-world"; then
+              echo "notur/hello-world still present after notur:remove"
+              exit 1
+            fi
+          '
+
       - name: Collect logs on failure
         if: failure()
         run: |

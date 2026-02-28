@@ -1,0 +1,16 @@
+{
+  "allowed_packages": [
+    "@webpack-cli/configtest",
+    "@webpack-cli/info",
+    "@webpack-cli/serve",
+    "ajv",
+    "minimatch",
+    "serialize-javascript",
+    "terser-webpack-plugin",
+    "ts-loader",
+    "webpack",
+    "webpack-cli"
+  ],
+  "notes": "Temporary allowlist while webpack toolchain advisory remediation is planned.",
+  "review_before": "2026-06-30"
+}

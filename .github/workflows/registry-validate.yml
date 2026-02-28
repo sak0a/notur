@@ -4,7 +4,9 @@ on:
   pull_request:
     paths:
       - 'registry/registry.json'
+      - 'registry/schema/**'
       - 'registry/extensions/**'
+      - 'scripts/ci/validate-registry.php'
 
 jobs:
   validate:
@@ -22,27 +24,5 @@ jobs:
       - name: Install dependencies
         run: composer install --no-dev --prefer-dist
 
-      - name: Validate registry index schema
-        run: |
-          php -r "
-            \$schema = json_decode(file_get_contents('registry/schema/registry-index.schema.json'), true);
-            \$index = json_decode(file_get_contents('registry/registry.json'), true);
-            if (\$index === null) {
-                echo 'ERROR: Invalid JSON in registry.json' . PHP_EOL;
-                exit(1);
-            }
-            echo 'Registry index is valid JSON with ' . count(\$index['extensions'] ?? []) . ' extensions.' . PHP_EOL;
-          "
-
-      - name: Check for duplicate extension IDs
-        run: |
-          php -r "
-            \$index = json_decode(file_get_contents('registry/registry.json'), true);
-            \$ids = array_column(\$index['extensions'] ?? [], 'id');
-            \$dupes = array_diff_assoc(\$ids, array_unique(\$ids));
-            if (!empty(\$dupes)) {
-                echo 'ERROR: Duplicate extension IDs: ' . implode(', ', \$dupes) . PHP_EOL;
-                exit(1);
-            }
-            echo 'No duplicate IDs found.' . PHP_EOL;
-          "
+      - name: Validate registry index against schema + policy
+        run: php scripts/ci/validate-registry.php registry/registry.json
