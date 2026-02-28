@@ -16,11 +16,21 @@
 +    const notur = (window as any).__NOTUR__;
 +    if (!notur?.registry) return [];
 +
-+    return notur.registry.getRoutes(area).map((route: any) => ({
-+        path: route.path,
-+        exact: true,
-+        render: () => React.createElement(route.component, {
-+            extensionId: route.extensionId,
-+        }),
-+    }));
++    return notur.registry.getRoutes(area).map((route: any) => {
++        const routePath = String(route.path || '');
++        const normalizedPath = routePath.startsWith('/') ? routePath : `/${routePath}`;
++        const prefixedPath = area === 'server'
++            ? `/server/:id${normalizedPath}`
++            : area === 'account'
++                ? `/account${normalizedPath}`
++                : normalizedPath;
++
++        return {
++            path: prefixedPath,
++            exact: true,
++            render: () => React.createElement(route.component, {
++                extensionId: route.extensionId,
++            }),
++        };
++    });
 +}
