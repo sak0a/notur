@@ -3,8 +3,12 @@
 use Illuminate\Support\Facades\Route;
 use Notur\Http\Controllers\ExtensionAdminController;
 
+$adminMiddleware = class_exists(\Pterodactyl\Http\Middleware\AdminAuthenticate::class)
+    ? \Pterodactyl\Http\Middleware\AdminAuthenticate::class
+    : 'admin';
+
 Route::prefix('admin/notur')
-    ->middleware(['web', 'admin'])
+    ->middleware(['web', $adminMiddleware])
     ->group(function () {
         Route::get('/extensions', [ExtensionAdminController::class, 'index'])
             ->name('admin.notur.extensions');

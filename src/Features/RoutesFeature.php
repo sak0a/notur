@@ -65,7 +65,12 @@ final class RoutesFeature implements ExtensionFeature
 
             $middleware = match ($group) {
                 'api-client' => ['api', 'client-api', 'throttle:api.client'],
-                'admin' => ['web', 'admin'],
+                'admin' => [
+                    'web',
+                    class_exists(\Pterodactyl\Http\Middleware\AdminAuthenticate::class)
+                        ? \Pterodactyl\Http\Middleware\AdminAuthenticate::class
+                        : 'admin',
+                ],
                 'web' => ['web'],
                 default => ['web'],
             };
