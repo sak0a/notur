@@ -204,7 +204,9 @@ jobs:
             set -euo pipefail
 
             # Pack example extension into a real .notur archive and install via CLI.
-            php -r "require \"vendor/autoload.php\"; \\Notur\\Support\\NoturArchive::pack(\"/opt/notur/examples/hello-world\", \"/tmp/hello-world.notur\");"
+            rm -rf /tmp/hello-world-src /tmp/hello-world.notur
+            cp -R /opt/notur/examples/hello-world /tmp/hello-world-src
+            php -r "require \"vendor/autoload.php\"; \\Notur\\Support\\NoturArchive::pack(\"/tmp/hello-world-src\", \"/tmp/hello-world.notur\");"
             php artisan notur:install /tmp/hello-world.notur --force
 
             # Refresh caches and ensure Notur migrations are applied
