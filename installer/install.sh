@@ -258,6 +258,34 @@ get_node_packages() {
     esac
 }
 
+# Helper: Print manual Node.js install hints
+print_node_install_hint() {
+    local sys_pkg_mgr
+    sys_pkg_mgr=$(detect_sys_pkg_manager)
+
+    info "Install Node.js manually, then re-run this installer."
+    case "$sys_pkg_mgr" in
+        apk)
+            info "Example: apk add --no-cache nodejs npm"
+            ;;
+        apt)
+            info "Example: apt-get update && apt-get install -y nodejs npm"
+            ;;
+        dnf)
+            info "Example: dnf install -y nodejs npm"
+            ;;
+        yum)
+            info "Example: yum install -y nodejs npm"
+            ;;
+        pacman)
+            info "Example: pacman -S --noconfirm nodejs npm"
+            ;;
+        *)
+            info "Install Node.js from: https://nodejs.org/"
+            ;;
+    esac
+}
+
 # Helper: Install Alpine-specific requirements for Notur
 install_alpine_requirements() {
     if ! is_alpine; then
@@ -401,12 +429,15 @@ if ! command -v node &> /dev/null; then
             if install_sys_package "$node_pkgs"; then
                 ok "Node.js installed successfully."
             else
+                print_node_install_hint
                 die "Failed to install Node.js. Please install it manually and re-run the installer."
             fi
         else
+            print_node_install_hint
             die "Node.js is required. Please install it manually and re-run the installer."
         fi
     else
+        print_node_install_hint
         die "Node.js is not installed and automatic installation is not supported on this system. Please install Node.js manually."
     fi
 fi
