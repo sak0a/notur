@@ -1,30 +1,22 @@
 const path = require('path');
+const base = require('../../sdk/webpack.extension.config');
 
 module.exports = {
+    ...base,
     entry: './resources/frontend/src/index.tsx',
     output: {
+        ...base.output,
         filename: 'cs2-modframework.js',
         path: path.resolve(__dirname, 'resources/frontend/dist'),
-        library: { type: 'umd' },
-        clean: true,
-    },
-    resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.jsx'],
-        alias: {
-            '@notur/sdk': path.resolve(__dirname, '../../sdk/dist'),
+        library: {
+            ...base.output.library,
+            type: 'umd',
         },
     },
-    module: {
-        rules: [
-            {
-                test: /\.tsx?$/,
-                use: 'ts-loader',
-                exclude: /node_modules/,
-            },
-        ],
-    },
-    externals: {
-        react: 'React',
-        'react-dom': 'ReactDOM',
+    resolve: {
+        ...base.resolve,
+        alias: {
+            '@notur/sdk': path.resolve(__dirname, '../../sdk/src'),
+        },
     },
 };

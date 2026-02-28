@@ -4,15 +4,22 @@ import { ModFrameworkPage } from './components/ModFrameworkPage';
 
 // Sub-navigation link component for the server sidebar
 const ModFrameworkNavLink: React.FC = () => {
+    const match = window.location.pathname.match(/\/server\/([a-f0-9-]+)/);
+    const targetPath = match
+        ? `/server/${match[1]}/notur/notur/cs2-modframework/mod-frameworks`
+        : '#';
+
     return React.createElement('a', {
-        href: '#',
+        href: targetPath,
         onClick: (e: React.MouseEvent) => {
-            e.preventDefault();
             // Navigate using Pterodactyl's router — the route is registered below
-            const match = window.location.pathname.match(/\/server\/([a-f0-9-]+)/);
-            if (match) {
-                window.location.href = `/server/${match[1]}/mod-frameworks`;
+            if (!match) {
+                e.preventDefault();
+                return;
             }
+
+            e.preventDefault();
+            window.location.href = targetPath;
         },
         style: {
             display: 'flex',

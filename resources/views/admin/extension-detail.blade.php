@@ -542,8 +542,11 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        @if(($slotRegistrationSource ?? 'none') === 'manifest')
+                            <p class="text-muted mt-2">Showing deprecated manifest slot declarations. Runtime `createExtension()` slots are not introspected server-side.</p>
+                        @endif
                     @else
-                        <p class="text-muted">No frontend slots registered.</p>
+                        <p class="text-muted">No backend/manifest slot declarations found. Extensions using runtime `createExtension()` can still register slots even when this table is empty.</p>
                     @endif
                 </div>
             </div>

@@ -273,6 +273,20 @@ body.notur-admin-page .table-striped > tbody > tr:nth-of-type(odd) > td {
     background: rgba(255, 255, 255, 0.015);
 }
 
+/* Bootstrap's striped table styles often target <tr> directly; override that too. */
+body.notur-admin-page .table-striped > tbody > tr:nth-of-type(odd),
+body.notur-admin-page .table-striped > tbody > tr:nth-of-type(even),
+body.notur-admin-page .table-striped > tbody > tr:nth-of-type(odd) > th,
+body.notur-admin-page .table-striped > tbody > tr:nth-of-type(even) > th,
+body.notur-admin-page .table-striped > tbody > tr:nth-of-type(even) > td {
+    background: transparent !important;
+}
+
+body.notur-admin-page .table-striped > tbody > tr:nth-of-type(odd) > td,
+body.notur-admin-page .table-striped > tbody > tr:nth-of-type(odd) > th {
+    background: rgba(255, 255, 255, 0.015) !important;
+}
+
 body.notur-admin-page .table-striped > tbody > tr:hover > td {
     background: var(--nb-accent-dim);
 }

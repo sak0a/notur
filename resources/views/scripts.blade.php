@@ -7,6 +7,7 @@
     window.__NOTUR__.diagnostics.bridgeScriptLoaded = false;
     window.__NOTUR__.diagnostics.bridgeLoadError = null;
 </script>
+@if(!request()->is('admin*'))
 <script
     src="/notur/bridge.js"
     defer
@@ -35,4 +36,9 @@
         <script src="{{ $extension['bundle'] }}" defer></script>
     @endif
 @endforeach
+@else
+<script>
+    window.__NOTUR__.diagnostics.bridgeLoadError = 'Bridge bootstrap skipped on admin routes.';
+</script>
+@endif
 @endif

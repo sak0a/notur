@@ -106,6 +106,7 @@ class ExtensionAdminController extends Controller
 
         // Gather frontend slot registrations
         $slotRegistrations = [];
+        $slotRegistrationSource = 'none';
         $slotsByExtension = $this->manager->getFrontendSlots();
         if (isset($slotsByExtension[$extensionId]) && is_array($slotsByExtension[$extensionId])) {
             foreach ($slotsByExtension[$extensionId] as $slotId => $slotConfig) {
@@ -120,6 +121,37 @@ class ExtensionAdminController extends Controller
                     'props' => is_array($slotConfig) ? ($slotConfig['props'] ?? null) : null,
                     'when' => is_array($slotConfig) ? ($slotConfig['when'] ?? null) : null,
                 ];
+            }
+
+            if ($slotRegistrations !== []) {
+                $slotRegistrationSource = 'backend';
+            }
+        }
+
+        if ($slotRegistrations === []) {
+            $manifestSlots = $manifest['frontend']['slots'] ?? [];
+            if (is_array($manifestSlots)) {
+                foreach ($manifestSlots as $slotId => $slotConfig) {
+                    if (!is_string($slotId)) {
+                        continue;
+                    }
+
+                    $slotRegistrations[] = [
+                        'slot' => $slotId,
+                        'component' => is_array($slotConfig) ? ($slotConfig['component'] ?? null) : null,
+                        'label' => is_array($slotConfig) ? ($slotConfig['label'] ?? null) : null,
+                        'icon' => is_array($slotConfig) ? ($slotConfig['icon'] ?? null) : null,
+                        'order' => is_array($slotConfig) ? ($slotConfig['order'] ?? null) : null,
+                        'priority' => is_array($slotConfig) ? ($slotConfig['priority'] ?? null) : null,
+                        'permission' => is_array($slotConfig) ? ($slotConfig['permission'] ?? null) : null,
+                        'props' => is_array($slotConfig) ? ($slotConfig['props'] ?? null) : null,
+                        'when' => is_array($slotConfig) ? ($slotConfig['when'] ?? null) : null,
+                    ];
+                }
+
+                if ($slotRegistrations !== []) {
+                    $slotRegistrationSource = 'manifest';
+                }
             }
         }
 
@@ -156,6 +188,7 @@ class ExtensionAdminController extends Controller
             'settingsSchema' => $settingsSchema,
             'settingsValues' => $settingsValues,
             'slotRegistrations' => $slotRegistrations,
+            'slotRegistrationSource' => $slotRegistrationSource,
             'adminRoutes' => $adminRoutes,
             'adminRouteFile' => $adminRouteFile,
             'activityLogs' => $activityLogs,
