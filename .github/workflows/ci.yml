@@ -146,7 +146,7 @@ jobs:
         run: cd examples/hello-world && bunx webpack --mode production
 
       - name: Run frontend tests
-        run: bun run test:frontend || true  # Allow failure until jest config is finalized
+        run: bun run test:frontend
 
   patch-validation:
     name: Validate Patches (${{ matrix.panel-version }})
