@@ -199,8 +199,17 @@ detect_sys_pkg_manager() {
 confirm() {
     local prompt="$1"
     local response
-    echo -en "${YELLOW}[Notur]${NC} ${prompt} [y/N]: "
-    read -r response
+
+    # Read confirmations from the controlling terminal so piped/scripted stdin
+    # (e.g. curl ... | bash) does not auto-decline prompts.
+    if [ -r /dev/tty ]; then
+        echo -en "${YELLOW}[Notur]${NC} ${prompt} [y/N]: " > /dev/tty
+        read -r response < /dev/tty
+    else
+        warn "No interactive terminal available for prompt: ${prompt}"
+        return 1
+    fi
+
     case "$response" in
         [yY][eE][sS]|[yY]) return 0 ;;
         *) return 1 ;;
