@@ -129,6 +129,7 @@ class NoturInstaller
 
 // CLI usage
 if (php_sapi_name() === 'cli' && isset($argv[0]) && realpath($argv[0]) === realpath(__FILE__)) {
+    echo "[Notur] installer/install.php is legacy. Prefer installer/install.sh for full patch + build automation.\n";
     $panelPath = $argv[1] ?? '/var/www/pterodactyl';
     $installer = new NoturInstaller($panelPath);
 

@@ -575,6 +575,9 @@ if [ -d "${PATCH_DIR}" ]; then
     for patch in "${PATCH_DIR}"/*.patch; do
         if [ -f "${patch}" ]; then
             PATCH_NAME=$(basename "${patch}")
+            if [[ "${PATCH_NAME}" == *.reverse.patch ]]; then
+                continue
+            fi
             info "  Applying: ${PATCH_NAME}"
             cd "${PANEL_DIR}"
             if patch --dry-run -p1 < "${patch}" &>/dev/null; then
@@ -741,6 +744,26 @@ ok "Migrations complete."
 
 info "Storing file checksums..."
 CHECKSUM_FILE="${PANEL_DIR}/notur/.checksums"
+
+# Verify previously stored checksums before overwriting.
+if [ -f "${CHECKSUM_FILE}" ] && [ -f "${TARGET_BLADE}" ]; then
+    PREV_LAYOUT_HASH=$(grep '^layout:' "${CHECKSUM_FILE}" 2>/dev/null | awk '{print $2}')
+    if [ -n "${PREV_LAYOUT_HASH:-}" ]; then
+        if command -v sha256sum &>/dev/null; then
+            CUR_LAYOUT_HASH=$(sha256sum "${TARGET_BLADE}" | cut -d' ' -f1)
+        elif command -v shasum &>/dev/null; then
+            CUR_LAYOUT_HASH=$(shasum -a 256 "${TARGET_BLADE}" | cut -d' ' -f1)
+        else
+            CUR_LAYOUT_HASH=""
+        fi
+
+        if [ -n "${CUR_LAYOUT_HASH}" ] && [ "${PREV_LAYOUT_HASH}" != "${CUR_LAYOUT_HASH}" ]; then
+            warn "Previously tracked Blade layout checksum changed since last install."
+            warn "This can be expected after panel updates, but review local template modifications."
+        fi
+    fi
+fi
+
 {
     echo "# Notur file checksums — generated $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     if [ -f "${SCRIPTS_BLADE}" ]; then

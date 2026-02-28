@@ -89,8 +89,22 @@ jobs:
             fi
 
             # Apply React source patches (skip reverse patches)
-            PATCH_DIR="vendor/notur/notur/installer/patches/v1.11"
-            if [ -d "${PATCH_DIR}" ]; then
+            PATCH_DIR=""
+            if grep -q '"name": "pterodactyl/panel"' composer.lock && grep -q '"version": "v1.12' composer.lock; then
+              PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
+            elif grep -q '"name": "pterodactyl/panel"' composer.lock && grep -q '"version": "v1.11' composer.lock; then
+              PATCH_DIR="vendor/notur/notur/installer/patches/v1.11"
+            else
+              for candidate in vendor/notur/notur/installer/patches/v1.12 vendor/notur/notur/installer/patches/v1.11; do
+                if [ -d "${candidate}" ]; then
+                  PATCH_DIR="${candidate}"
+                  break
+                fi
+              done
+            fi
+
+            if [ -n "${PATCH_DIR}" ] && [ -d "${PATCH_DIR}" ]; then
+              echo "Using patch set: ${PATCH_DIR##*/}"
               for patch in "${PATCH_DIR}"/*.patch; do
                 [ -f "${patch}" ] || continue
                 PATCH_NAME=$(basename "${patch}")
