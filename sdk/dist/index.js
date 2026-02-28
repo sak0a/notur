@@ -6,4 +6,5 @@ export { usePermission } from './hooks/usePermission';
 export { useExtensionConfig } from './hooks/useExtensionConfig';
 export { useNoturEvent, useEmitEvent } from './hooks/useNoturEvent';
 export { useNavigate } from './hooks/useNavigate';
+export { createScopedEventChannel } from './events';
 //# sourceMappingURL=index.js.map

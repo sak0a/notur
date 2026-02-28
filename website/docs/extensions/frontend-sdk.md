@@ -939,6 +939,7 @@ export { usePermission } from './hooks/usePermission';
 export { useExtensionConfig } from './hooks/useExtensionConfig';
 export { useNoturEvent, useEmitEvent } from './hooks/useNoturEvent';
 export { useNavigate } from './hooks/useNavigate';
+export { createScopedEventChannel } from './events';
 ```
 
 ### `useExtensionConfig(extensionId: string, options?): { config, loading, error, refresh }`
@@ -1001,6 +1002,26 @@ const RefreshButton: React.FC = () => {
     );
 };
 ```
+
+### `createScopedEventChannel(extensionId: string): { eventName, emit, on }`
+
+Creates a namespaced event channel to prevent collisions with other extensions on the shared event bus.
+
+```tsx
+import { createScopedEventChannel } from '@notur/sdk';
+
+const channel = createScopedEventChannel('acme/server-analytics');
+
+channel.emit('refresh', { source: 'widget' });
+const unsubscribe = channel.on('refresh', (payload) => {
+    console.log('Scoped event payload:', payload);
+});
+```
+
+The generated event name format is:
+
+- `ext:{extensionId}:{eventName}`
+- Example: `ext:acme/server-analytics:refresh`
 
 ### `useNavigate(): (path: string) => void`
 

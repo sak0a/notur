@@ -36,6 +36,8 @@ export function createExtension(definition: ExtensionDefinition | SimpleExtensio
     const { config, slots = [], routes = [], onInit, onDestroy, cssIsolation } = normalized;
     const api = getNoturApi();
 
+    warnOnMisconfiguration(config.id, slots, routes);
+
     const resolvedConfig = resolveConfig(api, config);
 
     const resolvedCssIsolation = resolveCssIsolation(api, config.id, cssIsolation);
@@ -116,4 +118,62 @@ function resolveCssIsolation(
     }
 
     return undefined;
+}
+
+function warnOnMisconfiguration(
+    extensionId: string,
+    slots: ExtensionDefinition['slots'],
+    routes: ExtensionDefinition['routes'],
+): void {
+    if (!/^[a-z0-9-]+\/[a-z0-9-]+$/.test(extensionId)) {
+        console.warn(
+            `[Notur SDK] Extension id "${extensionId}" does not match vendor/name format (lowercase, hyphen-safe).`,
+        );
+    }
+
+    const normalizedSlots = slots ?? [];
+    const normalizedRoutes = routes ?? [];
+
+    const routeKeys = new Set<string>();
+
+    for (const slot of normalizedSlots) {
+        if (!slot.slot || typeof slot.slot !== 'string') {
+            console.warn(`[Notur SDK] Extension ${extensionId} has a slot registration without a valid slot id.`);
+        }
+
+        if (typeof slot.component !== 'function') {
+            console.warn(
+                `[Notur SDK] Extension ${extensionId} slot "${slot.slot}" has a non-component value. Expected a React component.`,
+            );
+        }
+    }
+
+    for (const route of normalizedRoutes) {
+        if (!route.path.startsWith('/')) {
+            console.warn(
+                `[Notur SDK] Extension ${extensionId} route "${route.name}" should start with "/". Received "${route.path}".`,
+            );
+        }
+
+        if (typeof route.component !== 'function') {
+            console.warn(
+                `[Notur SDK] Extension ${extensionId} route "${route.name}" has a non-component value. Expected a React component.`,
+            );
+        }
+
+        if (route.permission && !route.permission.includes('.')) {
+            console.warn(
+                `[Notur SDK] Extension ${extensionId} route "${route.name}" uses permission "${route.permission}" without namespace (recommended: vendor.action).`,
+            );
+        }
+
+        const routeKey = `${route.area}:${route.path}`;
+        if (routeKeys.has(routeKey)) {
+            console.warn(
+                `[Notur SDK] Extension ${extensionId} registers duplicate route path "${route.path}" in area "${route.area}".`,
+            );
+        } else {
+            routeKeys.add(routeKey);
+        }
+    }
 }
