@@ -23,7 +23,7 @@ export function usePermission(permission: string): boolean {
         // Check permissions array
         const perms = serverContext.permissions || [];
         setHasPermission(
-            perms.includes('*') || perms.includes(permission),
+            perms.indexOf('*') !== -1 || perms.indexOf(permission) !== -1,
         );
     }, [serverContext, permission]);
 
