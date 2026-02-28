@@ -202,12 +202,10 @@ jobs:
           docker compose exec -T app bash -c '
             cd /var/www/pterodactyl
             set -euo pipefail
-            mkdir -p notur/extensions/notur/hello-world
-            cp -r /opt/notur/examples/hello-world/* notur/extensions/notur/hello-world/
-            echo "{\"extensions\":{\"notur/hello-world\":{\"enabled\":true,\"version\":\"1.0.0\"}}}" > notur/extensions.json
-            mkdir -p public/notur/extensions/notur/hello-world
-            cp notur/extensions/notur/hello-world/resources/frontend/dist/hello-world.js \
-               public/notur/extensions/notur/hello-world/hello-world.js 2>/dev/null || true
+
+            # Pack example extension into a real .notur archive and install via CLI.
+            php -r "require \"vendor/autoload.php\"; \\Notur\\Support\\NoturArchive::pack(\"/opt/notur/examples/hello-world\", \"/tmp/hello-world.notur\");"
+            php artisan notur:install /tmp/hello-world.notur --force
 
             # Refresh caches and ensure Notur migrations are applied
             php artisan config:clear 2>/dev/null || true
@@ -234,12 +232,26 @@ jobs:
             set -euo pipefail
 
             php artisan notur:list > /tmp/notur-list-before.txt
-            grep -q "notur/hello-world" /tmp/notur-list-before.txt
+            if ! grep -q "notur/hello-world" /tmp/notur-list-before.txt; then
+              echo "notur:install did not register hello-world in notur:list"
+              cat /tmp/notur-list-before.txt
+              exit 1
+            fi
 
-            php artisan notur:disable notur/hello-world
-            php artisan notur:enable notur/hello-world
+            if ! php artisan notur:disable notur/hello-world; then
+              echo "notur:disable failed for notur/hello-world"
+              exit 1
+            fi
 
-            printf "yes\n" | php artisan notur:remove notur/hello-world
+            if ! php artisan notur:enable notur/hello-world; then
+              echo "notur:enable failed for notur/hello-world"
+              exit 1
+            fi
+
+            if ! printf "yes\n" | php artisan notur:remove notur/hello-world; then
+              echo "notur:remove failed for notur/hello-world"
+              exit 1
+            fi
 
             if php artisan notur:list | grep -q "notur/hello-world"; then
               echo "notur/hello-world still present after notur:remove"
