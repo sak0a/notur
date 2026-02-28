@@ -1,0 +1,31 @@
+notur: "1.0"
+id: "notur/full-extension"
+name: "Notur Full Example"
+version: "1.0.0"
+description: "End-to-end example extension with backend routes, admin view, migration, frontend slot, and tests."
+license: "MIT"
+authors:
+  - name: "Notur Team"
+
+requires:
+  notur: "^1.0"
+  pterodactyl: "^1.11"
+  php: "^8.2"
+
+backend:
+  routes:
+    api-client: "src/routes/api-client.php"
+    admin: "src/routes/admin.php"
+  migrations: "database/migrations"
+
+frontend:
+  bundle: "resources/frontend/dist/extension.js"
+  styles: "resources/frontend/dist/extension.css"
+
+admin:
+  settings:
+    fields:
+      - key: "feature_enabled"
+        label: "Feature Enabled"
+        type: "boolean"
+        default: true

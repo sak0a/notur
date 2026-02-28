@@ -605,6 +605,15 @@ PHP;
 
     private function writeFrontendIndex(string $basePath, array $context): void
     {
+        $stubContent = $this->renderStub('frontend-index.tsx.stub', [
+            'id' => $context['id'],
+            'displayName' => $context['displayName'],
+        ]);
+        if ($stubContent !== null) {
+            file_put_contents($basePath . '/resources/frontend/src/index.tsx', $stubContent . "\n");
+            return;
+        }
+
         $content = <<<TSX
 import * as React from 'react';
 import { createExtension } from '@notur/sdk';
@@ -647,6 +656,14 @@ TSX;
 
     private function writeFrontendPackageJson(string $basePath, array $context): void
     {
+        $stubContent = $this->renderStub('frontend-package.json.stub', [
+            'id' => $context['id'],
+        ]);
+        if ($stubContent !== null) {
+            file_put_contents($basePath . '/package.json', $stubContent . "\n");
+            return;
+        }
+
         $content = json_encode([
             'name' => $context['id'],
             'version' => '1.0.0',
@@ -703,6 +720,14 @@ TSX;
     private function writeFrontendWebpackConfig(string $basePath, array $context): void
     {
         $libraryName = $this->toClassName($context['name']);
+
+        $stubContent = $this->renderStub('webpack.config.js.stub', [
+            'libraryName' => $libraryName,
+        ]);
+        if ($stubContent !== null) {
+            file_put_contents($basePath . '/webpack.config.js', $stubContent . "\n");
+            return;
+        }
 
         $content = <<<JS
 const path = require('path');
@@ -961,6 +986,26 @@ TXT;
     private function toViewNamespace(string $vendor, string $name): string
     {
         return $vendor . '-' . $name;
+    }
+
+    private function renderStub(string $filename, array $variables): ?string
+    {
+        $stubPath = dirname(__DIR__, 3) . '/resources/stubs/new-extension/' . $filename;
+        if (!is_file($stubPath)) {
+            return null;
+        }
+
+        $content = file_get_contents($stubPath);
+        if (!is_string($content)) {
+            return null;
+        }
+
+        $replacements = [];
+        foreach ($variables as $key => $value) {
+            $replacements['{{' . $key . '}}'] = (string) $value;
+        }
+
+        return strtr($content, $replacements);
     }
 
     private function detectPackageManager(string $basePath): string

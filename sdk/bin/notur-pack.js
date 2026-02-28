@@ -58,6 +58,20 @@ function parseArgs() {
     return options;
 }
 
+function isGnuTarAvailable() {
+    const result = spawnSync('tar', ['--version'], {
+        stdio: 'pipe',
+        encoding: 'utf8',
+    });
+
+    if (result.error || result.status !== 0) {
+        return false;
+    }
+
+    const stdout = `${result.stdout || ''}${result.stderr || ''}`;
+    return /gnu tar/i.test(stdout);
+}
+
 function loadManifest(dir) {
     const manifestPath = path.join(dir, 'extension.yaml');
     if (!fs.existsSync(manifestPath)) {
@@ -191,6 +205,10 @@ async function pack(sourceDir, outputPath, options = {}) {
 
     // Collect files and compute checksums
     const files = collectFiles(resolvedDir);
+    if (files.length === 0) {
+        console.error('Error: no packageable files found in extension directory.');
+        process.exit(1);
+    }
     const checksums = computeChecksums(resolvedDir, files);
 
     console.log(`  Found ${files.length} files`);
@@ -205,7 +223,12 @@ async function pack(sourceDir, outputPath, options = {}) {
     const outputFullPath = path.resolve(filename);
 
     // Build safe argument list for tar (no shell interpolation).
+    const deterministicArgs = isGnuTarAvailable()
+        ? ['--sort=name', '--mtime=UTC 1970-01-01', '--owner=0', '--group=0', '--numeric-owner']
+        : [];
+
     const tarArgs = [
+        ...deterministicArgs,
         ...EXCLUDE_PATTERNS.flatMap(p => ['--exclude', p]),
         '-czf',
         outputFullPath,
@@ -216,6 +239,11 @@ async function pack(sourceDir, outputPath, options = {}) {
         console.log('\nDry run mode (no archive written).');
         console.log(`Would create: ${outputFullPath}`);
         console.log(`Would include: ${files.length} files`);
+        if (deterministicArgs.length > 0) {
+            console.log('Deterministic archive mode: enabled (GNU tar flags).');
+        } else {
+            console.log('Deterministic archive mode: not available (GNU tar not detected).');
+        }
         return;
     }
 

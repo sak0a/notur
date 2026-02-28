@@ -42,6 +42,11 @@ Highlights:
 
 See the [Changelog](https://docs.notur.site/reference/changelog) for release details.
 
+## Example Extensions
+
+- `examples/hello-world` -- minimal starter.
+- `examples/full-extension` -- full-stack reference (backend routes, admin view, migration, frontend slot/route, tests).
+
 ## Roadmap (Next)
 
 Near-term focus areas:
