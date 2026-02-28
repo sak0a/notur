@@ -18,7 +18,7 @@ export function usePermission(permission) {
         }
         // Check permissions array
         const perms = serverContext.permissions || [];
-        setHasPermission(perms.includes('*') || perms.includes(permission));
+        setHasPermission(perms.indexOf('*') !== -1 || perms.indexOf(permission) !== -1);
     }, [serverContext, permission]);
     return hasPermission;
 }
