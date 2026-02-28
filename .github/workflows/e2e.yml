@@ -90,9 +90,25 @@ jobs:
 
             # Apply React source patches (skip reverse patches)
             PATCH_DIR=""
-            if grep -q "\"name\": \"pterodactyl/panel\"" composer.lock && grep -q "\"version\": \"v1.12" composer.lock; then
+            PANEL_VERSION=""
+            if [ -f "composer.lock" ]; then
+              PANEL_VERSION=$(php -r " \
+                \$lock = json_decode(file_get_contents(\"composer.lock\"), true); \
+                if (!is_array(\$lock)) { exit(0); } \
+                foreach ([\"packages\", \"packages-dev\"] as \$section) { \
+                  if (empty(\$lock[\$section]) || !is_array(\$lock[\$section])) { continue; } \
+                  foreach (\$lock[\$section] as \$pkg) { \
+                    if ((\$pkg[\"name\"] ?? \"\") === \"pterodactyl/panel\") { \
+                      echo (string) (\$pkg[\"version\"] ?? \"\"); \
+                      exit(0); \
+                    } \
+                  } \
+                }" 2>/dev/null || true)
+            fi
+
+            if echo "${PANEL_VERSION}" | grep -q "^v1\\.12"; then
               PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
-            elif grep -q "\"name\": \"pterodactyl/panel\"" composer.lock && grep -q "\"version\": \"v1.11" composer.lock; then
+            elif echo "${PANEL_VERSION}" | grep -q "^v1\\.11"; then
               PATCH_DIR="vendor/notur/notur/installer/patches/v1.11"
             else
               for candidate in vendor/notur/notur/installer/patches/v1.12 vendor/notur/notur/installer/patches/v1.11; do
