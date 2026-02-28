@@ -1,7 +1,7 @@
 notur: "1.0"
 id: "notur/cs2-modframework"
 name: "CS2 Mod Frameworks"
-version: "1.0.0"
+version: "1.0.1"
 description: "One-click install of SwiftlyS2, CounterStrikeSharp & Metamod for CS2 servers"
 authors:
   - name: "Notur Team"
