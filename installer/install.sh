@@ -470,10 +470,36 @@ info "Using package manager: ${PKG_MGR}"
 # Package manager command helpers
 pkg_install() {
     case "$PKG_MGR" in
-        bun)  bun install ;;
-        pnpm) pnpm install ;;
-        yarn) yarn install ;;
-        npm)  npm install ;;
+        bun)
+            # Prefer lockfile reproducibility when available.
+            if [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+                bun install --frozen-lockfile
+            else
+                bun install
+            fi
+            ;;
+        pnpm)
+            if [ -f "pnpm-lock.yaml" ]; then
+                pnpm install --frozen-lockfile
+            else
+                pnpm install
+            fi
+            ;;
+        yarn)
+            if [ -f "yarn.lock" ]; then
+                yarn install --frozen-lockfile
+            else
+                yarn install
+            fi
+            ;;
+        npm)
+            # Use npm ci when lockfile is present to avoid version drift.
+            if [ -f "package-lock.json" ]; then
+                npm ci
+            else
+                npm install
+            fi
+            ;;
     esac
 }
 
