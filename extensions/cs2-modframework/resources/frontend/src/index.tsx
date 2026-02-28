@@ -6,7 +6,7 @@ import { ModFrameworkPage } from './components/ModFrameworkPage';
 const ModFrameworkNavLink: React.FC = () => {
     const match = window.location.pathname.match(/\/server\/([a-f0-9-]+)/);
     const targetPath = match
-        ? `/server/${match[1]}/notur/notur/cs2-modframework/mod-frameworks`
+        ? `/server/${match[1]}/mod-frameworks`
         : '#';
 
     return React.createElement('a', {
