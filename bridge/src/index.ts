@@ -204,7 +204,7 @@ function init(): void {
     // Expose the full Notur API
     window.__NOTUR__ = {
         ...existing,
-        version: existing.version || '1.0.0',
+        version: existing.version || 'dev',
         registry,
         routes: [],
         unregisterExtension: (id: string) => registry.unregisterExtension(id),
