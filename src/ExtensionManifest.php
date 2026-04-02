@@ -6,7 +6,7 @@ namespace Notur;
 
 use Notur\Support\SettingsNormalizer;
 use Symfony\Component\Yaml\Yaml;
-use InvalidArgumentException;
+use Notur\Exceptions\ManifestException;
 
 class ExtensionManifest
 {
@@ -21,7 +21,7 @@ class ExtensionManifest
 
         if ($data === null) {
             if (!file_exists($path)) {
-                throw new InvalidArgumentException("Manifest not found: {$path}");
+                throw new ManifestException("Manifest not found: {$path}");
             }
 
             $this->data = Yaml::parseFile($path);
@@ -52,7 +52,7 @@ class ExtensionManifest
             return new self($ymlPath);
         }
 
-        throw new InvalidArgumentException("No extension.yaml found in: {$extensionPath}");
+        throw new ManifestException("No extension.yaml found in: {$extensionPath}");
     }
 
     private function validate(): void
@@ -60,7 +60,7 @@ class ExtensionManifest
         $required = ['id', 'name', 'version'];
         foreach ($required as $field) {
             if (empty($this->data[$field])) {
-                throw new InvalidArgumentException(
+                throw new ManifestException(
                     "Extension manifest at '{$this->path}' is missing required field: {$field}"
                 );
             }
@@ -69,14 +69,14 @@ class ExtensionManifest
         if (array_key_exists('entrypoint', $this->data)) {
             $entrypoint = $this->data['entrypoint'];
             if (!is_string($entrypoint) || $entrypoint === '') {
-                throw new InvalidArgumentException(
+                throw new ManifestException(
                     "Extension manifest at '{$this->path}' has invalid entrypoint (must be non-empty string)."
                 );
             }
         }
 
         if (!preg_match('#^[a-z0-9\-]+/[a-z0-9\-]+$#', $this->data['id'])) {
-            throw new InvalidArgumentException(
+            throw new ManifestException(
                 "Invalid extension ID '{$this->data['id']}': must be 'vendor/name' with lowercase alphanumeric characters and hyphens"
             );
         }

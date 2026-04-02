@@ -6,7 +6,7 @@ namespace Notur\Tests\Unit;
 
 use Notur\ExtensionManifest;
 use PHPUnit\Framework\TestCase;
-use InvalidArgumentException;
+use Notur\Exceptions\ManifestException;
 
 class ManifestParserTest extends TestCase
 {
@@ -91,7 +91,7 @@ YAML;
 
         file_put_contents($this->fixturesDir . '/extension.yaml', $yaml);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ManifestException::class);
         $this->expectExceptionMessage('missing required field: id');
 
         ExtensionManifest::load($this->fixturesDir);
@@ -108,7 +108,7 @@ YAML;
 
         file_put_contents($this->fixturesDir . '/extension.yaml', $yaml);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ManifestException::class);
         $this->expectExceptionMessage('Invalid extension ID');
 
         ExtensionManifest::load($this->fixturesDir);
@@ -116,7 +116,7 @@ YAML;
 
     public function test_throws_on_missing_file(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ManifestException::class);
         $this->expectExceptionMessage('No extension.yaml found');
 
         ExtensionManifest::load('/nonexistent/path');
