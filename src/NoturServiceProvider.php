@@ -125,6 +125,12 @@ class NoturServiceProvider extends ServiceProvider
         // Register routes for extension API
         $this->registerRoutes();
 
+        // Register Notur middleware aliases
+        $router = $this->app->make('router');
+        $router->aliasMiddleware('notur.server-access', \Notur\Http\Middleware\VerifyServerAccess::class);
+        $router->aliasMiddleware('notur.namespace', \Notur\Http\Middleware\ExtensionNamespace::class);
+        $router->aliasMiddleware('notur.permission', \Notur\Http\Middleware\ExtensionPermission::class);
+
         // Boot extension manager
         $this->app->make(ExtensionManager::class)->boot();
 
