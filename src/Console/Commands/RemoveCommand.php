@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Notur\Console\Commands;
 
-use Illuminate\Console\Command;
 use Notur\Events\ExtensionRemoved;
 use Notur\ExtensionManager;
 use Notur\ExtensionManifest;
@@ -12,7 +11,7 @@ use Notur\MigrationManager;
 use Notur\Models\InstalledExtension;
 use Notur\Support\ExtensionPath;
 
-class RemoveCommand extends Command
+class RemoveCommand extends ExtensionLifecycleCommand
 {
     protected $signature = 'notur:remove
         {extension : The extension ID (vendor/name)}
@@ -57,18 +56,9 @@ class RemoveCommand extends Command
             }
         }
 
-        // Remove files
-        $extensionPath = ExtensionPath::base($extensionId);
-        if (is_dir($extensionPath)) {
-            $this->deleteDirectory($extensionPath);
-            $this->info('Removed extension files.');
-        }
-
-        // Remove public assets
-        $publicPath = ExtensionPath::public($extensionId);
-        if (is_dir($publicPath)) {
-            $this->deleteDirectory($publicPath);
-        }
+        // Remove files and public assets
+        $this->removeExtensionFiles($extensionId);
+        $this->info('Removed extension files.');
 
         // Unregister from manifest
         $manager->unregisterExtension($extensionId);
@@ -80,33 +70,11 @@ class RemoveCommand extends Command
         ExtensionRemoved::dispatch($extensionId);
 
         // Clear caches
-        $this->call('cache:clear');
-        $this->call('view:clear');
+        $this->clearNoturCaches();
 
         $this->info("Extension '{$extensionId}' has been removed.");
 
         return 0;
     }
 
-    private function deleteDirectory(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST,
-        );
-
-        foreach ($iterator as $item) {
-            if ($item->isDir()) {
-                rmdir($item->getPathname());
-            } else {
-                unlink($item->getPathname());
-            }
-        }
-
-        rmdir($dir);
-    }
 }
