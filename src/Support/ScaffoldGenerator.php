@@ -435,7 +435,7 @@ TSX;
 
     public function writeFrontendWebpackConfig(): void
     {
-        $libraryName = $this->toClassName($this->context['name']);
+        $libraryName = self::toClassName($this->context['name']);
 
         $stubContent = $this->renderStub('webpack.config.js.stub', [
             'libraryName' => $libraryName,
@@ -686,22 +686,22 @@ TXT;
         return '"' . $escaped . '"';
     }
 
-    private function toClassName(string $name): string
+    public static function toClassName(string $name): string
     {
         return str_replace(' ', '', ucwords(str_replace('-', ' ', $name)));
     }
 
-    private function toNamespace(string $vendor): string
+    public static function toNamespace(string $vendor): string
     {
         return str_replace(' ', '', ucwords(str_replace('-', ' ', $vendor)));
     }
 
-    private function toDisplayName(string $name): string
+    public static function toDisplayName(string $name): string
     {
         return ucwords(str_replace('-', ' ', $name));
     }
 
-    private function toViewNamespace(string $vendor, string $name): string
+    public static function toViewNamespace(string $vendor, string $name): string
     {
         return $vendor . '-' . $name;
     }
