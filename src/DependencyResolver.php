@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Notur;
 
-use RuntimeException;
+use Notur\Exceptions\DependencyResolutionException;
 
 class DependencyResolver
 {
@@ -14,7 +14,7 @@ class DependencyResolver
      * @param array<string, array<string>> $graph Extension IDs mapped to their dependency IDs.
      * @return array<string> Sorted extension IDs in load order.
      *
-     * @throws RuntimeException On circular dependency.
+     * @throws DependencyResolutionException On circular dependency.
      */
     public function resolve(array $graph): array
     {
@@ -39,7 +39,7 @@ class DependencyResolver
         array &$sorted,
     ): void {
         if (isset($visiting[$node])) {
-            throw new RuntimeException(
+            throw new DependencyResolutionException(
                 "Circular dependency detected involving extension: {$node}"
             );
         }

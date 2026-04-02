@@ -6,7 +6,7 @@ namespace Notur\Tests\Unit;
 
 use Notur\DependencyResolver;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
+use Notur\Exceptions\DependencyResolutionException;
 
 class DependencyResolverTest extends TestCase
 {
@@ -77,7 +77,7 @@ class DependencyResolverTest extends TestCase
 
     public function test_detects_circular_dependency(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(DependencyResolutionException::class);
         $this->expectExceptionMessage('Circular dependency');
 
         $this->resolver->resolve([
@@ -88,7 +88,7 @@ class DependencyResolverTest extends TestCase
 
     public function test_detects_self_dependency(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(DependencyResolutionException::class);
 
         $this->resolver->resolve([
             'acme/a' => ['acme/a'],
