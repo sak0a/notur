@@ -43,6 +43,7 @@ declare global {
             extensions: Array<{ id: string; name?: string; version?: string; bundle?: string; styles?: string; cssIsolation?: { mode: 'root-class'; className?: string } }>;
             routes: any[];
             unregisterExtension: (id: string) => void;
+            cleanup: () => void;
             emitEvent: (event: string, data?: unknown) => void;
             onEvent: (event: string, callback: (data?: unknown) => void) => () => void;
             SlotRenderer: typeof SlotRenderer;
@@ -78,6 +79,7 @@ declare global {
  * Used to avoid double-mounting and to enable cleanup.
  */
 const mountedSlots = new Map<string, { unmount: () => void }>();
+const activeObservers = new Set<MutationObserver>();
 
 /**
  * Mount a SlotRenderer for a single slot into its DOM container.
@@ -126,14 +128,19 @@ function mountSlot(slotId: SlotId, registry: PluginRegistry): void {
         const el = document.getElementById(containerId);
         if (el) {
             obs.disconnect();
+            activeObservers.delete(obs);
             doMount(el);
         }
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
+    activeObservers.add(observer);
 
     // Safety timeout — stop observing after 30 s to avoid leaks
-    setTimeout(() => observer.disconnect(), 30_000);
+    setTimeout(() => {
+        observer.disconnect();
+        activeObservers.delete(observer);
+    }, 30_000);
 }
 
 /**
@@ -142,6 +149,30 @@ function mountSlot(slotId: SlotId, registry: PluginRegistry): void {
 function mountAllSlots(registry: PluginRegistry): void {
     for (const def of SLOT_DEFINITIONS) {
         mountSlot(def.id, registry);
+    }
+}
+
+/**
+ * Clean up all Notur bridge resources: disconnect pending MutationObservers,
+ * unmount all slot renderers, and unmount the theme root.
+ */
+function cleanup(): void {
+    // Disconnect all pending MutationObservers
+    for (const observer of activeObservers) {
+        observer.disconnect();
+    }
+    activeObservers.clear();
+
+    // Unmount all slot renderers
+    for (const [, entry] of mountedSlots) {
+        entry.unmount();
+    }
+    mountedSlots.clear();
+
+    // Unmount theme root
+    if (themeRootUnmount) {
+        themeRootUnmount();
+        themeRootUnmount = null;
     }
 }
 
@@ -210,6 +241,7 @@ function init(): void {
         registry,
         routes: [],
         unregisterExtension: (id: string) => registry.unregisterExtension(id),
+        cleanup,
         emitEvent: (event: string, data?: unknown) => registry.emitEvent(event, data),
         onEvent: (event: string, callback: (data?: unknown) => void) => registry.onEvent(event, callback),
         SlotRenderer,
