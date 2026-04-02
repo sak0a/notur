@@ -7,6 +7,7 @@ namespace Notur;
 use Composer\Autoload\ClassLoader;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Notur\Contracts\ExtensionInterface;
 use Notur\Contracts\HasBladeViews;
@@ -95,7 +96,8 @@ class ExtensionManager
 
             try {
                 $extManifest = ExtensionManifest::load($extPath);
-            } catch (ManifestException) {
+            } catch (ManifestException $e) {
+                Log::warning("[Notur] Failed to load manifest for extension '{$id}': {$e->getMessage()}");
                 continue;
             }
 
@@ -122,6 +124,10 @@ class ExtensionManager
         }
 
         $this->booted = true;
+
+        if ($this->extensions !== []) {
+            Log::info('[Notur] Booted ' . count($this->extensions) . ' extension(s)');
+        }
     }
 
     private function registerAutoloading(array $psr4, string $extPath): void
@@ -159,6 +165,7 @@ class ExtensionManager
     {
         $entrypoint = $this->entrypointResolver->resolve($manifest, $extPath, $psr4);
         if (!$entrypoint) {
+            Log::warning("[Notur] No entrypoint found for extension '{$id}', skipping");
             return;
         }
 
@@ -362,6 +369,8 @@ class ExtensionManager
         file_put_contents($manifestFile, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
         InstalledExtension::where('extension_id', $id)->update(['enabled' => $enabled]);
+
+        Log::info("[Notur] Extension '{$id}' " . ($enabled ? 'enabled' : 'disabled'));
     }
 
     /**
