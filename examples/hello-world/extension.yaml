@@ -12,8 +12,6 @@ requires:
   pterodactyl: "^1.11"
   php: "^8.2"
 
-entrypoint: 'Notur\HelloWorld\HelloWorldExtension'
-
 autoload:
   psr-4:
     'Notur\HelloWorld\': "src/"
@@ -26,7 +24,3 @@ backend:
 
 frontend:
   bundle: "resources/frontend/dist/hello-world.js"
-  slots:
-    dashboard.widgets:
-      component: "HelloWidget"
-      order: 100
