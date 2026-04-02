@@ -15,6 +15,7 @@ import {
     extractPterodactylVariables,
 } from './theme/CssVariables';
 import { ensureGlassStyles } from './theme/GlassStyles';
+import { recordDiagnosticError } from './diagnostics';
 
 // Ensure React/ReactDOM are exposed globally for extension bundles.
 // If another instance is already present, warn to help diagnose hook issues.
@@ -67,6 +68,7 @@ declare global {
                     time: string;
                 }>;
             };
+            recordDiagnosticError: typeof recordDiagnosticError;
         };
     }
 }
@@ -225,6 +227,7 @@ function init(): void {
         SLOT_DEFINITIONS,
         debug,
         diagnostics: existing.diagnostics || { errors: [] },
+        recordDiagnosticError,
     };
 
     console.log(`[Notur] Bridge runtime v${window.__NOTUR__.version} initialized`);
@@ -269,4 +272,5 @@ export {
     useNoturTheme,
     SLOT_IDS,
     SLOT_DEFINITIONS,
+    recordDiagnosticError,
 };
