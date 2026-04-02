@@ -6,9 +6,12 @@ namespace Notur\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
+use Notur\Console\Concerns\ManagesFilesystem;
 
 class UninstallCommand extends Command
 {
+    use ManagesFilesystem;
+
     protected $signature = 'notur:uninstall
         {--confirm : Skip interactive confirmation}';
 
@@ -434,28 +437,4 @@ class UninstallCommand extends Command
         return $result === 0;
     }
 
-    /**
-     * Recursively delete a directory.
-     */
-    private function deleteDirectory(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST,
-        );
-
-        foreach ($iterator as $item) {
-            if ($item->isDir()) {
-                rmdir($item->getPathname());
-            } else {
-                unlink($item->getPathname());
-            }
-        }
-
-        rmdir($dir);
-    }
 }
