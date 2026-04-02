@@ -37,10 +37,17 @@ npm run test:frontend      # Jest tests
 **Entry point:** `NoturServiceProvider` — Laravel service provider registered via composer.json `extra.laravel.providers`. Boots extension loading, migrations, views, routes, and artisan commands.
 
 **Core flow:**
-1. `ExtensionManager` (singleton) reads `notur/extensions.json`, loads enabled extension manifests (YAML via `ExtensionManifest`), resolves load order via `DependencyResolver` (topological sort with circular dependency detection), registers PSR-4 autoloading per extension, then boots them in order.
-2. Extensions implement `ExtensionInterface` and optionally mix in capability contracts from `Contracts/` (`HasRoutes`, `HasMigrations`, `HasCommands`, `HasMiddleware`, `HasEventListeners`, `HasBladeViews`, `HasFrontendSlots`, `HasHealthChecks`).
+1. `ExtensionManager` (singleton) reads `notur/extensions.json`, loads enabled extension manifests (YAML via `ExtensionManifest`), resolves load order via `DependencyResolver` (topological sort with circular dependency detection), registers PSR-4 autoloading per extension, delegates entrypoint resolution to `EntrypointResolver`, then boots them in order. Lifecycle events are logged via Laravel's `Log` facade.
+2. Extensions extend `NoturExtension` base class (which auto-reads metadata from `extension.yaml`) and optionally mix in capability contracts from `Contracts/` (`HasRoutes`, `HasMigrations`, `HasCommands`, `HasMiddleware`, `HasEventListeners`, `HasBladeViews`, `HasHealthChecks`). `HasFrontendSlots` is **deprecated** — define slots in frontend code via `createExtension()`.
 3. `MigrationManager` handles per-extension DB migrations tracked in `notur_migrations`.
 4. `PermissionBroker` scopes permissions as `notur.{ext-id}.{permission}`.
+5. Custom exceptions (`src/Exceptions/`): `NoturException` base, `ExtensionNotFoundException`, `ManifestException`, `DependencyResolutionException`, `ExtensionBootException`.
+
+**Key support classes:**
+
+- `EntrypointResolver` — resolves extension PHP entrypoint classes via manifest, composer.json, convention, or filesystem discovery.
+- `ScaffoldGenerator` — generates all files for `notur:new` scaffolding (used by `NewCommand`).
+- `VerifyServerAccess` middleware — verifies authenticated user has access to a server (owner or subuser). Use in extension routes: `->middleware('notur.server-access')`.
 
 **Route groups** are auto-prefixed per extension:
 - `api-client` → `/api/client/notur/{ext-id}/`
@@ -58,6 +65,9 @@ Exposes `window.__NOTUR__` global API on page load. Core components:
 - **PluginRegistry** — Event-emitter-based registry for slots, routes, and extensions. Extensions call `registerSlot()` / `registerRoute()` to inject themselves.
 - **SlotRenderer** — React component that renders registered slot components via portals into `<div id="notur-slot-*">` containers.
 - **Hooks:** `useSlot` (get components for a slot), `useExtensionApi` (scoped HTTP client), `useExtensionState` (shared state), `useNoturTheme`.
+- **Diagnostics:** `recordDiagnosticError()` — bounded error recording (max 100 entries) exposed on `window.__NOTUR__`.
+- **Validation:** Slot registration warns on unknown slot IDs and blocks duplicate registrations from the same extension.
+- **Cleanup:** `window.__NOTUR__.cleanup()` disconnects MutationObservers and unmounts all slot renderers.
 
 ### SDK (`sdk/src/`)
 
