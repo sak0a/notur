@@ -22,7 +22,9 @@ use Notur\Models\InstalledExtension;
 use Notur\Support\ExtensionPath;
 use Notur\Support\HealthCheckNormalizer;
 use Notur\Support\ThemeCompiler;
-use RuntimeException;
+use Notur\Exceptions\ExtensionBootException;
+use Notur\Exceptions\ExtensionNotFoundException;
+use Notur\Exceptions\ManifestException;
 
 class ExtensionManager
 {
@@ -91,7 +93,7 @@ class ExtensionManager
 
             try {
                 $extManifest = ExtensionManifest::load($extPath);
-            } catch (\Throwable) {
+            } catch (ManifestException) {
                 continue;
             }
 
@@ -166,7 +168,7 @@ class ExtensionManager
         $extension = $this->app->make($entrypoint);
 
         if (!$extension instanceof ExtensionInterface) {
-            throw new RuntimeException(
+            throw new ExtensionBootException(
                 "Extension '{$id}' entrypoint must implement " . ExtensionInterface::class
             );
         }
@@ -350,7 +352,7 @@ class ExtensionManager
             : ['extensions' => []];
 
         if (!isset($manifest['extensions'][$id])) {
-            throw new RuntimeException("Extension '{$id}' is not installed.");
+            throw new ExtensionNotFoundException($id, "Extension '{$id}' is not installed.");
         }
 
         $manifest['extensions'][$id]['enabled'] = $enabled;
