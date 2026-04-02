@@ -10,7 +10,7 @@
   "scripts": {
     "build:tailwind": "npx @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css",
     "build:bridge": "npx webpack-cli --mode production --config bridge/webpack.config.js",
-    "build:sdk": "cd sdk && npx tsc",
+    "build:sdk": "npx tsc --project sdk/tsconfig.json",
     "build": "npm run build:tailwind && npm run build:bridge && npm run build:sdk",
     "dev:bridge": "npx webpack-cli --mode development --watch --config bridge/webpack.config.js",
     "dev:tailwind": "npx @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css --watch",
