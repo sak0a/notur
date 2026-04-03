@@ -3,8 +3,40 @@ name: E2E Tests
 on:
   push:
     branches: [master]
+    paths:
+      - 'src/**'
+      - 'bridge/**'
+      - 'sdk/**'
+      - 'installer/**'
+      - 'config/**'
+      - 'database/**'
+      - 'routes/**'
+      - 'examples/**'
+      - 'docker/**'
+      - 'tests/E2E/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/e2e.yml'
   pull_request:
     branches: [master]
+    paths:
+      - 'src/**'
+      - 'bridge/**'
+      - 'sdk/**'
+      - 'installer/**'
+      - 'config/**'
+      - 'database/**'
+      - 'routes/**'
+      - 'examples/**'
+      - 'docker/**'
+      - 'tests/E2E/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/e2e.yml'
   workflow_dispatch:
 
 jobs:

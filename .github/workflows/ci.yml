@@ -3,8 +3,44 @@ name: CI
 on:
   push:
     branches: [master, dev]
+    paths:
+      - 'src/**'
+      - 'bridge/**'
+      - 'sdk/**'
+      - 'tests/**'
+      - 'config/**'
+      - 'database/**'
+      - 'routes/**'
+      - 'examples/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'phpunit.xml'
+      - '.github/workflows/ci.yml'
+      - '.github/security/**'
+      - 'installer/patches/**'
+      - 'scripts/ci/**'
   pull_request:
     branches: [master]
+    paths:
+      - 'src/**'
+      - 'bridge/**'
+      - 'sdk/**'
+      - 'tests/**'
+      - 'config/**'
+      - 'database/**'
+      - 'routes/**'
+      - 'examples/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'phpunit.xml'
+      - '.github/workflows/ci.yml'
+      - '.github/security/**'
+      - 'installer/patches/**'
+      - 'scripts/ci/**'
 
 jobs:
   php-unit-tests:
