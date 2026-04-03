@@ -343,6 +343,11 @@ class NoturArchive
             }
         }
 
+        // Exclude .notur archive files and their checksums
+        if (str_ends_with($relativePath, '.notur') || str_ends_with($relativePath, '.notur.sha256')) {
+            return true;
+        }
+
         return false;
     }
 
