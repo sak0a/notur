@@ -343,8 +343,14 @@ class NoturArchive
             }
         }
 
-        // Exclude .notur archive files and their checksums
-        if (str_ends_with($relativePath, '.notur') || str_ends_with($relativePath, '.notur.sha256')) {
+        // Exclude .notur archive files, their checksums, and related artifacts
+        if (
+            str_ends_with($relativePath, '.notur')
+            || str_ends_with($relativePath, '.notur.sha256')
+            || str_ends_with($relativePath, '.notur.tar.gz')
+            || str_ends_with($relativePath, '.notur.sig')
+            || (str_contains($relativePath, '.tar.gz') && !str_contains($relativePath, '/'))
+        ) {
             return true;
         }
 

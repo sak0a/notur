@@ -6,6 +6,7 @@ namespace Notur\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -27,35 +28,62 @@ class VerifyServerAccess
         $serverIdentifier = $request->route($parameterName);
 
         if ($serverIdentifier === null || $serverIdentifier === '') {
-            abort(404, 'Server identifier required.');
+            return $this->errorResponse($request, 404, 'Server identifier required.');
         }
 
         $user = $request->user();
 
         if ($user === null) {
-            abort(403, 'Authentication required.');
+            return $this->errorResponse($request, 403, 'Authentication required.');
         }
 
-        // Admin users bypass access check
-        if ($this->isAdmin($user)) {
-            $server = $this->findServer((string) $serverIdentifier);
-            if ($server === null) {
-                abort(404, 'Server not found.');
+        if (!class_exists('\Pterodactyl\Models\Server')) {
+            Log::error('[Notur] VerifyServerAccess: Pterodactyl\Models\Server class not found');
+            return $this->errorResponse($request, 500, 'Server model not available. Is this a Pterodactyl Panel installation?');
+        }
+
+        try {
+            // Admin users bypass access check
+            if ($this->isAdmin($user)) {
+                $server = $this->findServer((string) $serverIdentifier);
+                if ($server === null) {
+                    return $this->errorResponse($request, 404, "Server '{$serverIdentifier}' not found.");
+                }
+                $request->attributes->set('server', $server);
+                return $next($request);
             }
+
+            // Regular users: verify ownership or subuser access
+            $server = $this->findAccessibleServer((string) $serverIdentifier, $user);
+
+            if ($server === null) {
+                return $this->errorResponse($request, 404, "Server '{$serverIdentifier}' not found or access denied.");
+            }
+
             $request->attributes->set('server', $server);
+
             return $next($request);
+        } catch (\Throwable $e) {
+            Log::error("[Notur] VerifyServerAccess error: {$e->getMessage()}", [
+                'server' => $serverIdentifier,
+                'user' => $user->id ?? null,
+                'exception' => $e,
+            ]);
+
+            return $this->errorResponse($request, 500, 'Failed to verify server access: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Return an appropriate error response (JSON for API, abort for web).
+     */
+    private function errorResponse(Request $request, int $status, string $message): Response
+    {
+        if ($request->expectsJson() || str_starts_with($request->path(), 'api/')) {
+            return response()->json(['message' => $message], $status);
         }
 
-        // Regular users: verify ownership or subuser access
-        $server = $this->findAccessibleServer((string) $serverIdentifier, $user);
-
-        if ($server === null) {
-            abort(404, 'Server not found.');
-        }
-
-        $request->attributes->set('server', $server);
-
-        return $next($request);
+        abort($status, $message);
     }
 
     /**
@@ -63,10 +91,6 @@ class VerifyServerAccess
      */
     private function findServer(string $identifier): ?object
     {
-        if (!class_exists('\Pterodactyl\Models\Server')) {
-            return null;
-        }
-
         return \Pterodactyl\Models\Server::query()
             ->where(fn ($q) => $q->where('uuid', $identifier)->orWhere('uuidShort', $identifier))
             ->where('suspended', false)
@@ -79,10 +103,6 @@ class VerifyServerAccess
      */
     private function findAccessibleServer(string $identifier, mixed $user): ?object
     {
-        if (!class_exists('\Pterodactyl\Models\Server')) {
-            return null;
-        }
-
         return \Pterodactyl\Models\Server::query()
             ->where(fn ($q) => $q->where('uuid', $identifier)->orWhere('uuidShort', $identifier))
             ->where('suspended', false)
