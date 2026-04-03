@@ -2,6 +2,13 @@
 
 All notable changes to the Notur Extension Library will be documented in this file.
 
+## [1.3.2] - 2026-04-03
+
+### Fixed
+
+- **Registry URL** — Default registry URL pointed to non-existent `notur/registry` repo. Updated to `sak0a/notur/master/registry` in config, `RegistryClient`, and `NoturServiceProvider`.
+- **Registry index** — Added `notur/cs2-modframework` v1.0.4 entry with `archive_url` pointing to GitHub release asset.
+
 ## [1.3.1] - 2026-04-03
 
 ### Fixed
