@@ -8,17 +8,15 @@ describe('RouteRenderer', () => {
     let container: HTMLDivElement;
     let registry: PluginRegistry;
 
+    function setPathname(path: string) {
+        window.history.pushState({}, '', path);
+    }
+
     beforeEach(() => {
         container = document.createElement('div');
         document.body.appendChild(container);
         registry = new PluginRegistry();
-
-        // Mock window.location.pathname
-        Object.defineProperty(window, 'location', {
-            value: { pathname: '/' },
-            writable: true,
-            configurable: true,
-        });
+        setPathname('/');
     });
 
     afterEach(() => {
@@ -67,11 +65,7 @@ describe('RouteRenderer', () => {
         });
 
         // Change location and trigger popstate
-        Object.defineProperty(window, 'location', {
-            value: { pathname: '/notur/acme/test/page' },
-            writable: true,
-            configurable: true,
-        });
+        setPathname('/notur/acme/test/page');
 
         act(() => {
             window.dispatchEvent(new PopStateEvent('popstate'));
@@ -90,11 +84,7 @@ describe('RouteRenderer', () => {
             component: TestComponent,
         });
 
-        Object.defineProperty(window, 'location', {
-            value: { pathname: '/notur/vendor/extension/settings' },
-            writable: true,
-            configurable: true,
-        });
+        setPathname('/notur/vendor/extension/settings');
 
         act(() => {
             ReactDOM.render(
@@ -116,11 +106,7 @@ describe('RouteRenderer', () => {
             component: ExactComponent,
         });
 
-        Object.defineProperty(window, 'location', {
-            value: { pathname: '/notur/acme/test/exact' },
-            writable: true,
-            configurable: true,
-        });
+        setPathname('/notur/acme/test/exact');
 
         act(() => {
             ReactDOM.render(
@@ -143,11 +129,7 @@ describe('RouteRenderer', () => {
         });
 
         // Navigate to nested path
-        Object.defineProperty(window, 'location', {
-            value: { pathname: '/notur/acme/test/parent/child/grandchild' },
-            writable: true,
-            configurable: true,
-        });
+        setPathname('/notur/acme/test/parent/child/grandchild');
 
         act(() => {
             ReactDOM.render(
@@ -177,11 +159,7 @@ describe('RouteRenderer', () => {
             component: DashboardRoute,
         });
 
-        Object.defineProperty(window, 'location', {
-            value: { pathname: '/notur/acme/test/route' },
-            writable: true,
-            configurable: true,
-        });
+        setPathname('/notur/acme/test/route');
 
         // Render server area
         act(() => {
@@ -205,11 +183,7 @@ describe('RouteRenderer', () => {
             component: TestRoute,
         });
 
-        Object.defineProperty(window, 'location', {
-            value: { pathname: '/different/path' },
-            writable: true,
-            configurable: true,
-        });
+        setPathname('/different/path');
 
         act(() => {
             ReactDOM.render(
@@ -236,11 +210,7 @@ describe('RouteRenderer', () => {
             component: PropsComponent,
         });
 
-        Object.defineProperty(window, 'location', {
-            value: { pathname: '/notur/acme/test/props-test' },
-            writable: true,
-            configurable: true,
-        });
+        setPathname('/notur/acme/test/props-test');
 
         act(() => {
             ReactDOM.render(

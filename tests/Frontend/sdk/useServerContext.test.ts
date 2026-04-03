@@ -57,13 +57,7 @@ describe('useServerContext', () => {
     });
 
     it('falls back to URL pathname', () => {
-        // Mock window.location (use hex UUID format to match regex)
-        const originalPathname = window.location.pathname;
-        Object.defineProperty(window, 'location', {
-            value: { pathname: '/server/abc-123-def-456' },
-            writable: true,
-            configurable: true,
-        });
+        window.history.pushState({}, '', '/server/abc-123-def-456');
 
         // Create app element without server data
         appElement = document.createElement('div');
@@ -79,22 +73,10 @@ describe('useServerContext', () => {
         expect(result.current).toMatchObject({
             uuid: 'abc-123-def-456',
         });
-
-        // Restore
-        Object.defineProperty(window, 'location', {
-            value: { pathname: originalPathname },
-            writable: true,
-            configurable: true,
-        });
     });
 
     it('returns null when not on server page', () => {
-        // Mock window.location to non-server path
-        Object.defineProperty(window, 'location', {
-            value: { pathname: '/dashboard' },
-            writable: true,
-            configurable: true,
-        });
+        window.history.pushState({}, '', '/dashboard');
 
         const { result, TestComponent } = createHookRenderer();
 
