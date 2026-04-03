@@ -1,4 +1,6 @@
-import { SlotId } from './slots/SlotDefinitions';
+import { SlotId, SLOT_IDS } from './slots/SlotDefinitions';
+
+const knownSlotIds = new Set<string>(Object.values(SLOT_IDS));
 
 export interface SlotRenderContext {
     path: string;
@@ -99,7 +101,16 @@ export class PluginRegistry {
             ...registration,
         };
 
+        if (!knownSlotIds.has(reg.slot)) {
+            console.warn(`[Notur] Slot "${reg.slot}" is not a known slot ID. Check for typos.`);
+        }
+
         const existing = this.slotRegistrations.get(reg.slot) || [];
+        const isDuplicate = existing.some(r => r.extensionId === reg.extensionId);
+        if (isDuplicate) {
+            console.warn(`[Notur] Extension "${reg.extensionId}" already registered in slot "${reg.slot}". Skipping duplicate.`);
+            return;
+        }
         existing.push(reg);
         existing.sort((a, b) => {
             const priorityDiff = (b.priority ?? 0) - (a.priority ?? 0);

@@ -30,7 +30,21 @@ export function useUserContext() {
                 });
             }
         })
-            .catch(() => { });
+            .catch((err) => {
+            var _a;
+            console.warn('[Notur] Failed to load user context:', err);
+            const notur = window.__NOTUR__;
+            if ((_a = notur === null || notur === void 0 ? void 0 : notur.diagnostics) === null || _a === void 0 ? void 0 : _a.errors) {
+                notur.diagnostics.errors.push({
+                    extensionId: 'notur:bridge',
+                    message: `Failed to load user context: ${(err === null || err === void 0 ? void 0 : err.message) || String(err)}`,
+                    time: new Date().toISOString(),
+                });
+                if (notur.diagnostics.errors.length > 100) {
+                    notur.diagnostics.errors.splice(0, notur.diagnostics.errors.length - 100);
+                }
+            }
+        });
         return () => { cancelled = true; };
     }, []);
     return user;

@@ -1,4 +1,6 @@
 import { getNoturApi } from './types';
+/** Major version of the SDK — must match bridge major version */
+const SDK_MAJOR_VERSION = 1;
 export function createExtension(definition) {
     // Normalize: if 'id' is at top level (simplified form), wrap in config
     const normalized = isSimpleDefinition(definition)
@@ -6,6 +8,15 @@ export function createExtension(definition) {
         : definition;
     const { config, slots = [], routes = [], onInit, onDestroy, cssIsolation } = normalized;
     const api = getNoturApi();
+    // Check bridge version compatibility
+    const bridgeVersion = api.version;
+    if (bridgeVersion && bridgeVersion !== 'dev') {
+        const bridgeMajor = parseInt(bridgeVersion.split('.')[0], 10);
+        if (!isNaN(bridgeMajor) && bridgeMajor !== SDK_MAJOR_VERSION) {
+            console.warn(`[Notur SDK] Bridge major version ${bridgeMajor} may be incompatible with SDK major version ${SDK_MAJOR_VERSION}. ` +
+                `Update @notur/sdk or the Notur bridge to match.`);
+        }
+    }
     warnOnMisconfiguration(config.id, slots, routes);
     const resolvedConfig = resolveConfig(api, config);
     const resolvedCssIsolation = resolveCssIsolation(api, config.id, cssIsolation);
