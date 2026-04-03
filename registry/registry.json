@@ -25,6 +25,7 @@
             "author": "Notur Team",
             "license": "MIT",
             "repository": "https://github.com/sak0a/notur",
+            "archive_url": "https://github.com/sak0a/notur/releases/download/cs2-modframework-v1.0.4/notur-cs2-modframework-1.0.4.notur",
             "tags": ["cs2", "modding", "counterstrikesharp", "metamod", "swiftly"],
             "compatibility": {
                 "notur": ">=1.0.0",
