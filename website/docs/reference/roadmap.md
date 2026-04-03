@@ -2,19 +2,19 @@
 
 ## Current Release
 
-- Version: 1.2.2
+- Version: 1.3.2
 - Status: Stable
-- Lifecycle CLI, registry distribution, admin UI, and theme extensions are complete
-- Ed25519 signature verification is available and optional via `notur.require_signatures`
-- E2E and compatibility matrix testing are in place
+- Custom exception hierarchy, lifecycle logging, `VerifyServerAccess` middleware
+- Major refactors: `EntrypointResolver`, `ScaffoldGenerator`, `ManagesFilesystem` trait
+- Frontend slot validation, bounded diagnostics, bridge cleanup/teardown
+- All security audits passing (npm + composer)
 
 ## Near-Term Focus
 
-- Stabilize frontend tests and CI (Jest config)
-- Validate integration tests in CI (Orchestra Testbench + SQLite)
-- Harden the installer on non-macOS Linux
-- Validate patch checksums on subsequent installer runs
-- Verify `notur:dev` symlink workflow with real extensions
+- Frontend test coverage expansion (SlotRenderWhen, CssVariables, ThemeProvider)
+- Command integration tests (InstallCommand, BuildCommand)
+- Extension dev hot-reload (file-watcher + auto-rebuild)
+- Pelican Panel compatibility investigation
 
 ## Versioning
 
