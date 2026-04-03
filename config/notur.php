@@ -49,7 +49,7 @@ return [
     | The base URL for the extension registry.
     |
     */
-    'registry_url' => 'https://raw.githubusercontent.com/notur/registry/main',
+    'registry_url' => 'https://raw.githubusercontent.com/sak0a/notur/master/registry',
 
     /*
     |--------------------------------------------------------------------------

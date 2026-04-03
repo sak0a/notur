@@ -60,7 +60,7 @@ class NoturServiceProvider extends ServiceProvider
         $this->app->singleton(Support\RegistryClient::class, function ($app) {
             return new Support\RegistryClient(
                 client: new \GuzzleHttp\Client(),
-                registryUrl: config('notur.registry_url', 'https://raw.githubusercontent.com/notur/registry/main'),
+                registryUrl: config('notur.registry_url', 'https://raw.githubusercontent.com/sak0a/notur/master/registry'),
                 cacheTtl: (int) config('notur.registry_cache_ttl', 3600),
                 cachePath: config('notur.registry_cache_path'),
             );

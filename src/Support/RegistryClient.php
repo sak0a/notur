@@ -17,7 +17,7 @@ class RegistryClient
 
     public function __construct(
         private readonly Client $client,
-        private readonly string $registryUrl = 'https://raw.githubusercontent.com/notur/registry/main',
+        private readonly string $registryUrl = 'https://raw.githubusercontent.com/sak0a/notur/master/registry',
         private readonly int $cacheTtl = self::DEFAULT_CACHE_TTL,
         private readonly ?string $cachePath = null,
     ) {}
