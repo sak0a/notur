@@ -2,6 +2,16 @@
 
 All notable changes to the Notur Extension Library will be documented in this file.
 
+## [1.3.1] - 2026-04-03
+
+### Fixed
+
+- **Security:** Resolve all npm audit vulnerabilities (handlebars, picomatch, yaml, brace-expansion, serialize-javascript)
+- **Security:** Update `league/commonmark` to 2.8.2 (CVE-2026-33347, CVE-2026-30838)
+- **CI:** Fix Jest `Object.values` error by adding ES2018 lib target to jest config
+- **CI:** Regenerate `routes.ts` reverse patches from actual panel source for v1.11 and v1.12
+- **CI:** Upgrade `jest-environment-jsdom` to v30, update tests to use `history.pushState` for location mocking
+
 ## [1.3.0] - 2026-04-02
 
 ### Added
