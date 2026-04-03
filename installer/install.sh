@@ -676,9 +676,34 @@ cd "${PANEL_DIR}"
 # Enable legacy OpenSSL provider for Node.js 17+ compatibility with older webpack configs
 export NODE_OPTIONS="${NODE_OPTIONS:-} --openssl-legacy-provider"
 
+# Fix webpack-cli version incompatibility if detected.
+# Pterodactyl ships webpack-cli 4.x but some setups end up with 5.x+
+# which breaks with "Cannot read properties of undefined (reading 'getArguments')".
+fix_webpack_cli_compat() {
+    if [ ! -f "${PANEL_DIR}/node_modules/.bin/webpack" ]; then
+        return
+    fi
+
+    # Test if webpack-cli works
+    if "${PANEL_DIR}/node_modules/.bin/webpack" --version &> /dev/null; then
+        return
+    fi
+
+    warn "webpack-cli appears broken. Attempting to fix by pinning webpack-cli@4..."
+    case "$PKG_MGR" in
+        yarn) yarn add --dev webpack-cli@4 2>/dev/null ;;
+        npm)  npm install --save-dev webpack-cli@4 --legacy-peer-deps 2>/dev/null ;;
+        pnpm) pnpm add -D webpack-cli@4 2>/dev/null ;;
+        bun)  bun add -d webpack-cli@4 2>/dev/null ;;
+    esac
+}
+
 # Try normal install first, fall back to --legacy-peer-deps for dependency conflicts
 build_frontend() {
-    if pkg_install && pkg_run build:production; then
+    pkg_install || true
+    fix_webpack_cli_compat
+
+    if pkg_run build:production; then
         return 0
     fi
 
