@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { recordDiagnosticError } from './diagnostics';
 
 interface SlotErrorBoundaryProps {
     extensionId: string;
@@ -32,13 +31,16 @@ export class SlotErrorBoundary extends React.Component<SlotErrorBoundaryProps, S
             errorInfo.componentStack,
         );
 
-        recordDiagnosticError({
-            extensionId: this.props.extensionId,
-            message: error.message || String(error),
-            stack: error.stack,
-            componentStack: errorInfo.componentStack ?? undefined,
-            time: new Date().toISOString(),
-        });
+        const notur = (window as any).__NOTUR__;
+        if (notur?.diagnostics?.errors) {
+            notur.diagnostics.errors.push({
+                extensionId: this.props.extensionId,
+                message: error.message || String(error),
+                stack: error.stack,
+                componentStack: errorInfo.componentStack,
+                time: new Date().toISOString(),
+            });
+        }
     }
 
     render(): React.ReactNode {

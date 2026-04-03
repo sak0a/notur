@@ -7,7 +7,6 @@ import { useExtensionApi } from './hooks/useExtensionApi';
 import { useExtensionState } from './hooks/useExtensionState';
 import { ThemeProvider, useNoturTheme } from './theme/ThemeProvider';
 import { createDevTools } from './DevTools';
-import { recordDiagnosticError } from './diagnostics';
 declare global {
     interface Window {
         __NOTUR__: {
@@ -27,7 +26,6 @@ declare global {
             }>;
             routes: any[];
             unregisterExtension: (id: string) => void;
-            cleanup: () => void;
             emitEvent: (event: string, data?: unknown) => void;
             onEvent: (event: string, callback: (data?: unknown) => void) => () => void;
             SlotRenderer: typeof SlotRenderer;
@@ -53,8 +51,7 @@ declare global {
                     time: string;
                 }>;
             };
-            recordDiagnosticError: typeof recordDiagnosticError;
         };
     }
 }
-export { PluginRegistry, SlotRenderer, InlineSlot, RouteRenderer, useSlot, useExtensionApi, useExtensionState, useRoutes, ThemeProvider, useNoturTheme, SLOT_IDS, SLOT_DEFINITIONS, recordDiagnosticError, };
+export { PluginRegistry, SlotRenderer, InlineSlot, RouteRenderer, useSlot, useExtensionApi, useExtensionState, useRoutes, ThemeProvider, useNoturTheme, SLOT_IDS, SLOT_DEFINITIONS, };

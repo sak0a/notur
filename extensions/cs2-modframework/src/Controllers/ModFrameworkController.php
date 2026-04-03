@@ -21,6 +21,29 @@ class ModFrameworkController extends Controller
     ) {
     }
 
+    private function resolveServer(Request $request, string $uuid): Server
+    {
+        // Support both short UUID (from URL) and full UUID (from data attribute)
+        $server = Server::where(function ($query) use ($uuid) {
+                $query->where('uuid', $uuid)->orWhere('uuidShort', $uuid);
+            })
+            ->where('suspended', false)
+            ->firstOrFail();
+
+        // Verify the authenticated user has access to this server
+        $user = $request->user();
+        if ($user && !$user->root_admin) {
+            $hasAccess = $server->owner_id === $user->id
+                || $server->subusers()->where('user_id', $user->id)->exists();
+
+            if (!$hasAccess) {
+                abort(403, 'You do not have access to this server.');
+            }
+        }
+
+        return $server;
+    }
+
     private function createInstaller(Server $server): FrameworkInstaller
     {
         $repo = clone $this->fileRepository;
@@ -35,7 +58,7 @@ class ModFrameworkController extends Controller
 
     public function status(Request $request, string $server): JsonResponse
     {
-        $serverModel = $request->attributes->get('server');
+        $serverModel = $this->resolveServer($request, $server);
         $installer = $this->createInstaller($serverModel);
 
         return response()->json([
@@ -45,6 +68,9 @@ class ModFrameworkController extends Controller
 
     public function versions(Request $request, string $server): JsonResponse
     {
+        // Validate server access even though versions are server-independent
+        $this->resolveServer($request, $server);
+
         return response()->json([
             'data' => $this->releaseResolver->getLatestVersions(),
         ]);
@@ -56,7 +82,7 @@ class ModFrameworkController extends Controller
             'framework' => 'required|string|in:swiftly,counterstrikesharp,metamod',
         ]);
 
-        $serverModel = $request->attributes->get('server');
+        $serverModel = $this->resolveServer($request, $server);
         $installer = $this->createInstaller($serverModel);
 
         $result = $installer->install($request->input('framework'));
@@ -70,7 +96,7 @@ class ModFrameworkController extends Controller
             'framework' => 'required|string|in:swiftly,counterstrikesharp,metamod',
         ]);
 
-        $serverModel = $request->attributes->get('server');
+        $serverModel = $this->resolveServer($request, $server);
         $installer = $this->createInstaller($serverModel);
 
         $result = $installer->uninstall($request->input('framework'));

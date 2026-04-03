@@ -1,8 +1,5 @@
 import { ExtensionDefinition, SimpleExtensionDefinition, getNoturApi } from './types';
 
-/** Major version of the SDK — must match bridge major version */
-const SDK_MAJOR_VERSION = 1;
-
 /**
  * Factory for registering a Notur extension.
  *
@@ -38,18 +35,6 @@ export function createExtension(definition: ExtensionDefinition | SimpleExtensio
 
     const { config, slots = [], routes = [], onInit, onDestroy, cssIsolation } = normalized;
     const api = getNoturApi();
-
-    // Check bridge version compatibility
-    const bridgeVersion = api.version;
-    if (bridgeVersion && bridgeVersion !== 'dev') {
-        const bridgeMajor = parseInt(bridgeVersion.split('.')[0], 10);
-        if (!isNaN(bridgeMajor) && bridgeMajor !== SDK_MAJOR_VERSION) {
-            console.warn(
-                `[Notur SDK] Bridge major version ${bridgeMajor} may be incompatible with SDK major version ${SDK_MAJOR_VERSION}. ` +
-                `Update @notur/sdk or the Notur bridge to match.`
-            );
-        }
-    }
 
     warnOnMisconfiguration(config.id, slots, routes);
 

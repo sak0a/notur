@@ -40,17 +40,15 @@ class HelloWorldExtensionTest extends TestCase
             }
         });
 
-        // NoturExtension auto-discovers entrypoint from namespace convention when not set in YAML.
-        // For this example the class is known; verify it loads and satisfies current contracts.
-        $entrypoint = \Notur\HelloWorld\HelloWorldExtension::class;
+        $manifest = ExtensionManifest::load($this->extensionPath);
+        $entrypoint = $manifest->getEntrypoint();
 
         $this->assertTrue(class_exists($entrypoint), "Entrypoint class {$entrypoint} should exist");
 
         $extension = new $entrypoint();
         $this->assertInstanceOf(\Notur\Contracts\ExtensionInterface::class, $extension);
         $this->assertInstanceOf(\Notur\Contracts\HasRoutes::class, $extension);
-        // HasFrontendSlots is deprecated; slots are registered in frontend code via createExtension()
-        $this->assertNotInstanceOf(\Notur\Contracts\HasFrontendSlots::class, $extension);
+        $this->assertInstanceOf(\Notur\Contracts\HasFrontendSlots::class, $extension);
     }
 
     public function test_route_file_exists(): void
@@ -75,13 +73,11 @@ class HelloWorldExtensionTest extends TestCase
         $this->assertFileExists($bundleFile, "Built JS bundle should exist at {$bundleFile}");
     }
 
-    public function test_frontend_slots_not_in_manifest(): void
+    public function test_frontend_slots_declared(): void
     {
-        // Slots are deprecated in manifest — they must be declared in frontend code
-        // via createExtension(). The manifest should return an empty slots array.
         $manifest = ExtensionManifest::load($this->extensionPath);
         $slots = $manifest->getFrontendSlots();
 
-        $this->assertEmpty($slots, 'Manifest frontend.slots should be empty; register slots via createExtension() in frontend code instead');
+        $this->assertArrayHasKey('dashboard.widgets', $slots);
     }
 }

@@ -7,7 +7,6 @@ export type {
     ExtensionDefinition,
     SimpleExtensionDefinition,
     NoturApi,
-    SlotComponentProps,
 } from './types';
 export { useServerContext } from './hooks/useServerContext';
 export { useUserContext } from './hooks/useUserContext';

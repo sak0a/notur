@@ -4,7 +4,7 @@
 
 # Notur Extension Library
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.9-blue)
 ![Status](https://img.shields.io/badge/status-stable-brightgreen)
 
 A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/) v1. Enables community-built extensions (plugins, themes, tools) that modify panel functionality without forking the source.
@@ -28,22 +28,19 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 - Composer 2.x
 - Package manager: npm, Yarn, pnpm, or Bun
 
-## Current Status (v1.3.0 — 2026-04-02)
+## Current Status (v1.2.4 — 2026-02-28)
 
 Notur is feature-complete for extension lifecycle, registry distribution, admin management, and theming.
 
-v1.3.0 highlights:
+Highlights:
 
-- Custom exception hierarchy for typed error handling
-- `VerifyServerAccess` middleware for extension server-scoped routes
-- Lifecycle logging via Laravel Log facade
-- Frontend slot validation and duplicate registration guard
-- Bounded diagnostics with `recordDiagnosticError()`
-- Bridge cleanup/teardown support (`window.__NOTUR__.cleanup()`)
-- Bridge/SDK version compatibility checking
-- Major internal refactors: `EntrypointResolver`, `ScaffoldGenerator`, `ManagesFilesystem` trait
+- Full lifecycle CLI: install, enable/disable, update, remove, uninstall
+- Frontend slot system (65 slots) + route rendering
+- Registry support with `.notur` packaging and optional Ed25519 signature verification
+- Admin UI at `/admin/notur/extensions` for extension management
+- Theme extensions: CSS variables + Blade view overrides
 
-See the [Changelog](CHANGELOG.md) for release details.
+See the [Changelog](https://docs.notur.site/reference/changelog) for release details.
 
 ## Example Extensions
 
@@ -54,10 +51,11 @@ See the [Changelog](CHANGELOG.md) for release details.
 
 Near-term focus areas:
 
-- Frontend test coverage expansion (SlotRenderWhen, CssVariables, ThemeProvider)
-- Command integration tests (InstallCommand, BuildCommand)
-- Extension dev hot-reload (file-watcher + auto-rebuild)
-- Pelican Panel compatibility investigation
+- Stabilize frontend tests and CI (Jest config)
+- Validate integration tests in CI (Orchestra Testbench + SQLite)
+- Harden the installer on non-macOS Linux
+- Validate patch checksums on subsequent installer runs
+- Verify `notur:dev` symlink workflow with real extensions
 
 See `ROADMAP.md` for the full backlog.
 
@@ -158,7 +156,7 @@ php artisan notur:new acme/server-analytics
 
 Manual steps:
 1. Create an `extension.yaml` manifest
-2. Extend `NoturExtension` base class in PHP
+2. Implement `ExtensionInterface` in PHP
 3. Build a frontend bundle using `@notur/sdk`
 4. Export with `php artisan notur:export`
 

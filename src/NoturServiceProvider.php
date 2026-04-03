@@ -27,7 +27,6 @@ use Notur\Console\Commands\UpdateCommand;
 use Notur\Console\Commands\ValidateCommand;
 use Notur\Support\ActivityLogger;
 use Notur\Support\ConsoleBanner;
-use Notur\Support\EntrypointResolver;
 use Notur\Support\ExtensionPath;
 
 class NoturServiceProvider extends ServiceProvider
@@ -40,8 +39,6 @@ class NoturServiceProvider extends ServiceProvider
 
         $this->app->singleton(MigrationManager::class);
 
-        $this->app->singleton(EntrypointResolver::class);
-
         $this->app->singleton(FeatureRegistry::class, function () {
             return FeatureRegistry::defaults();
         });
@@ -53,7 +50,6 @@ class NoturServiceProvider extends ServiceProvider
                 $app->make(PermissionBroker::class),
                 $app->make(Support\ThemeCompiler::class),
                 $app->make(FeatureRegistry::class),
-                $app->make(EntrypointResolver::class),
             );
         });
 
@@ -124,12 +120,6 @@ class NoturServiceProvider extends ServiceProvider
 
         // Register routes for extension API
         $this->registerRoutes();
-
-        // Register Notur middleware aliases
-        $router = $this->app->make('router');
-        $router->aliasMiddleware('notur.server-access', \Notur\Http\Middleware\VerifyServerAccess::class);
-        $router->aliasMiddleware('notur.namespace', \Notur\Http\Middleware\ExtensionNamespace::class);
-        $router->aliasMiddleware('notur.permission', \Notur\Http\Middleware\ExtensionPermission::class);
 
         // Boot extension manager
         $this->app->make(ExtensionManager::class)->boot();

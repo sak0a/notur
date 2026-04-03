@@ -12,9 +12,6 @@ module.exports = {
             tsconfig: {
                 jsx: 'react',
                 esModuleInterop: true,
-                resolveJsonModule: true,
-                target: 'ES2018',
-                lib: ['DOM', 'ES2018'],
             },
         }],
     },

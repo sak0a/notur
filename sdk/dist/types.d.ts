@@ -180,19 +180,6 @@ export interface NoturApi {
     }>;
 }
 /**
- * Base props received by components registered in Notur slots.
- * Extension developers can use this to type their slot components:
- *
- * ```tsx
- * import { SlotComponentProps } from '@notur/sdk';
- * const MyWidget: React.FC<SlotComponentProps> = ({ extensionId }) => { ... };
- * ```
- */
-export interface SlotComponentProps {
-    extensionId: string;
-    [key: string]: any;
-}
-/**
  * Get the Notur API from the window global.
  */
 export declare function getNoturApi(): NoturApi;

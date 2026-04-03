@@ -4,11 +4,39 @@ declare(strict_types=1);
 
 namespace Notur\Cs2Modframework;
 
+use Notur\Contracts\ExtensionInterface;
 use Notur\Contracts\HasRoutes;
-use Notur\Support\NoturExtension;
 
-class Cs2ModframeworkExtension extends NoturExtension implements HasRoutes
+class Cs2ModframeworkExtension implements ExtensionInterface, HasRoutes
 {
+    public function getId(): string
+    {
+        return 'notur/cs2-modframework';
+    }
+
+    public function getName(): string
+    {
+        return 'CS2 Mod Frameworks';
+    }
+
+    public function getVersion(): string
+    {
+        return '1.0.0';
+    }
+
+    public function getBasePath(): string
+    {
+        return __DIR__ . '/..';
+    }
+
+    public function register(): void
+    {
+    }
+
+    public function boot(): void
+    {
+    }
+
     public function getRouteFiles(): array
     {
         return [

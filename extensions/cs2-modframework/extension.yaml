@@ -12,6 +12,8 @@ requires:
   pterodactyl: "^1.11"
   php: "^8.2"
 
+entrypoint: 'Notur\Cs2Modframework\Cs2ModframeworkExtension'
+
 autoload:
   psr-4:
     'Notur\Cs2Modframework\': "src/"
