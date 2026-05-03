@@ -30,7 +30,7 @@
 **Files deleted:**
 - `installer/patches/v1.11/` — entire directory (52 files: 26 forward + 26 reverse)
 
-**Repo working dir:** `/Users/laurinfrank/Library/CloudStorage/Dropbox/Code/PHP/NoturExtensionLib`. All commands assume this is `cwd`.
+**Repo working dir:** repo root (assume `$PWD`). All commands assume this is `cwd`.
 
 ---
 
@@ -654,12 +654,12 @@ on v1.11 with a clear upgrade message (see install.sh)."
 In `CLAUDE.md`:
 
 Old (line 78):
-```
+```text
 `install.sh` automates: composer require, applying React patches to Pterodactyl Panel v1.11 (26 patches in `installer/patches/v1.11/`), migrations, directory setup, and bridge build.
 ```
 
 New:
-```
+```text
 `install.sh` automates: composer require, applying React patches to Pterodactyl Panel v1.12 (26 patches in `installer/patches/v1.12/`), migrations, directory setup, and bridge build.
 ```
 
