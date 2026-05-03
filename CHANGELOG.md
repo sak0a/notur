@@ -14,11 +14,14 @@ All notable changes to the Notur Extension Library will be documented in this fi
 - Round-trip verification script at `installer/tests/test-patch-roundtrip.sh` that validates patches forward + reverse against any v1.12.x tag.
 - Version-mapping shell test at `installer/tests/test-version-mapping.sh`.
 - Package-manager detection test at `installer/tests/test-pkg-manager-detection.sh` covering both Alpine and non-Alpine selection logic plus the `PKG_MANAGER` override.
+- Node.js version-check shell test at `installer/tests/test-node-version-check.sh` covering accepted versions, too-old versions, parse failures, and the `MIN_NODE_MAJOR` override (12 cases).
 
 ### Changed
 
 - **Installer Alpine compatibility**: `install_alpine_requirements()` now also installs `perl` (used by the wrapper.blade.php fallback), `python3` (required by node-gyp for many native npm modules), and `libstdc++` (required by musl for prebuilt node binaries like esbuild/swc). Pure `alpine:3.x` containers no longer fail mid-install with cryptic errors.
 - **Installer package-manager preference on Alpine**: bun is demoted to last resort on Alpine (was: `bun > pnpm > yarn > npm`; now on Alpine: `pnpm > yarn > npm > bun`). bun is not in the apk repository and requires a curl-pipe install, which complicates reproducible Alpine images. Set `PKG_MANAGER=bun` to override. Behavior on non-Alpine systems is unchanged.
+- **Installer Node.js version enforcement**: the installer now requires Node.js ≥ 22 (Pterodactyl Panel v1.12 baseline — matches the panel's own Dockerfile). Older Node fails fast with a NodeSource install hint instead of a cryptic webpack error mid-build. Override the threshold via `MIN_NODE_MAJOR=<n> bash install.sh` for forks pinned to older toolchains. This is technically breaking for anyone running on a too-old Node, but in practice those installs were already silently broken further down the pipeline — the fix is to fail clearly rather than fail cryptically.
+- **Installer requirements bootstrap is now cross-distro**: `install_alpine_requirements()` is renamed to `install_distro_requirements()` and works on apt, dnf, yum, and pacman in addition to apk. Missing build tools (`bash`, `git`, `patch`, `make`, `perl`, `python3`, plus `coreutils`/`libstdc++` on Alpine) are auto-installed using the right package name per distro (e.g. `build-essential` on apt, `base-devel` on pacman, `make gcc-c++` on dnf/yum, `python` instead of `python3` on pacman). Stripped Ubuntu/Debian/CentOS minimal containers no longer fail with cryptic "patch: command not found" errors.
 
 ### Fixed
 

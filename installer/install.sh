@@ -23,6 +23,7 @@ set -euo pipefail
 # ─────────────────────────────────────────────────────────────────────────────
 
 NOTUR_VERSION="1.3.2"
+MIN_NODE_MAJOR="${MIN_NODE_MAJOR:-22}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -286,27 +287,38 @@ print_node_install_hint() {
     esac
 }
 
-# Helper: Install Alpine-specific requirements for Notur
-install_alpine_requirements() {
-    if ! is_alpine; then
+# Helper: Install distro-specific build requirements for Notur.
+#
+# Logical dependencies map to per-distro package names. Each dep is skipped
+# when its `command -v` probe already succeeds (libstdc++ uses apk's pkg db
+# since it's a runtime library, not a command).
+#
+#   Logical    | apk         | apt              | dnf/yum          | pacman
+#   -----------+-------------+------------------+------------------+------------
+#   bash       | bash        | bash             | bash             | bash
+#   git        | git         | git              | git              | git
+#   patch      | patch       | patch            | patch            | patch
+#   make       | build-base  | build-essential  | make gcc-c++     | base-devel
+#   perl       | perl        | perl             | perl             | perl
+#   python3    | python3     | python3          | python3          | python
+#   coreutils  | coreutils   | (built-in)       | (built-in)       | (built-in)
+#   libstdc++  | libstdc++   | (built-in)       | (built-in)       | (built-in)
+#
+# coreutils + libstdc++ rows are Alpine-only (musl + busybox quirks). All
+# other distros ship these in their base install.
+install_distro_requirements() {
+    local sys_pkg_mgr
+    sys_pkg_mgr=$(detect_sys_pkg_manager)
+
+    if [ -z "$sys_pkg_mgr" ]; then
+        warn "No supported system package manager detected. Skipping requirements bootstrap."
         return 0
     fi
 
-    info "Detected Alpine Linux. Checking required packages..."
+    info "Detected ${sys_pkg_mgr}. Checking required packages..."
 
-    # Packages needed for Notur installation and frontend building
-    # - bash:        Script compatibility (Alpine uses ash by default)
-    # - git:         Required by composer
-    # - patch:       For applying React patches
-    # - coreutils:   GNU utilities (realpath, etc.)
-    # - build-base:  For native node module compilation (node-gyp)
-    # - perl:        Used as the cross-platform sed replacement when injecting
-    #                into wrapper.blade.php fallback path
-    # - python3:     Required by node-gyp for many native npm modules
-    # - libstdc++:   musl needs this for prebuilt node binaries (esbuild, swc, …)
     local required_packages=""
 
-    # Check each package and add to install list if missing
     if ! command -v bash >/dev/null 2>&1; then
         required_packages="$required_packages bash"
     fi
@@ -316,43 +328,54 @@ install_alpine_requirements() {
     if ! command -v patch >/dev/null 2>&1; then
         required_packages="$required_packages patch"
     fi
-    if ! command -v realpath >/dev/null 2>&1; then
-        required_packages="$required_packages coreutils"
-    fi
-    # build-base is needed for node-gyp native modules
-    if ! command -v make >/dev/null 2>&1; then
-        required_packages="$required_packages build-base"
-    fi
-    # perl is the wrapper.blade.php fallback editor — install if absent
     if ! command -v perl >/dev/null 2>&1; then
         required_packages="$required_packages perl"
     fi
-    # python3 is needed by node-gyp; many npm packages still require it
-    if ! command -v python3 >/dev/null 2>&1; then
-        required_packages="$required_packages python3"
+
+    # make/gcc — pkg name varies wildly per distro (build-base on alpine,
+    # build-essential on debian/ubuntu, etc.).
+    if ! command -v make >/dev/null 2>&1; then
+        case "$sys_pkg_mgr" in
+            apk)     required_packages="$required_packages build-base" ;;
+            apt)     required_packages="$required_packages build-essential" ;;
+            dnf|yum) required_packages="$required_packages make gcc-c++" ;;
+            pacman)  required_packages="$required_packages base-devel" ;;
+        esac
     fi
-    # libstdc++ is a runtime library (no command), so check via apk's package db
-    if command -v apk >/dev/null 2>&1 && ! apk info -e libstdc++ >/dev/null 2>&1; then
+
+    # python3 — Arch's package is just `python` (which is python 3.x).
+    if ! command -v python3 >/dev/null 2>&1; then
+        case "$sys_pkg_mgr" in
+            pacman) required_packages="$required_packages python" ;;
+            *)      required_packages="$required_packages python3" ;;
+        esac
+    fi
+
+    # coreutils — only Alpine needs it; everyone else ships GNU coreutils
+    # (realpath, etc.) in their base install.
+    if [ "$sys_pkg_mgr" = "apk" ] && ! command -v realpath >/dev/null 2>&1; then
+        required_packages="$required_packages coreutils"
+    fi
+
+    # libstdc++ — only Alpine/musl needs it for prebuilt node binaries
+    # (esbuild, swc, …). Probe via apk's pkg db since there's no command.
+    if [ "$sys_pkg_mgr" = "apk" ] && ! apk info -e libstdc++ >/dev/null 2>&1; then
         required_packages="$required_packages libstdc++"
     fi
 
-    if [ -n "$required_packages" ]; then
-        info "Installing missing Alpine packages:$required_packages"
-        if command -v apk >/dev/null 2>&1; then
-            apk add --no-cache $required_packages || {
-                warn "Failed to install some Alpine packages. Installation may fail."
-                return 1
-            }
-            ok "Alpine packages installed."
-        else
-            warn "apk not found. Cannot install packages automatically."
-            return 1
-        fi
-    else
-        ok "All required Alpine packages are present."
+    if [ -z "$required_packages" ]; then
+        ok "All required packages are present."
+        return 0
     fi
 
-    return 0
+    info "Installing missing packages:$required_packages"
+    if install_sys_package "$required_packages"; then
+        ok "Packages installed."
+        return 0
+    else
+        warn "Failed to install some packages. Installation may fail later."
+        return 1
+    fi
 }
 
 # Helper: Fix permissions for web server user
@@ -390,12 +413,10 @@ if is_docker_env; then
     echo ""
 fi
 
-# Install Alpine requirements first (before other checks)
-# Use || true to continue even if package installation fails - the script will
-# fail later at a more specific point if required tools are missing
-if is_alpine; then
-    install_alpine_requirements || true
-fi
+# Install distro-specific requirements first (before other checks).
+# Use || true to continue even if package installation fails — the script
+# will fail later at a more specific point if required tools are missing.
+install_distro_requirements || true
 
 echo ""
 
@@ -456,6 +477,39 @@ if ! command -v node &> /dev/null; then
         die "Node.js is not installed and automatic installation is not supported on this system. Please install Node.js manually."
     fi
 fi
+
+# === node-version-check-start ===
+# Verify Node.js meets the minimum major version (Pterodactyl v1.12 requires Node 22+).
+# Read raw output, strip leading "v", split major. Use POSIX [ ] tests, not [[ ]].
+if ! node_version_raw=$(node --version 2>/dev/null); then
+    error "Failed to read Node.js version (node --version exited non-zero)."
+    print_node_install_hint
+    die "Reinstall Node.js and re-run the installer."
+fi
+
+node_version="${node_version_raw#v}"
+node_major="${node_version%%.*}"
+
+# Reject empty or non-numeric majors.
+case "$node_major" in
+    ''|*[!0-9]*)
+        error "Could not parse Node.js major version from: '${node_version_raw}'"
+        print_node_install_hint
+        die "Reinstall Node.js and re-run the installer."
+        ;;
+esac
+
+if [ "$node_major" -lt "$MIN_NODE_MAJOR" ]; then
+    error "Node.js ${node_major}.x is too old. Pterodactyl Panel v1.12 requires Node.js ${MIN_NODE_MAJOR}+."
+    print_node_install_hint
+    info "On Ubuntu/Debian, install Node ${MIN_NODE_MAJOR} from NodeSource:"
+    info "  curl -fsSL https://deb.nodesource.com/setup_${MIN_NODE_MAJOR}.x | bash -"
+    info "  apt-get install -y nodejs"
+    die "Upgrade Node.js and re-run the installer."
+fi
+
+info "Node.js version: ${node_version}"
+# === node-version-check-end ===
 
 # Detect available package manager.
 #
