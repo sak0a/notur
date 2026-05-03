@@ -10,6 +10,10 @@
 set -euo pipefail
 
 TAG="${1:?Usage: $0 <tag-like-v1.12.2>}"
+if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Invalid tag format: $TAG (expected vX.Y.Z)" >&2
+    exit 64
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PATCH_DIR="$(cd "${SCRIPT_DIR}/../patches/v1.12" && pwd)"
@@ -27,7 +31,7 @@ fi
 # Make sure the requested tag is fetched.
 if ! git -C "$PANEL_REPO" rev-parse "$TAG" >/dev/null 2>&1; then
     echo "Fetching tag $TAG ..."
-    git -C "$PANEL_REPO" fetch --depth=1 origin "tag $TAG" >/dev/null 2>&1 || \
+    git -C "$PANEL_REPO" fetch --depth=1 origin "refs/tags/$TAG:refs/tags/$TAG" >/dev/null 2>&1 || \
         git -C "$PANEL_REPO" fetch --tags origin >/dev/null 2>&1
 fi
 
@@ -44,8 +48,15 @@ cp -R "$PRISTINE" "$WORKING"
 fail=0
 warned=0
 
+# NOTE: GNU patch (Linux/CI) prints "offset"/"fuzz"/"No such line" on stdout
+# when a hunk applies imperfectly, which we detect below to flag warnings.
+# macOS BSD patch suppresses these notices entirely, so the per-patch WARN
+# diagnostic is Linux-only. The round-trip diff check at the end is the
+# authoritative correctness gate and works on both platforms.
 apply_pass() {
     local label="$1" pattern="$2"
+    local saved_dir
+    saved_dir="$(pwd)"
     cd "$WORKING"
     for patch in "$PATCH_DIR"/$pattern; do
         [ -f "$patch" ] || continue
@@ -62,13 +73,13 @@ apply_pass() {
             fail=1
             continue
         }
-        if echo "$out" | grep -qE 'offset|fuzz|FAIL|reject|No such line'; then
+        if echo "$out" | grep -qE 'offset|fuzz|reject|No such line'; then
             echo "$label WARN: $name"
-            echo "$out" | grep -E 'offset|fuzz|FAIL|reject|No such line' | sed 's/^/    /'
+            echo "$out" | grep -E 'offset|fuzz|reject|No such line' | sed 's/^/    /'
             warned=1
         fi
     done
-    cd - >/dev/null
+    cd "$saved_dir"
 }
 
 apply_pass "FORWARD" "*.patch"
