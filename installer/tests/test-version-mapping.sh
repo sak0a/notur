@@ -36,11 +36,15 @@ run_mapping() {
 
         # Source just the case statement. We extract lines starting at
         # "# Map to patch directory" through the next "esac".
-        eval "$(sed -n "/^# Map to patch directory/,/^esac/p" "'"$INSTALL_SH"'")"
+        case_block="$(sed -n "/^# Map to patch directory/,/^esac/p" "'"$INSTALL_SH"'")"
+        if [ -z "$case_block" ]; then
+            echo "ERR: could not extract case block from install.sh" >&2
+            exit 2
+        fi
+        eval "$case_block"
 
         echo "PATCH_VERSION=$PATCH_VERSION"
     ' 2>&1
-    return "$?"
 }
 
 assert_supported() {
