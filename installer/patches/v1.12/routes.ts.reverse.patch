@@ -1,5 +1,5 @@
---- b/resources/scripts/routers/routes.ts	2026-04-03 02:00:11
-+++ a/resources/scripts/routers/routes.ts	2026-04-03 02:00:11
+--- a/resources/scripts/routers/routes.ts
++++ b/resources/scripts/routers/routes.ts
 @@ -1,5 +1,4 @@
  import React, { lazy } from 'react';
 -import type { RouteProps } from 'react-router-dom';

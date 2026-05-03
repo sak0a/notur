@@ -1,5 +1,5 @@
---- a/resources/scripts/components/server/files/FileManagerContainer.tsx	2026-02-02 00:00:00
-+++ b/resources/scripts/components/server/files/FileManagerContainer.tsx	2026-02-02 00:00:00
+--- a/resources/scripts/components/server/files/FileManagerContainer.tsx
++++ b/resources/scripts/components/server/files/FileManagerContainer.tsx
 @@ -76,6 +76,8 @@
                      <Can action={'file.create'}>
                          <div className={style.manager_actions}>
@@ -9,14 +9,15 @@
                              <NewDirectoryButton />
                              <UploadButton />
                              <NavLink to={`/server/${id}/files/new${window.location.hash}`}>
-@@ -88,4 +90,5 @@
+@@ -85,6 +87,7 @@
+                     </Can>
+                 </div>
              </ErrorBoundary>
 +            <div id="notur-slot-server.files.header" style={{ display: 'contents' }}></div>
              {!files ? (
                  <Spinner size={'large'} centered />
              ) : (
-@@ -118,7 +121,8 @@
-                         )
+@@ -111,6 +114,7 @@
                      )}
                  </>
              )}

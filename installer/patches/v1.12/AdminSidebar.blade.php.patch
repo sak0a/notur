@@ -1,5 +1,5 @@
---- a/resources/views/layouts/admin.blade.php	2026-02-03 20:34:23
-+++ b/resources/views/layouts/admin.blade.php	2026-02-03 20:34:23
+--- a/resources/views/layouts/admin.blade.php
++++ b/resources/views/layouts/admin.blade.php
 @@ -85,6 +85,14 @@
                                  <i class="fa fa-gamepad"></i> <span>Application API</span>
                              </a>

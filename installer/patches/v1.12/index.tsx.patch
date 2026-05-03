@@ -1,5 +1,5 @@
---- a/resources/scripts/index.tsx	2026-02-02 00:00:00
-+++ b/resources/scripts/index.tsx	2026-02-02 00:00:00
+--- a/resources/scripts/index.tsx
++++ b/resources/scripts/index.tsx
 @@ -1,5 +1,11 @@
  import React from 'react';
  import ReactDOM from 'react-dom';
