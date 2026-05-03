@@ -2,7 +2,8 @@
 # test-frontend-build-flow.sh — verify frontend dependency install and build
 # recovery logic in install.sh.
 #
-# Strategy: extract install_frontend_dependencies() and build_frontend() from
+# Strategy: extract resolve_pkg_install_fallback(), install_frontend_dependencies(),
+# and build_frontend() from
 # install.sh, stub helper functions/commands, and assert the call flow for
 # npm recovery, yarn-script fallback, and hard failure when dependencies never
 # install.
@@ -33,13 +34,15 @@ run_case() {
             sed -n "/^${name}() {/,/^}/p" "$INSTALL_SH"
         }
 
+        fallback_block="$(extract_func resolve_pkg_install_fallback)"
         install_block="$(extract_func install_frontend_dependencies)"
         build_block="$(extract_func build_frontend)"
-        if [ -z "$install_block" ] || [ -z "$build_block" ]; then
+        if [ -z "$fallback_block" ] || [ -z "$install_block" ] || [ -z "$build_block" ]; then
             echo "ERR: could not extract build helpers from install.sh"
             exit 99
         fi
 
+        eval "$fallback_block"
         eval "$install_block"
         eval "$build_block"
 
@@ -70,6 +73,7 @@ run_case() {
             if [ "${1:-}" = "-v" ]; then
                 case "$T_CASE:$2" in
                     npm_retry_then_build:npm|npm_retry_then_build_fail:npm|yarnless_script_fallback:npm) return 0 ;;
+                    yarn_install_falls_back_to_npm:npm|yarn_install_falls_back_to_npm:yarn) return 0 ;;
                     yarnless_script_fallback:pnpm) return 0 ;;
                     *) return 1 ;;
                 esac
@@ -99,6 +103,12 @@ run_case() {
             record "pkg-install"
             case "$T_CASE" in
                 npm_retry_then_build|npm_retry_then_build_fail) return 1 ;;
+                yarn_install_falls_back_to_npm)
+                    if [ "$PKG_MGR" = "yarn" ]; then
+                        return 1
+                    fi
+                    return 0
+                    ;;
                 yarnless_script_fallback) return 0 ;;
             esac
         }
@@ -107,6 +117,7 @@ run_case() {
             record "pkg-run:$1"
             case "$T_CASE" in
                 npm_retry_then_build) return 0 ;;
+                yarn_install_falls_back_to_npm) return 0 ;;
                 yarnless_script_fallback) return 1 ;;
                 npm_retry_then_build_fail) return 0 ;;
             esac
@@ -122,12 +133,17 @@ EOF
                 chmod +x "$PANEL_DIR/node_modules/.bin/webpack"
                 export LOG
                 ;;
+            yarn_install_falls_back_to_npm)
+                printf '{ "scripts": { "build:production": "webpack", "clean": "cleanup" } }\n' > "$PANEL_DIR/package.json"
+                : > "$PANEL_DIR/yarn.lock"
+                ;;
         esac
 
         PKG_MGR="npm"
-        if [ "$T_CASE" = "yarnless_script_fallback" ]; then
-            PKG_MGR="pnpm"
-        fi
+        case "$T_CASE" in
+            yarnless_script_fallback) PKG_MGR="pnpm" ;;
+            yarn_install_falls_back_to_npm) PKG_MGR="yarn" ;;
+        esac
 
         build_frontend
         rc=$?
@@ -282,6 +298,21 @@ assert_case_not_contains \
     "fallback bypasses build:production when it hardcodes missing yarn" \
     "yarnless_script_fallback" \
     "pkg-run:build:production"
+
+echo ""
+echo "=== yarn install failure can fall back to another lockfile manager ==="
+assert_case_contains \
+    "yarn install failure falls back to npm when package-lock exists" \
+    "yarn_install_falls_back_to_npm" \
+    "pkg-install" \
+    "warn:Yarn dependency install failed. Falling back to npm based on the other detected lockfile state." \
+    "fix-webpack" \
+    "pkg-run:build:production"
+assert_case_not_contains \
+    "yarn fallback avoids yarn-script fallback once npm takes over" \
+    "yarn_install_falls_back_to_npm" \
+    "script-uses-yarn:build:production" \
+    "pkg-exec:webpack --mode production"
 
 echo ""
 echo "=== dependency install failure stops the build early ==="

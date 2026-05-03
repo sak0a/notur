@@ -940,6 +940,51 @@ pkg_exec() {
     esac
 }
 
+resolve_pkg_install_fallback() {
+    local current_mgr="$1"
+
+    case "$current_mgr" in
+        yarn)
+            if [ -f "package-lock.json" ] && command -v npm >/dev/null 2>&1; then
+                echo "npm"
+                return
+            fi
+            if [ -f "pnpm-lock.yaml" ] && command -v pnpm >/dev/null 2>&1; then
+                echo "pnpm"
+                return
+            fi
+            if [ -f "bun.lock" ] || [ -f "bun.lockb" ]; then
+                if command -v bun >/dev/null 2>&1; then
+                    echo "bun"
+                    return
+                fi
+            fi
+            ;;
+        pnpm)
+            if [ -f "package-lock.json" ] && command -v npm >/dev/null 2>&1; then
+                echo "npm"
+                return
+            fi
+            if [ -f "yarn.lock" ] && command -v yarn >/dev/null 2>&1; then
+                echo "yarn"
+                return
+            fi
+            ;;
+        bun)
+            if [ -f "package-lock.json" ] && command -v npm >/dev/null 2>&1; then
+                echo "npm"
+                return
+            fi
+            if [ -f "yarn.lock" ] && command -v yarn >/dev/null 2>&1; then
+                echo "yarn"
+                return
+            fi
+            ;;
+    esac
+
+    echo ""
+}
+
 run_tailwind_cli() {
     # Tailwind v4 ships CLI as @tailwindcss/cli; try legacy tailwindcss binary as fallback.
     pkg_exec @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css || \
@@ -1133,6 +1178,16 @@ fix_webpack_cli_compat() {
 install_frontend_dependencies() {
     if pkg_install; then
         return 0
+    fi
+
+    if [ "$PKG_MGR" = "yarn" ]; then
+        local fallback_mgr
+        fallback_mgr=$(resolve_pkg_install_fallback "yarn")
+        if [ -n "$fallback_mgr" ]; then
+            warn "Yarn dependency install failed. Falling back to ${fallback_mgr} based on the other detected lockfile state."
+            PKG_MGR="$fallback_mgr"
+            pkg_install && return 0
+        fi
     fi
 
     if [ "$PKG_MGR" = "npm" ]; then
