@@ -1,6 +1,6 @@
 --- a/resources/scripts/components/server/console/Console.tsx
 +++ b/resources/scripts/components/server/console/Console.tsx
-@@ -221,7 +221,6 @@
+@@ -228,7 +228,6 @@
                      >
                          <ChevronDoubleRightIcon className={'w-4 h-4'} />
                      </div>

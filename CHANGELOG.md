@@ -2,6 +2,23 @@
 
 All notable changes to the Notur Extension Library will be documented in this file.
 
+## [Unreleased]
+
+### Breaking
+
+- **Dropped support for Pterodactyl Panel v1.11.x.** The installer now hard-fails on any non-v1.12.x panel. Existing v1.11 deployments must upgrade the panel before upgrading Notur.
+
+### Added
+
+- Verified Pterodactyl Panel v1.12.0, v1.12.1, and v1.12.2 support via a single shared patch set.
+- Round-trip verification script at `installer/tests/test-patch-roundtrip.sh` that validates patches forward + reverse against any v1.12.x tag.
+- Version-mapping shell test at `installer/tests/test-version-mapping.sh`.
+
+### Fixed
+
+- Missing reverse patches for `index.tsx` and `admin.blade.php` so `notur:uninstall` now restores the panel to pristine source.
+- Malformed third hunk in `FileManager.tsx.patch` that emitted a "No such line 117" warning during install.
+
 ## [1.3.2] - 2026-04-03
 
 ### Fixed

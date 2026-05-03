@@ -121,6 +121,12 @@ jobs:
             fi
 
             # Apply React source patches (skip reverse patches)
+            # Mirror install.sh detection: try composer.lock first (in case the
+            # panel was installed as a dependency), then fall back to
+            # config/app.php (where the standalone panel surfaces its version).
+            # pterodactyl/panel is the root package in a self-hosted install so
+            # it does NOT appear in composer.lock packages — config/app.php is
+            # the authoritative source there.
             PATCH_DIR=""
             PANEL_VERSION=""
             if [ -f "composer.lock" ]; then
@@ -137,35 +143,47 @@ jobs:
                   } \
                 }" 2>/dev/null || true)
             fi
-
-            if echo "${PANEL_VERSION}" | grep -q "^v1\\.12"; then
-              PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
-            elif echo "${PANEL_VERSION}" | grep -q "^v1\\.11"; then
-              PATCH_DIR="vendor/notur/notur/installer/patches/v1.11"
-            else
-              for candidate in vendor/notur/notur/installer/patches/v1.12 vendor/notur/notur/installer/patches/v1.11; do
-                if [ -d "${candidate}" ]; then
-                  PATCH_DIR="${candidate}"
-                  break
-                fi
-              done
+            if [ -z "${PANEL_VERSION}" ] && [ -f "config/app.php" ]; then
+              PANEL_VERSION=$(grep "'"'"'version'"'"'" config/app.php | head -1 | sed "s/.*'"'"'version'"'"'.*'"'"'\([^'"'"']*\)'"'"'.*/\1/" || echo "")
             fi
 
-            if [ -n "${PATCH_DIR}" ] && [ -d "${PATCH_DIR}" ]; then
-              echo "Using patch set: ${PATCH_DIR##*/}"
-              for patch in "${PATCH_DIR}"/*.patch; do
-                [ -f "${patch}" ] || continue
-                PATCH_NAME=$(basename "${patch}")
-                echo "${PATCH_NAME}" | grep -q "reverse" && continue
-                echo "Applying patch: ${PATCH_NAME}"
-                if patch --dry-run -p1 < "${patch}" &>/dev/null; then
-                  patch -p1 < "${patch}"
-                  echo "Applied: ${PATCH_NAME}"
-                else
-                  echo "Skipping: ${PATCH_NAME} (already applied or incompatible)"
-                fi
-              done
+            echo "Detected panel version: ${PANEL_VERSION:-unknown}"
+
+            # Mirror install.sh: only v1.12.x is supported; hard-fail otherwise.
+            # Accept both "1.12.0" and "v1.12.0" forms.
+            PANEL_VERSION_NORMALIZED="${PANEL_VERSION#v}"
+            case "${PANEL_VERSION_NORMALIZED}" in
+              1.12.*)
+                PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
+                ;;
+              "")
+                echo "E2E: could not detect Pterodactyl panel version. Notur requires v1.12.x." >&2
+                exit 1
+                ;;
+              *)
+                echo "E2E: unsupported Pterodactyl version '\''${PANEL_VERSION}'\''. Notur supports v1.12.x only." >&2
+                exit 1
+                ;;
+            esac
+
+            if [ ! -d "${PATCH_DIR}" ]; then
+              echo "E2E: patch directory ${PATCH_DIR} not found" >&2
+              exit 1
             fi
+
+            echo "Using patch set: ${PATCH_DIR##*/}"
+            for patch in "${PATCH_DIR}"/*.patch; do
+              [ -f "${patch}" ] || continue
+              PATCH_NAME=$(basename "${patch}")
+              echo "${PATCH_NAME}" | grep -q "reverse" && continue
+              echo "Applying patch: ${PATCH_NAME}"
+              if patch --dry-run -p1 < "${patch}" &>/dev/null; then
+                patch -p1 < "${patch}"
+                echo "Applied: ${PATCH_NAME}"
+              else
+                echo "Skipping: ${PATCH_NAME} (already applied or incompatible)"
+              fi
+            done
 
             # Rebuild frontend with patches applied
             echo "Installing frontend dependencies..."
@@ -263,14 +281,21 @@ jobs:
             php artisan cache:clear 2>/dev/null || true
             php artisan migrate --path=vendor/notur/notur/database/migrations --force 2>&1
 
-            chown -R www-data:www-data notur public/notur 2>/dev/null || true
-
             # Verify extension routes are registered
             if ! php artisan route:list 2>/dev/null | grep -q "notur/hello-world"; then
               echo "Notur extension routes not registered"
               php artisan route:list 2>/dev/null | grep -i notur || true
               exit 1
             fi
+
+            # Re-chown storage AND bootstrap/cache AFTER all artisan calls in
+            # this block so nginx → php-fpm (www-data) can append to
+            # laravel-*.log on subsequent HTTP requests. Each artisan call
+            # here ran as root and would otherwise leave root-owned log/cache
+            # files behind, producing 500s with
+            #   "could not be opened in append mode: Permission denied"
+            # the next time a request enters Laravel.
+            chown -R www-data:www-data storage bootstrap/cache notur public/notur 2>/dev/null || true
           '
 
           # Run tests
@@ -316,12 +341,42 @@ jobs:
           docker compose logs app > /tmp/app-logs.txt 2>&1
           docker compose logs db > /tmp/db-logs.txt 2>&1
 
+          # docker-compose logs only shows supervisord stdout/stderr — the
+          # actual Laravel/nginx/php-fpm errors live in files inside the
+          # container. Pull them out so we can debug 500s post-mortem.
+          docker compose exec -T app bash -c '
+            echo "=== laravel.log (last 200 lines) ==="
+            tail -n 200 /var/www/pterodactyl/storage/logs/laravel.log 2>/dev/null || echo "(missing)"
+            echo
+            echo "=== nginx error.log ==="
+            tail -n 100 /var/log/nginx/error.log 2>/dev/null || echo "(missing)"
+            echo
+            echo "=== php-fpm error log ==="
+            tail -n 100 /var/log/php-fpm.log 2>/dev/null \
+              || tail -n 100 /var/log/php8.2-fpm.log 2>/dev/null \
+              || echo "(no fpm log file — fpm logs to stderr by default)"
+            echo
+            echo "=== storage perms ==="
+            ls -la /var/www/pterodactyl/storage 2>&1 | head -20
+            ls -la /var/www/pterodactyl/storage/framework 2>&1 | head -20
+            echo
+            echo "=== .env (with secrets redacted) ==="
+            sed -E "s/(APP_KEY|HASHIDS_SALT|DB_PASSWORD|MAIL_PASSWORD|RECAPTCHA_SECRET_KEY)=.*/\1=***REDACTED***/" /var/www/pterodactyl/.env 2>/dev/null || echo "(missing)"
+            echo
+            echo "=== public/assets/manifest.json keys ==="
+            php -r "echo implode(\"\n\", array_keys(json_decode(file_get_contents(\"/var/www/pterodactyl/public/assets/manifest.json\"), true) ?: []));" 2>&1 | head -30 || echo "(missing/invalid)"
+            echo
+            echo "=== HEAD / response (verbose) ==="
+            curl -sSi http://127.0.0.1/ 2>&1 | head -40 || true
+          ' > /tmp/runtime-logs.txt 2>&1 || true
+
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-logs
           path: /tmp/*-logs.txt
+          if-no-files-found: warn
 
       - name: Cleanup
         if: always()

@@ -1,6 +1,6 @@
---- a/resources/scripts/components/dashboard/DashboardContainer.tsx	2026-02-03 00:00:00
-+++ b/resources/scripts/components/dashboard/DashboardContainer.tsx	2026-02-03 00:00:00
-@@ -39,7 +39,6 @@
+--- a/resources/scripts/components/dashboard/DashboardContainer.tsx
++++ b/resources/scripts/components/dashboard/DashboardContainer.tsx
+@@ -54,7 +54,6 @@
  
      return (
          <PageContentBlock title={'Dashboard'} showFlashKey={'dashboard'}>
@@ -8,7 +8,8 @@
              {rootAdmin && (
                  <div css={tw`mb-2 flex justify-end items-center`}>
                      <p css={tw`uppercase text-xs text-neutral-400 mr-2`}>
-@@ -57,25 +56,20 @@
+@@ -71,26 +70,21 @@
+                 <Spinner centered size={'large'} />
              ) : (
                  <Pagination data={servers} onPageSelect={setPage}>
 -                    {({ items }) => (

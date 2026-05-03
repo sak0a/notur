@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Notur\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Notur\Console\Concerns\ManagesFilesystem;
 
@@ -128,9 +129,7 @@ class UninstallCommand extends Command
             base_path("vendor/notur/notur/installer/patches/{$patchVersion}"),
             dirname(__DIR__, 3) . "/installer/patches/{$patchVersion}",
             base_path('vendor/notur/notur/installer/patches/v1.12'),
-            base_path('vendor/notur/notur/installer/patches/v1.11'),
             dirname(__DIR__, 3) . '/installer/patches/v1.12',
-            dirname(__DIR__, 3) . '/installer/patches/v1.11',
         ];
 
         foreach ($candidates as $candidate) {
@@ -146,12 +145,14 @@ class UninstallCommand extends Command
     {
         $lockFile = base_path('composer.lock');
         if (!file_exists($lockFile)) {
-            return 'v1.11';
+            Log::warning('Notur uninstall: composer.lock not found; assuming v1.12 patches.');
+            return 'v1.12';
         }
 
         $decoded = json_decode((string) file_get_contents($lockFile), true);
         if (!is_array($decoded)) {
-            return 'v1.11';
+            Log::warning('Notur uninstall: composer.lock could not be parsed; assuming v1.12 patches.');
+            return 'v1.12';
         }
 
         $packages = array_merge($decoded['packages'] ?? [], $decoded['packages-dev'] ?? []);
@@ -165,12 +166,20 @@ class UninstallCommand extends Command
             if (str_starts_with($version, '1.12.')) {
                 return 'v1.12';
             }
-            if (str_starts_with($version, '1.11.')) {
-                return 'v1.11';
-            }
+
+            // Found pterodactyl/panel but not a v1.12.x release. install.sh now
+            // hard-fails on non-v1.12, so this branch typically only fires for
+            // a manually-installed Notur on an unsupported panel. Reverse
+            // patches will likely fail; restoreFromBackups() is the fallback.
+            Log::warning(sprintf(
+                'Notur uninstall: pterodactyl/panel version "%s" is not v1.12.x; reverse patches may not apply cleanly.',
+                $version,
+            ));
+            return 'v1.12';
         }
 
-        return 'v1.11';
+        Log::warning('Notur uninstall: pterodactyl/panel not present in composer.lock; assuming v1.12 patches.');
+        return 'v1.12';
     }
 
     /**
