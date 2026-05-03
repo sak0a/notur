@@ -295,12 +295,15 @@ install_alpine_requirements() {
     info "Detected Alpine Linux. Checking required packages..."
 
     # Packages needed for Notur installation and frontend building
-    # - bash: Script compatibility (Alpine uses ash by default)
-    # - nodejs/npm: Frontend build
-    # - git: Required by composer
-    # - coreutils: GNU utilities (realpath, etc.)
-    # - patch: For applying React patches
-    # - build-base: For native node module compilation
+    # - bash:        Script compatibility (Alpine uses ash by default)
+    # - git:         Required by composer
+    # - patch:       For applying React patches
+    # - coreutils:   GNU utilities (realpath, etc.)
+    # - build-base:  For native node module compilation (node-gyp)
+    # - perl:        Used as the cross-platform sed replacement when injecting
+    #                into wrapper.blade.php fallback path
+    # - python3:     Required by node-gyp for many native npm modules
+    # - libstdc++:   musl needs this for prebuilt node binaries (esbuild, swc, …)
     local required_packages=""
 
     # Check each package and add to install list if missing
@@ -319,6 +322,18 @@ install_alpine_requirements() {
     # build-base is needed for node-gyp native modules
     if ! command -v make >/dev/null 2>&1; then
         required_packages="$required_packages build-base"
+    fi
+    # perl is the wrapper.blade.php fallback editor — install if absent
+    if ! command -v perl >/dev/null 2>&1; then
+        required_packages="$required_packages perl"
+    fi
+    # python3 is needed by node-gyp; many npm packages still require it
+    if ! command -v python3 >/dev/null 2>&1; then
+        required_packages="$required_packages python3"
+    fi
+    # libstdc++ is a runtime library (no command), so check via apk's package db
+    if command -v apk >/dev/null 2>&1 && ! apk info -e libstdc++ >/dev/null 2>&1; then
+        required_packages="$required_packages libstdc++"
     fi
 
     if [ -n "$required_packages" ]; then
@@ -442,7 +457,14 @@ if ! command -v node &> /dev/null; then
     fi
 fi
 
-# Detect available package manager (prefer bun > pnpm > yarn > npm)
+# Detect available package manager.
+#
+# Default preference: bun > pnpm > yarn > npm (bun is fastest when available).
+#
+# On Alpine Linux, demote bun to last place: bun is not in the apk repo and
+# requires a curl-pipe install, which complicates reproducible/minimal Alpine
+# containers. pnpm/yarn/npm are all `apk add`-able and just as compatible with
+# the Notur + Pterodactyl build pipeline. Set PKG_MANAGER=bun to override.
 detect_pkg_manager() {
     if [ -n "${PKG_MANAGER:-}" ]; then
         # User specified via environment variable
@@ -450,6 +472,17 @@ detect_pkg_manager() {
             bun|pnpm|yarn|npm) echo "$PKG_MANAGER"; return ;;
             *) warn "Unknown PKG_MANAGER '$PKG_MANAGER', auto-detecting..." ;;
         esac
+    fi
+
+    if is_alpine; then
+        # Alpine: prefer apk-native managers; bun only as last resort.
+        if command -v pnpm &> /dev/null; then echo "pnpm"
+        elif command -v yarn &> /dev/null; then echo "yarn"
+        elif command -v npm &> /dev/null; then echo "npm"
+        elif command -v bun &> /dev/null; then echo "bun"
+        else echo ""
+        fi
+        return
     fi
 
     if command -v bun &> /dev/null; then echo "bun"
