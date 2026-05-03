@@ -121,6 +121,12 @@ jobs:
             fi
 
             # Apply React source patches (skip reverse patches)
+            # Mirror install.sh detection: try composer.lock first (in case the
+            # panel was installed as a dependency), then fall back to
+            # config/app.php (where the standalone panel surfaces its version).
+            # pterodactyl/panel is the root package in a self-hosted install so
+            # it does NOT appear in composer.lock packages — config/app.php is
+            # the authoritative source there.
             PATCH_DIR=""
             PANEL_VERSION=""
             if [ -f "composer.lock" ]; then
@@ -137,6 +143,11 @@ jobs:
                   } \
                 }" 2>/dev/null || true)
             fi
+            if [ -z "${PANEL_VERSION}" ] && [ -f "config/app.php" ]; then
+              PANEL_VERSION=$(grep "'"'"'version'"'"'" config/app.php | head -1 | sed "s/.*'"'"'version'"'"'.*'"'"'\([^'"'"']*\)'"'"'.*/\1/" || echo "")
+            fi
+
+            echo "Detected panel version: ${PANEL_VERSION:-unknown}"
 
             # Mirror install.sh: only v1.12.x is supported; hard-fail otherwise.
             # Accept both "1.12.0" and "v1.12.0" forms.
