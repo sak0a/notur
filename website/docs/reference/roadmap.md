@@ -2,7 +2,7 @@
 
 ## Current Release
 
-- Version: 1.3.2
+- Version: 1.4.0
 - Status: Stable
 - Custom exception hierarchy, lifecycle logging, `VerifyServerAccess` middleware
 - Major refactors: `EntrypointResolver`, `ScaffoldGenerator`, `ManagesFilesystem` trait
@@ -20,7 +20,7 @@
 
 - Notur follows semantic versioning.
 - Extension manifests use `notur: "1.0"` as the format version.
-- Compatibility target: Pterodactyl Panel v1.11+, PHP 8.2+, Node.js 22+.
+- Compatibility target: Pterodactyl Panel v1.12+, PHP 8.2+, Node.js 22+.
 
 See the changelog for release history.
 

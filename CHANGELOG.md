@@ -4,6 +4,8 @@ All notable changes to the Notur Extension Library will be documented in this fi
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-05-03
+
 ### Breaking
 
 - **Dropped support for Pterodactyl Panel v1.11.x.** The installer now hard-fails on any non-v1.12.x panel. Existing v1.11 deployments must upgrade the panel before upgrading Notur.
@@ -15,6 +17,8 @@ All notable changes to the Notur Extension Library will be documented in this fi
 - Version-mapping shell test at `installer/tests/test-version-mapping.sh`.
 - Package-manager detection test at `installer/tests/test-pkg-manager-detection.sh` covering both Alpine and non-Alpine selection logic plus the `PKG_MANAGER` override.
 - Node.js version-check shell test at `installer/tests/test-node-version-check.sh` covering accepted versions, too-old versions, per-distro upgrade hints, parse failures, the `MIN_NODE_MAJOR` override, and `MIN_NODE_MAJOR` validation (23 cases).
+- Package-manager bootstrap and menu-selection tests for the installer’s interactive lockfile-aware manager flow.
+- Web removal feedback regression test covering successful and failed admin-triggered extension removal.
 
 ### Changed
 
@@ -22,10 +26,14 @@ All notable changes to the Notur Extension Library will be documented in this fi
 - **Installer package-manager preference on Alpine**: bun is demoted to last resort on Alpine (was: `bun > pnpm > yarn > npm`; now on Alpine: `pnpm > yarn > npm > bun`). bun is not in the apk repository and requires a curl-pipe install, which complicates reproducible Alpine images. Set `PKG_MANAGER=bun` to override. Behavior on non-Alpine systems is unchanged.
 - **Installer Node.js version enforcement**: the installer now requires Node.js ≥ 22 (Pterodactyl Panel v1.12 baseline — matches the panel's own Dockerfile). Older Node fails fast with a per-distro upgrade hint (NodeSource for apt/dnf/yum, Alpine 3.21+ for apk, pacman for Arch, nodejs.org for unknown distros) instead of a cryptic webpack error mid-build. Override the threshold via `MIN_NODE_MAJOR=<n> bash install.sh` for forks pinned to older toolchains; non-numeric/empty/negative values are rejected up-front rather than being silently treated as `0`. This is technically breaking for anyone running on a too-old Node, but in practice those installs were already silently broken further down the pipeline — the fix is to fail clearly rather than fail cryptically.
 - **Installer requirements bootstrap is now cross-distro**: `install_alpine_requirements()` is renamed to `install_distro_requirements()` and works on apt, dnf, yum, and pacman in addition to apk. Missing build tools (`bash`, `git`, `patch`, `make`, `g++`, `perl`, `python3`, plus `coreutils`/`libstdc++` on Alpine) are auto-installed using the right package name per distro (e.g. `build-essential` on apt, `base-devel` on pacman, `make gcc-c++` on dnf/yum, `python` instead of `python3` on pacman). The build-toolchain probe checks `make` *and* `g++` independently so stripped images that ship one without the other (common on minimal CI base images) still get a working node-gyp toolchain. Stripped Ubuntu/Debian/CentOS minimal containers no longer fail with cryptic "patch: command not found" errors.
+- **Installer package-manager flow**: lockfile-aware manager selection, interactive menu-driven fallback in manual installs, and cleaner prompt output now prevent ambiguous or looping package-manager selection.
 
 ### Fixed
 
 - **Installer frontend rebuild flow**: `install.sh` now separates dependency installation from asset compilation. If `npm` hits a peer-dependency conflict, it retries `npm install --legacy-peer-deps` before attempting any yarn-script fallback. This fixes Alpine/Docker Pterodactyl installs where React 16 panels failed dependency resolution, then incorrectly fell into a missing-`yarn`/missing-`webpack-cli` build path.
+- **Installer Git safe.directory handling**: bind-mounted Docker installs no longer emit Composer/Git “dubious ownership” failures for `/app`.
+- **Installer Yarn recovery**: if Yarn is selected but cannot parse/install the existing lockfile while another supported lockfile manager is also present, the installer can fall back cleanly instead of aborting immediately.
+- **Admin extension removal feedback**: web-triggered extension removal now respects the `notur:remove` exit code and surfaces failures back to the UI instead of always claiming success.
 - Missing reverse patches for `index.tsx` and `admin.blade.php` so `notur:uninstall` now restores the panel to pristine source.
 - Malformed third hunk in `FileManager.tsx.patch` that emitted a "No such line 117" warning during install.
 

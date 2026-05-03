@@ -4,7 +4,7 @@
 
 # Notur Extension Library
 
-![Version](https://img.shields.io/badge/version-1.3.2-blue)
+![Version](https://img.shields.io/badge/version-1.4.0-blue)
 ![Status](https://img.shields.io/badge/status-stable-brightgreen)
 
 A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/) v1. Enables community-built extensions (plugins, themes, tools) that modify panel functionality without forking the source.
@@ -22,17 +22,17 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 
 ## Requirements
 
-- Pterodactyl Panel v1 (canary/1.11+)
+- Pterodactyl Panel v1.12+
 - PHP 8.2+
 - Node.js 22+ (matches panel requirement)
 - Composer 2.x
 - Package manager: npm, Yarn, pnpm, or Bun
 
-## Current Status (v1.3.0 — 2026-04-02)
+## Current Status (v1.4.0 — 2026-05-03)
 
 Notur is feature-complete for extension lifecycle, registry distribution, admin management, and theming.
 
-v1.3.0 highlights:
+v1.4.0 highlights:
 
 - Custom exception hierarchy for typed error handling
 - `VerifyServerAccess` middleware for extension server-scoped routes
@@ -42,6 +42,8 @@ v1.3.0 highlights:
 - Bridge cleanup/teardown support (`window.__NOTUR__.cleanup()`)
 - Bridge/SDK version compatibility checking
 - Major internal refactors: `EntrypointResolver`, `ScaffoldGenerator`, `ManagesFilesystem` trait
+- Installer hardening for Docker/Alpine, Node 22+, lockfile-aware package-manager selection, and safer build fallback handling
+- Honest web removal feedback when admin-triggered extension removal fails
 
 See the [Changelog](CHANGELOG.md) for release details.
 

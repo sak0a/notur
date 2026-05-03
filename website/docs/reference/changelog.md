@@ -2,6 +2,17 @@
 
 All notable changes to the Notur Extension Library are documented here.
 
+## [1.4.0] - 2026-05-03
+
+### Changed
+- **Panel compatibility** — Dropped support for Pterodactyl Panel v1.11.x. Notur now targets v1.12.x only.
+- **Installer package-manager selection** — The installer now detects frontend lockfiles first, presents an interactive package-manager menu in ambiguous/manual cases, and handles missing Yarn more gracefully.
+
+### Fixed
+- **Installer Git safety** — Docker/bind-mount installs now mark the panel path as a Git `safe.directory` before Composer runs.
+- **Installer build recovery** — Frontend dependency install and build recovery paths now handle npm peer-dependency issues, missing Yarn, Yarn-script build pipelines, and invalid Yarn lockfile/parser failures more reliably.
+- **Web extension removal feedback** — Admin UI removal now respects artisan exit codes and reports failures instead of always showing success.
+
 ## [1.3.2] - 2026-04-03
 
 ### Fixed
