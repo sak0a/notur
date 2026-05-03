@@ -79,11 +79,16 @@ echo "=== Supported versions (must map to v1.12, exit 0) ==="
 assert_supported "1.12.0"
 assert_supported "1.12.1"
 assert_supported "1.12.2"
+# Composer/git tags often surface a leading "v" — both forms must be accepted.
+assert_supported "v1.12.0"
+assert_supported "v1.12.1"
+assert_supported "v1.12.2"
 
 echo ""
 echo "=== Unsupported v1.11 (must exit nonzero, mention v1.12.x) ==="
 assert_unsupported "1.11.0" "v1.12.x"
 assert_unsupported "1.11.11" "v1.12.x"
+assert_unsupported "v1.11.11" "v1.12.x"
 
 echo ""
 echo "=== Other unsupported (must exit nonzero) ==="

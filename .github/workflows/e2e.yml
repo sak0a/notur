@@ -138,29 +138,41 @@ jobs:
                 }" 2>/dev/null || true)
             fi
 
-            if echo "${PANEL_VERSION}" | grep -q "^v1\\.12"; then
-              PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
-            else
-              if [ -d "vendor/notur/notur/installer/patches/v1.12" ]; then
+            # Mirror install.sh: only v1.12.x is supported; hard-fail otherwise.
+            # Accept both "1.12.0" and "v1.12.0" forms.
+            PANEL_VERSION_NORMALIZED="${PANEL_VERSION#v}"
+            case "${PANEL_VERSION_NORMALIZED}" in
+              1.12.*)
                 PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
-              fi
+                ;;
+              "")
+                echo "E2E: could not detect Pterodactyl panel version. Notur requires v1.12.x." >&2
+                exit 1
+                ;;
+              *)
+                echo "E2E: unsupported Pterodactyl version '\''${PANEL_VERSION}'\''. Notur supports v1.12.x only." >&2
+                exit 1
+                ;;
+            esac
+
+            if [ ! -d "${PATCH_DIR}" ]; then
+              echo "E2E: patch directory ${PATCH_DIR} not found" >&2
+              exit 1
             fi
 
-            if [ -n "${PATCH_DIR}" ] && [ -d "${PATCH_DIR}" ]; then
-              echo "Using patch set: ${PATCH_DIR##*/}"
-              for patch in "${PATCH_DIR}"/*.patch; do
-                [ -f "${patch}" ] || continue
-                PATCH_NAME=$(basename "${patch}")
-                echo "${PATCH_NAME}" | grep -q "reverse" && continue
-                echo "Applying patch: ${PATCH_NAME}"
-                if patch --dry-run -p1 < "${patch}" &>/dev/null; then
-                  patch -p1 < "${patch}"
-                  echo "Applied: ${PATCH_NAME}"
-                else
-                  echo "Skipping: ${PATCH_NAME} (already applied or incompatible)"
-                fi
-              done
-            fi
+            echo "Using patch set: ${PATCH_DIR##*/}"
+            for patch in "${PATCH_DIR}"/*.patch; do
+              [ -f "${patch}" ] || continue
+              PATCH_NAME=$(basename "${patch}")
+              echo "${PATCH_NAME}" | grep -q "reverse" && continue
+              echo "Applying patch: ${PATCH_NAME}"
+              if patch --dry-run -p1 < "${patch}" &>/dev/null; then
+                patch -p1 < "${patch}"
+                echo "Applied: ${PATCH_NAME}"
+              else
+                echo "Skipping: ${PATCH_NAME} (already applied or incompatible)"
+              fi
+            done
 
             # Rebuild frontend with patches applied
             echo "Installing frontend dependencies..."

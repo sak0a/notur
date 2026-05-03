@@ -619,11 +619,13 @@ PANEL_VERSION=$(detect_panel_version)
 info "Detected panel version: ${PANEL_VERSION:-unknown}"
 
 # Map to patch directory. v1.12.x is the only supported branch.
+# Accept both "1.12.0" and "v1.12.0" forms — Composer may surface either
+# depending on whether the version was sourced from composer.json or a git tag.
 case "$PANEL_VERSION" in
-    1.12.*)
+    1.12.*|v1.12.*)
         PATCH_VERSION="v1.12"
         ;;
-    1.11.*)
+    1.11.*|v1.11.*)
         die "Pterodactyl v1.11.x is no longer supported by Notur. Please upgrade to v1.12.x."
         ;;
     "")

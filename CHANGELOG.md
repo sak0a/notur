@@ -16,7 +16,7 @@ All notable changes to the Notur Extension Library will be documented in this fi
 
 ### Fixed
 
-- Missing reverse patches for `index.tsx` and `admin.blade.php` so `notur:remove` now restores the panel to pristine source.
+- Missing reverse patches for `index.tsx` and `admin.blade.php` so `notur:uninstall` now restores the panel to pristine source.
 - Malformed third hunk in `FileManager.tsx.patch` that emitted a "No such line 117" warning during install.
 
 ## [1.3.2] - 2026-04-03

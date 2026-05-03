@@ -45,8 +45,24 @@ git -C "$PANEL_REPO" archive --format=tar "$TAG" | tar -x -C "$PRISTINE"
 
 cp -R "$PRISTINE" "$WORKING"
 
+# Sanity-check: catch a regression where patches accidentally got deleted.
+# Without this, an empty PATCH_DIR would make the loop apply nothing, leaving
+# WORKING == PRISTINE, and the test would falsely report a clean round-trip.
+forward_count=$(find "$PATCH_DIR" -maxdepth 1 -name '*.patch' ! -name '*.reverse.patch' | wc -l | tr -d ' ')
+reverse_count=$(find "$PATCH_DIR" -maxdepth 1 -name '*.reverse.patch' | wc -l | tr -d ' ')
+if [ "$forward_count" -eq 0 ]; then
+    echo "BAD: no forward patches found in $PATCH_DIR" >&2
+    exit 1
+fi
+if [ "$reverse_count" -eq 0 ]; then
+    echo "BAD: no reverse patches found in $PATCH_DIR" >&2
+    exit 1
+fi
+
 fail=0
 warned=0
+applied_forward=0
+applied_reverse=0
 
 # NOTE: GNU patch (Linux/CI) prints "offset"/"fuzz"/"No such line" on stdout
 # when a hunk applies imperfectly, which we detect below to flag warnings.
@@ -73,6 +89,11 @@ apply_pass() {
             fail=1
             continue
         }
+        if [ "$label" = "FORWARD" ]; then
+            applied_forward=$((applied_forward + 1))
+        else
+            applied_reverse=$((applied_reverse + 1))
+        fi
         if echo "$out" | grep -qE 'offset|fuzz|reject|No such line'; then
             echo "$label WARN: $name"
             echo "$out" | grep -E 'offset|fuzz|reject|No such line' | sed 's/^/    /'
@@ -84,6 +105,16 @@ apply_pass() {
 
 apply_pass "FORWARD" "*.patch"
 apply_pass "REVERSE" "*.reverse.patch"
+
+# Confirm we actually applied every patch — defends against silent skips.
+if [ "$applied_forward" -ne "$forward_count" ]; then
+    echo "BAD: applied $applied_forward forward patches but expected $forward_count" >&2
+    fail=1
+fi
+if [ "$applied_reverse" -ne "$reverse_count" ]; then
+    echo "BAD: applied $applied_reverse reverse patches but expected $reverse_count" >&2
+    fail=1
+fi
 
 # Detect any .orig files that patch left behind.
 orig_files=$(find "$WORKING" -name '*.orig' 2>/dev/null || true)
