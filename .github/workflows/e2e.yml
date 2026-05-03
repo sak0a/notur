@@ -281,14 +281,21 @@ jobs:
             php artisan cache:clear 2>/dev/null || true
             php artisan migrate --path=vendor/notur/notur/database/migrations --force 2>&1
 
-            chown -R www-data:www-data notur public/notur 2>/dev/null || true
-
             # Verify extension routes are registered
             if ! php artisan route:list 2>/dev/null | grep -q "notur/hello-world"; then
               echo "Notur extension routes not registered"
               php artisan route:list 2>/dev/null | grep -i notur || true
               exit 1
             fi
+
+            # Re-chown storage AND bootstrap/cache AFTER all artisan calls in
+            # this block so nginx → php-fpm (www-data) can append to
+            # laravel-*.log on subsequent HTTP requests. Each artisan call
+            # here ran as root and would otherwise leave root-owned log/cache
+            # files behind, producing 500s with
+            #   "could not be opened in append mode: Permission denied"
+            # the next time a request enters Laravel.
+            chown -R www-data:www-data storage bootstrap/cache notur public/notur 2>/dev/null || true
           '
 
           # Run tests
