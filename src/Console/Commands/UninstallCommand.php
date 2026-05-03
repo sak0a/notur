@@ -128,9 +128,7 @@ class UninstallCommand extends Command
             base_path("vendor/notur/notur/installer/patches/{$patchVersion}"),
             dirname(__DIR__, 3) . "/installer/patches/{$patchVersion}",
             base_path('vendor/notur/notur/installer/patches/v1.12'),
-            base_path('vendor/notur/notur/installer/patches/v1.11'),
             dirname(__DIR__, 3) . '/installer/patches/v1.12',
-            dirname(__DIR__, 3) . '/installer/patches/v1.11',
         ];
 
         foreach ($candidates as $candidate) {
@@ -146,12 +144,12 @@ class UninstallCommand extends Command
     {
         $lockFile = base_path('composer.lock');
         if (!file_exists($lockFile)) {
-            return 'v1.11';
+            return 'v1.12';
         }
 
         $decoded = json_decode((string) file_get_contents($lockFile), true);
         if (!is_array($decoded)) {
-            return 'v1.11';
+            return 'v1.12';
         }
 
         $packages = array_merge($decoded['packages'] ?? [], $decoded['packages-dev'] ?? []);
@@ -165,12 +163,9 @@ class UninstallCommand extends Command
             if (str_starts_with($version, '1.12.')) {
                 return 'v1.12';
             }
-            if (str_starts_with($version, '1.11.')) {
-                return 'v1.11';
-            }
         }
 
-        return 'v1.11';
+        return 'v1.12';
     }
 
     /**
