@@ -834,9 +834,27 @@ fix_webpack_cli_compat() {
     esac
 }
 
-# Try normal install first, fall back to --legacy-peer-deps for dependency conflicts
+# Install panel frontend dependencies. Keep dependency recovery separate from
+# the build step so install failures are not masked as script/tooling failures.
+install_frontend_dependencies() {
+    if pkg_install; then
+        return 0
+    fi
+
+    if [ "$PKG_MGR" = "npm" ]; then
+        warn "Standard npm install failed. Retrying with --legacy-peer-deps..."
+        if [ -f "package-lock.json" ]; then
+            npm ci --legacy-peer-deps && return 0
+        else
+            npm install --legacy-peer-deps && return 0
+        fi
+    fi
+
+    return 1
+}
+
 build_frontend() {
-    pkg_install || true
+    install_frontend_dependencies || return 1
     fix_webpack_cli_compat
 
     if pkg_run build:production; then
@@ -869,13 +887,6 @@ build_frontend() {
         fi
 
         pkg_exec webpack --mode production || return 1
-        return 0
-    fi
-
-    # Check if this is npm with a peer dependency conflict
-    if [ "$PKG_MGR" = "npm" ]; then
-        warn "Standard npm install failed. Retrying with --legacy-peer-deps..."
-        npm install --legacy-peer-deps && npm run build:production || return 1
         return 0
     fi
 

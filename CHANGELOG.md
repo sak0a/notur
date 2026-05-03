@@ -25,6 +25,7 @@ All notable changes to the Notur Extension Library will be documented in this fi
 
 ### Fixed
 
+- **Installer frontend rebuild flow**: `install.sh` now separates dependency installation from asset compilation. If `npm` hits a peer-dependency conflict, it retries `npm install --legacy-peer-deps` before attempting any yarn-script fallback. This fixes Alpine/Docker Pterodactyl installs where React 16 panels failed dependency resolution, then incorrectly fell into a missing-`yarn`/missing-`webpack-cli` build path.
 - Missing reverse patches for `index.tsx` and `admin.blade.php` so `notur:uninstall` now restores the panel to pristine source.
 - Malformed third hunk in `FileManager.tsx.patch` that emitted a "No such line 117" warning during install.
 
