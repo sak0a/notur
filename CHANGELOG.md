@@ -13,6 +13,12 @@ All notable changes to the Notur Extension Library will be documented in this fi
 - Verified Pterodactyl Panel v1.12.0, v1.12.1, and v1.12.2 support via a single shared patch set.
 - Round-trip verification script at `installer/tests/test-patch-roundtrip.sh` that validates patches forward + reverse against any v1.12.x tag.
 - Version-mapping shell test at `installer/tests/test-version-mapping.sh`.
+- Package-manager detection test at `installer/tests/test-pkg-manager-detection.sh` covering both Alpine and non-Alpine selection logic plus the `PKG_MANAGER` override.
+
+### Changed
+
+- **Installer Alpine compatibility**: `install_alpine_requirements()` now also installs `perl` (used by the wrapper.blade.php fallback), `python3` (required by node-gyp for many native npm modules), and `libstdc++` (required by musl for prebuilt node binaries like esbuild/swc). Pure `alpine:3.x` containers no longer fail mid-install with cryptic errors.
+- **Installer package-manager preference on Alpine**: bun is demoted to last resort on Alpine (was: `bun > pnpm > yarn > npm`; now on Alpine: `pnpm > yarn > npm > bun`). bun is not in the apk repository and requires a curl-pipe install, which complicates reproducible Alpine images. Set `PKG_MANAGER=bun` to override. Behavior on non-Alpine systems is unchanged.
 
 ### Fixed
 
