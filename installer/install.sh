@@ -332,9 +332,12 @@ install_distro_requirements() {
         required_packages="$required_packages perl"
     fi
 
-    # make/gcc — pkg name varies wildly per distro (build-base on alpine,
-    # build-essential on debian/ubuntu, etc.).
-    if ! command -v make >/dev/null 2>&1; then
+    # make + C++ compiler — pkg name varies wildly per distro (build-base on
+    # alpine, build-essential on debian/ubuntu, etc.). node-gyp needs both
+    # make AND a C++ compiler to build native modules, so probe for `g++`
+    # in addition to `make` — a system can have one without the other on
+    # stripped images, and missing g++ would only surface mid-npm-install.
+    if ! command -v make >/dev/null 2>&1 || ! command -v g++ >/dev/null 2>&1; then
         case "$sys_pkg_mgr" in
             apk)     required_packages="$required_packages build-base" ;;
             apt)     required_packages="$required_packages build-essential" ;;
@@ -481,6 +484,16 @@ fi
 # === node-version-check-start ===
 # Verify Node.js meets the minimum major version (Pterodactyl v1.12 requires Node 22+).
 # Read raw output, strip leading "v", split major. Use POSIX [ ] tests, not [[ ]].
+
+# Validate MIN_NODE_MAJOR is a positive integer before using it in -lt below;
+# otherwise `[ N -lt foo ]` errors with "integer expression expected" and
+# aborts the whole installer under set -e.
+case "$MIN_NODE_MAJOR" in
+    ''|*[!0-9]*)
+        die "Invalid MIN_NODE_MAJOR='${MIN_NODE_MAJOR}': must be a positive integer."
+        ;;
+esac
+
 if ! node_version_raw=$(node --version 2>/dev/null); then
     error "Failed to read Node.js version (node --version exited non-zero)."
     print_node_install_hint
@@ -501,10 +514,35 @@ esac
 
 if [ "$node_major" -lt "$MIN_NODE_MAJOR" ]; then
     error "Node.js ${node_major}.x is too old. Pterodactyl Panel v1.12 requires Node.js ${MIN_NODE_MAJOR}+."
-    print_node_install_hint
-    info "On Ubuntu/Debian, install Node ${MIN_NODE_MAJOR} from NodeSource:"
-    info "  curl -fsSL https://deb.nodesource.com/setup_${MIN_NODE_MAJOR}.x | bash -"
-    info "  apt-get install -y nodejs"
+    # Don't call print_node_install_hint here — it suggests `apt install nodejs`
+    # which on Ubuntu 24.04 / Debian 12 still gives Node 18, sending the user
+    # into a fail-loop. Instead, give per-distro upgrade guidance that actually
+    # produces Node ${MIN_NODE_MAJOR}+.
+    sys_pkg_mgr=$(detect_sys_pkg_manager)
+    info "Upgrade options:"
+    case "$sys_pkg_mgr" in
+        apt)
+            info "  NodeSource (Ubuntu/Debian — distro nodejs is usually too old):"
+            info "    curl -fsSL https://deb.nodesource.com/setup_${MIN_NODE_MAJOR}.x | bash -"
+            info "    apt-get install -y nodejs"
+            ;;
+        dnf|yum)
+            info "  NodeSource (RHEL/CentOS/Fedora — distro nodejs may be too old):"
+            info "    curl -fsSL https://rpm.nodesource.com/setup_${MIN_NODE_MAJOR}.x | bash -"
+            info "    ${sys_pkg_mgr} install -y nodejs"
+            ;;
+        apk)
+            info "  Alpine 3.21+: apk add --no-cache nodejs npm"
+            info "  Older Alpine: install via nvm or upgrade Alpine."
+            ;;
+        pacman)
+            info "  Arch (rolling release, current Node): pacman -S --noconfirm nodejs npm"
+            ;;
+        *)
+            info "  Install Node.js ${MIN_NODE_MAJOR}+ from https://nodejs.org/"
+            ;;
+    esac
+    info "  Cross-platform: nvm — https://github.com/nvm-sh/nvm"
     die "Upgrade Node.js and re-run the installer."
 fi
 

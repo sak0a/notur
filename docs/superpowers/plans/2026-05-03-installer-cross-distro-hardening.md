@@ -17,7 +17,7 @@
 - `CHANGELOG.md` — add entries to `[Unreleased]` Added + Changed
 
 **Created:**
-- `installer/tests/test-node-version-check.sh` — 7 cases, heredoc-style stubs
+- `installer/tests/test-node-version-check.sh` — heredoc-style stubs (12 cases as initially committed; expanded to 23 after review feedback added per-distro hint coverage and MIN_NODE_MAJOR validation cases)
 
 **Out of scope (do not touch):**
 - `.github/workflows/ci.yml` — wiring tests into CI is a follow-up
