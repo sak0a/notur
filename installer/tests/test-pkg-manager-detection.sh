@@ -23,15 +23,24 @@ fail=0
 #   $1 = "yes" or "no"  (whether is_alpine returns true)
 #   $2 = space-separated list of "available" pkg managers (e.g. "bun npm")
 #   $3 = optional PKG_MANAGER env override
+#
+# Inputs are passed via the environment (not interpolated into the bash -c
+# string), and the script body is a single-quoted heredoc so $vars inside it
+# are resolved by the inner shell — not by the outer one. This keeps the test
+# robust even if inputs ever contain shell-special characters.
 run_detect() {
     local alpine="$1"
     local available="$2"
     local pkg_env="${3:-}"
 
-    bash -c '
+    INSTALL_SH="$INSTALL_SH" \
+    T_ALPINE="$alpine" \
+    T_AVAILABLE="$available" \
+    T_PKG_ENV="$pkg_env" \
+    bash <<'INNER'
         set -eu
         # Extract the detect_pkg_manager function definition.
-        func_block=$(sed -n "/^detect_pkg_manager()/,/^}$/p" "'"$INSTALL_SH"'")
+        func_block=$(sed -n "/^detect_pkg_manager()/,/^}$/p" "$INSTALL_SH")
         if [ -z "$func_block" ]; then
             echo "ERR: could not extract detect_pkg_manager from install.sh" >&2
             exit 2
@@ -40,13 +49,15 @@ run_detect() {
 
         # Stubs.
         warn() { :; }
-        if [ "'"$alpine"'" = "yes" ]; then
+        if [ "$T_ALPINE" = "yes" ]; then
             is_alpine() { return 0; }
         else
             is_alpine() { return 1; }
         fi
 
-        AVAILABLE=" '"$available"' "
+        # Wrap with surrounding spaces so the case glob below sees " $name "
+        # for every entry — including the first and last in the list.
+        AVAILABLE=" $T_AVAILABLE "
         # Override `command` so `command -v <name>` only succeeds for stubbed
         # entries. Other forms (command <prog>) fall back to the builtin.
         command() {
@@ -59,14 +70,14 @@ run_detect() {
             builtin command "$@"
         }
 
-        if [ -n "'"$pkg_env"'" ]; then
-            export PKG_MANAGER="'"$pkg_env"'"
+        if [ -n "$T_PKG_ENV" ]; then
+            export PKG_MANAGER="$T_PKG_ENV"
         else
             unset PKG_MANAGER 2>/dev/null || true
         fi
 
         detect_pkg_manager
-    '
+INNER
 }
 
 assert_eq() {
