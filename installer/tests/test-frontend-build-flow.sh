@@ -44,9 +44,11 @@ run_case() {
         eval "$build_block"
 
         WORKDIR="$(mktemp -d)"
+        trap 'rm -rf "$WORKDIR"' EXIT
         PANEL_DIR="$WORKDIR/panel"
         mkdir -p "$PANEL_DIR/node_modules/.bin"
         printf '{ "scripts": { "build:production": "yarn run clean && webpack", "clean": "cleanup" } }\n' > "$PANEL_DIR/package.json"
+        : > "$PANEL_DIR/package-lock.json"
 
         LOG="$WORKDIR/log"
         : > "$LOG"
@@ -72,8 +74,8 @@ run_case() {
         npm() {
             record "npm:$*"
             case "$T_CASE:$*" in
-                npm_retry_then_build:install\ --legacy-peer-deps) return 0 ;;
-                npm_retry_then_build_fail:install\ --legacy-peer-deps) return 1 ;;
+                npm_retry_then_build:ci\ --legacy-peer-deps) return 0 ;;
+                npm_retry_then_build_fail:ci\ --legacy-peer-deps) return 1 ;;
                 yarnless_script_fallback:run\ clean) return 0 ;;
                 *) return 0 ;;
             esac
@@ -184,6 +186,42 @@ assert_case_not_contains() {
     pass=$((pass+1))
 }
 
+assert_case_sequence() {
+    local label="$1" case_name="$2"
+    shift 2
+    local out log
+    out=$(run_case "$case_name" || true)
+
+    if ! echo "$out" | grep -q '^RC=0$'; then
+        echo "  FAIL: $label — expected RC=0, got:"
+        echo "$out" | sed 's/^/      /'
+        fail=$((fail+1))
+        return
+    fi
+
+    log=$(printf '%s\n' "$out" | sed -n '/^LOG_START$/,/^LOG_END$/p')
+    local prev_line=0 needle line
+    for needle in "$@"; do
+        line=$(printf '%s\n' "$log" | grep -nF "$needle" | head -n1 | cut -d: -f1)
+        if [ -z "$line" ]; then
+            echo "  FAIL: $label — missing '$needle', got:"
+            echo "$out" | sed 's/^/      /'
+            fail=$((fail+1))
+            return
+        fi
+        if [ "$line" -le "$prev_line" ]; then
+            echo "  FAIL: $label — '$needle' did not appear after the previous step, got:"
+            echo "$out" | sed 's/^/      /'
+            fail=$((fail+1))
+            return
+        fi
+        prev_line="$line"
+    done
+
+    echo "  PASS: $label"
+    pass=$((pass+1))
+}
+
 assert_case_fails() {
     local label="$1" case_name="$2" needle="$3"
     local out
@@ -206,7 +244,7 @@ assert_case_contains \
     "npm_retry_then_build" \
     "pkg-install" \
     "warn:Standard npm install failed. Retrying with --legacy-peer-deps..." \
-    "npm:install --legacy-peer-deps" \
+    "npm:ci --legacy-peer-deps" \
     "fix-webpack" \
     "pkg-run:build:production"
 assert_case_not_contains \
@@ -215,6 +253,14 @@ assert_case_not_contains \
     "script-uses-yarn:build:production" \
     "npm:run clean" \
     "pkg-exec:webpack --mode production"
+assert_case_sequence \
+    "npm retry path preserves install-then-build ordering" \
+    "npm_retry_then_build" \
+    "pkg-install" \
+    "warn:Standard npm install failed. Retrying with --legacy-peer-deps..." \
+    "npm:ci --legacy-peer-deps" \
+    "fix-webpack" \
+    "pkg-run:build:production"
 
 echo ""
 echo "=== yarn-script fallback only runs after deps are installed ==="
@@ -234,7 +280,7 @@ echo "=== dependency install failure stops the build early ==="
 assert_case_fails \
     "failed npm retry exits before build/fallback" \
     "npm_retry_then_build_fail" \
-    "npm:install --legacy-peer-deps"
+    "npm:ci --legacy-peer-deps"
 
 echo ""
 echo "Results: $pass passed, $fail failed"

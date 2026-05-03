@@ -843,7 +843,11 @@ install_frontend_dependencies() {
 
     if [ "$PKG_MGR" = "npm" ]; then
         warn "Standard npm install failed. Retrying with --legacy-peer-deps..."
-        npm install --legacy-peer-deps && return 0
+        if [ -f "package-lock.json" ]; then
+            npm ci --legacy-peer-deps && return 0
+        else
+            npm install --legacy-peer-deps && return 0
+        fi
     fi
 
     return 1
