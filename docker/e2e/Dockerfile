@@ -49,31 +49,31 @@ RUN curl -fsSL https://bun.sh/install | bash \
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Clone Pterodactyl Panel
-RUN git clone --depth 1 --branch ${PANEL_VERSION} \
-    https://github.com/pterodactyl/panel.git /var/www/pterodactyl
+# Download the Pterodactyl Panel release tarball — same artifact the
+# upstream install docs tell operators to fetch:
+#   https://pterodactyl.io/panel/1.0/getting_started.html
+# The tarball ships with the real version baked into config/app.php
+# (no 'canary' placeholder), pre-built public/assets/, and the source
+# tree intact. This matches the real install path our installer
+# targets and removes the need to "git clone + sed-rewrite the version".
+RUN mkdir -p /var/www/pterodactyl \
+    && curl -fsSL -o /tmp/panel.tar.gz \
+       "https://github.com/pterodactyl/panel/releases/download/${PANEL_VERSION}/panel.tar.gz" \
+    && tar -xzf /tmp/panel.tar.gz -C /var/www/pterodactyl \
+    && rm /tmp/panel.tar.gz
 
 WORKDIR /var/www/pterodactyl
 
-# Pterodactyl's source tree hard-codes `'version' => 'canary'` in
-# config/app.php; the upstream release process replaces this token when
-# building tagged release artifacts. We clone source directly via git, so
-# the token is left in place — meaning version-aware tooling (Notur's
-# installer / e2e workflow) sees "canary" instead of v1.12.x and refuses
-# to proceed. Stamp the cloned tag into config/app.php here so the runtime
-# version probe matches what we actually built against.
-RUN PANEL_VERSION_NUMBER="${PANEL_VERSION#v}" \
-    && sed -i "s/'version' => 'canary'/'version' => '${PANEL_VERSION_NUMBER}'/" config/app.php \
-    && grep "'version'" config/app.php
-
-# Install panel PHP dependencies
+# Install panel PHP dependencies (vendor/ is not shipped in the tarball).
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-# Install panel frontend dependencies and build (panel uses yarn)
+# Install yarn + frontend deps so the post-patch rebuild in the e2e
+# workflow has node_modules ready. Skip the initial build:production:
+# the tarball already includes pre-built public/assets/ for the no-patch
+# baseline, and the workflow rebuilds anyway after applying React patches,
+# so building twice would just burn minutes.
 RUN npm install -g yarn \
-    && yarn install --frozen-lockfile \
-    && yarn run build:production \
-    || true
+    && yarn install --frozen-lockfile
 
 # Set up panel environment
 RUN cp .env.example .env \
