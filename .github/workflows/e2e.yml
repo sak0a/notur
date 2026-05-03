@@ -334,12 +334,42 @@ jobs:
           docker compose logs app > /tmp/app-logs.txt 2>&1
           docker compose logs db > /tmp/db-logs.txt 2>&1
 
+          # docker-compose logs only shows supervisord stdout/stderr — the
+          # actual Laravel/nginx/php-fpm errors live in files inside the
+          # container. Pull them out so we can debug 500s post-mortem.
+          docker compose exec -T app bash -c '
+            echo "=== laravel.log (last 200 lines) ==="
+            tail -n 200 /var/www/pterodactyl/storage/logs/laravel.log 2>/dev/null || echo "(missing)"
+            echo
+            echo "=== nginx error.log ==="
+            tail -n 100 /var/log/nginx/error.log 2>/dev/null || echo "(missing)"
+            echo
+            echo "=== php-fpm error log ==="
+            tail -n 100 /var/log/php-fpm.log 2>/dev/null \
+              || tail -n 100 /var/log/php8.2-fpm.log 2>/dev/null \
+              || echo "(no fpm log file — fpm logs to stderr by default)"
+            echo
+            echo "=== storage perms ==="
+            ls -la /var/www/pterodactyl/storage 2>&1 | head -20
+            ls -la /var/www/pterodactyl/storage/framework 2>&1 | head -20
+            echo
+            echo "=== .env (with secrets redacted) ==="
+            sed -E "s/(APP_KEY|HASHIDS_SALT|DB_PASSWORD|MAIL_PASSWORD|RECAPTCHA_SECRET_KEY)=.*/\1=***REDACTED***/" /var/www/pterodactyl/.env 2>/dev/null || echo "(missing)"
+            echo
+            echo "=== public/assets/manifest.json keys ==="
+            php -r "echo implode(\"\n\", array_keys(json_decode(file_get_contents(\"/var/www/pterodactyl/public/assets/manifest.json\"), true) ?: []));" 2>&1 | head -30 || echo "(missing/invalid)"
+            echo
+            echo "=== HEAD / response (verbose) ==="
+            curl -sSi http://127.0.0.1/ 2>&1 | head -40 || true
+          ' > /tmp/runtime-logs.txt 2>&1 || true
+
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-logs
           path: /tmp/*-logs.txt
+          if-no-files-found: warn
 
       - name: Cleanup
         if: always()
