@@ -618,11 +618,20 @@ detect_panel_version() {
 PANEL_VERSION=$(detect_panel_version)
 info "Detected panel version: ${PANEL_VERSION:-unknown}"
 
-# Map to patch directory (1.11.x → v1.11, 1.12.x → v1.12)
+# Map to patch directory. v1.12.x is the only supported branch.
 case "$PANEL_VERSION" in
-    1.12.*) PATCH_VERSION="v1.12" ;;
-    1.11.*) PATCH_VERSION="v1.11" ;;
-    *)      PATCH_VERSION="v1.11" ; warn "Unknown version, defaulting to v1.11 patches" ;;
+    1.12.*)
+        PATCH_VERSION="v1.12"
+        ;;
+    1.11.*)
+        die "Pterodactyl v1.11.x is no longer supported by Notur. Please upgrade to v1.12.x."
+        ;;
+    "")
+        die "Could not detect Pterodactyl panel version. Notur requires v1.12.x."
+        ;;
+    *)
+        die "Unsupported Pterodactyl version: ${PANEL_VERSION}. Notur supports v1.12.x only."
+        ;;
 esac
 
 info "Using patch set: ${PATCH_VERSION}"
