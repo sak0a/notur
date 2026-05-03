@@ -392,6 +392,28 @@ fix_permissions() {
     fi
 }
 
+# Helper: trust the panel directory in Git so Composer can inspect VCS
+# metadata even when the container user differs from the bind-mounted owner.
+ensure_git_safe_directory() {
+    local dir="$1"
+    local canonical_dir
+
+    if ! command -v git >/dev/null 2>&1; then
+        return 0
+    fi
+
+    canonical_dir="$(cd "$dir" 2>/dev/null && pwd -P)" || return 0
+
+    if git config --global --get-all safe.directory 2>/dev/null | grep -Fx -- "$canonical_dir" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    info "Marking ${canonical_dir} as a Git safe.directory for Composer..."
+    if ! git config --global --add safe.directory "$canonical_dir" >/dev/null 2>&1; then
+        warn "Could not update Git safe.directory for ${canonical_dir}. Composer may emit ownership warnings."
+    fi
+}
+
 # ── Pre-flight checks ────────────────────────────────────────────────────
 
 banner
@@ -683,6 +705,7 @@ echo ""
 
 step "1/6" "Installing notur/notur via Composer..."
 cd "${PANEL_DIR}"
+ensure_git_safe_directory "${PANEL_DIR}"
 composer require notur/notur --no-interaction || die "Composer install failed."
 ok "Composer package installed."
 
@@ -857,10 +880,6 @@ build_frontend() {
     install_frontend_dependencies || return 1
     fix_webpack_cli_compat
 
-    if pkg_run build:production; then
-        return 0
-    fi
-
     # Some panel builds hardcode yarn in package.json scripts
     # (e.g. "build:production": "yarn run clean && ...").
     # If yarn is missing, try a package-manager-agnostic fallback.
@@ -890,7 +909,7 @@ build_frontend() {
         return 0
     fi
 
-    return 1
+    pkg_run build:production
 }
 
 build_frontend || die "Frontend build failed."

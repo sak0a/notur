@@ -56,7 +56,13 @@ run_case() {
         record() { printf '%s\n' "$*" >> "$LOG"; }
         warn() { record "warn:$*"; }
         fix_webpack_cli_compat() { record "fix-webpack"; }
-        script_uses_yarn() { record "script-uses-yarn:$2"; return 0; }
+        script_uses_yarn() {
+            record "script-uses-yarn:$2"
+            case "$T_CASE" in
+                yarnless_script_fallback) return 0 ;;
+                *) return 1 ;;
+            esac
+        }
         has_pkg_script() { record "has-pkg-script:$2"; return 0; }
         pkg_exec() { record "pkg-exec:$*"; return 0; }
 
@@ -250,7 +256,6 @@ assert_case_contains \
 assert_case_not_contains \
     "npm retry path does not enter yarn fallback" \
     "npm_retry_then_build" \
-    "script-uses-yarn:build:production" \
     "npm:run clean" \
     "pkg-exec:webpack --mode production"
 assert_case_sequence \
@@ -269,11 +274,14 @@ assert_case_contains \
     "yarnless_script_fallback" \
     "pkg-install" \
     "fix-webpack" \
-    "pkg-run:build:production" \
     "script-uses-yarn:build:production" \
     "has-pkg-script:clean" \
     "pnpm:run clean" \
     "webpack:--mode production"
+assert_case_not_contains \
+    "fallback bypasses build:production when it hardcodes missing yarn" \
+    "yarnless_script_fallback" \
+    "pkg-run:build:production"
 
 echo ""
 echo "=== dependency install failure stops the build early ==="
