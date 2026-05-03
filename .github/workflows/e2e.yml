@@ -140,15 +140,10 @@ jobs:
 
             if echo "${PANEL_VERSION}" | grep -q "^v1\\.12"; then
               PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
-            elif echo "${PANEL_VERSION}" | grep -q "^v1\\.11"; then
-              PATCH_DIR="vendor/notur/notur/installer/patches/v1.11"
             else
-              for candidate in vendor/notur/notur/installer/patches/v1.12 vendor/notur/notur/installer/patches/v1.11; do
-                if [ -d "${candidate}" ]; then
-                  PATCH_DIR="${candidate}"
-                  break
-                fi
-              done
+              if [ -d "vendor/notur/notur/installer/patches/v1.12" ]; then
+                PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
+              fi
             fi
 
             if [ -n "${PATCH_DIR}" ] && [ -d "${PATCH_DIR}" ]; then

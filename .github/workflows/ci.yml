@@ -220,16 +220,18 @@ jobs:
           node scripts/ci/check-npm-audit.js npm-audit.json .github/security/npm-audit-allowlist.json
 
   patch-validation:
-    name: Validate Patches (${{ matrix.panel-version }})
+    name: Validate Patches (${{ matrix.panel-tag }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - panel-version: v1.11
-            panel-tag: v1.11.11
           - panel-version: v1.12
             panel-tag: v1.12.0
+          - panel-version: v1.12
+            panel-tag: v1.12.1
+          - panel-version: v1.12
+            panel-tag: v1.12.2
 
     steps:
       - uses: actions/checkout@v4
