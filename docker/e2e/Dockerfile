@@ -39,6 +39,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xml \
     && rm -rf /var/lib/apt/lists/*
 
+# Configure the mysql CLI to skip TLS. The compose db service runs
+# MySQL 8.0, which presents a self-signed cert on every connection,
+# and our mariadb-client verifies certs by default — so any direct
+# `mysql` invocation fails with "TLS/SSL error: self-signed
+# certificate in certificate chain". This bites Laravel's migrate
+# when it shells out to mysql to load database/schema/mysql-schema.sql,
+# but the workflow's own SHOW TABLES probes already pass --ssl=0
+# explicitly. Disabling TLS for the CLI globally inside this test
+# container is fine — the db is a private docker-compose service.
+RUN printf '[client]\nssl=0\n' > /root/.my.cnf
+
 # Install Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && apt-get install -y nodejs \
