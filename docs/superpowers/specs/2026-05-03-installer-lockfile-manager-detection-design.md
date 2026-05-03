@@ -51,13 +51,24 @@ When multiple lockfiles exist, use a stable priority order and warn that the rep
 
 The warning should make clear that multiple lockfiles indicate a potentially inconsistent repository.
 
-### 2. Interactive prompt for missing lockfile-selected manager
+### 2. Interactive selection for missing or ambiguous lockfile-selected manager
 
 If the selected manager is implied by a lockfile but the executable is missing, and the installer is running interactively, prompt the user instead of guessing.
+
+If multiple lockfiles are detected, and the installer is running interactively, show a numbered selection menu even if one of the matching managers is already installed. Multiple lockfiles indicate an ambiguous repository state, so silent priority is too opaque for a manual install.
 
 Example prompt:
 
 `Detected yarn.lock, but yarn is not installed. Install yarn and continue with the panel's original package manager?`
+
+Example interactive menu:
+
+`Detected multiple frontend package-manager signals for this panel. Choose how to continue:`
+
+`1. Yarn (not installed, yarn.lock found) (Recommended)`
+`2. Bun (installed, no lockfile found)`
+`3. PNPM (installed, pnpm-lock.yaml not found)`
+`4. NPM (installed, package-lock.json found)`
 
 If the user accepts:
 
@@ -96,6 +107,8 @@ The existing `yarn`-script webpack fallback should remain as a last-resort compa
 Interactive runs:
 
 - show the prompt when a lockfile-selected manager is missing
+- show a numbered selection menu when multiple lockfiles are detected
+- skip prompts entirely for the clean case of a single lockfile whose manager is already installed
 
 Non-interactive runs:
 
@@ -110,6 +123,7 @@ Expected changes:
 
 - update package-manager detection in `installer/install.sh` to inspect lockfiles before command availability
 - add helper(s) to determine whether the session is interactive and to prompt for manager installation
+- add helper(s) to render a numbered package-manager selection menu in ambiguous interactive cases
 - add a small bootstrap path for Yarn installation when `yarn.lock` is present and the user approves
 - keep the existing fallback build logic, but move it behind the lockfile-respecting path
 - extend shell tests for selection, prompting, and fallback behavior
@@ -127,7 +141,10 @@ Add or update installer shell tests to cover:
 
 - `yarn.lock` selects `yarn`
 - interactive prompt appears when `yarn` is missing
+- interactive menu appears when multiple lockfiles are detected
 - accepting the prompt installs `yarn` and continues
+- selecting an installed alternative manager from the menu proceeds with a warning
+- selecting the recommended missing manager from the menu installs it and continues
 - declining the prompt falls back with a warning
 - non-interactive runs skip the prompt
 - existing npm recovery behavior still works when npm is the selected manager
