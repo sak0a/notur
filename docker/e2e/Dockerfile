@@ -2,7 +2,10 @@
 # Based on PHP 8.2 + Node 22, installs Pterodactyl Panel + Notur + test extension
 FROM php:8.2-fpm
 
-ARG NODE_VERSION=20
+# Pterodactyl Panel v1.12.x requires Node >= 22 (declared in upstream
+# package.json engines). Keep this in sync with .github/workflows/ci.yml's
+# frontend-build matrix.
+ARG NODE_VERSION=22
 ARG PANEL_VERSION=v1.12.2
 
 # Work around OpenSSL 3 compatibility issues in Node 17+ for webpack builds.
@@ -65,7 +68,12 @@ RUN mkdir -p /var/www/pterodactyl \
 WORKDIR /var/www/pterodactyl
 
 # Install panel PHP dependencies (vendor/ is not shipped in the tarball).
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+# --no-scripts: defer composer's post-install hooks (Pterodactyl's
+# composer.json runs `php artisan package:discover` post-autoload-dump,
+# which boots SettingsServiceProvider and needs APP_KEY — but .env
+# doesn't exist yet at this point). We run the discovery step manually
+# below, after the environment is fully set up.
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
 # Install yarn + frontend deps so the post-patch rebuild in the e2e
 # workflow has node_modules ready. Skip the initial build:production:
@@ -75,9 +83,10 @@ RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 RUN npm install -g yarn \
     && yarn install --frozen-lockfile
 
-# Set up panel environment
+# Set up panel environment + run the package discovery we deferred above.
 RUN cp .env.example .env \
-    && php artisan key:generate --force
+    && php artisan key:generate --force \
+    && php artisan package:discover --ansi
 
 # Fix storage permissions for www-data (PHP-FPM user)
 RUN chown -R www-data:www-data storage bootstrap/cache \
