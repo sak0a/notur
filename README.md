@@ -28,23 +28,6 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 - Composer 2.x
 - Package manager: npm, Yarn, pnpm, or Bun
 
-## Current Status (v1.3.0 — 2026-04-02)
-
-Notur is feature-complete for extension lifecycle, registry distribution, admin management, and theming.
-
-v1.3.0 highlights:
-
-- Custom exception hierarchy for typed error handling
-- `VerifyServerAccess` middleware for extension server-scoped routes
-- Lifecycle logging via Laravel Log facade
-- Frontend slot validation and duplicate registration guard
-- Bounded diagnostics with `recordDiagnosticError()`
-- Bridge cleanup/teardown support (`window.__NOTUR__.cleanup()`)
-- Bridge/SDK version compatibility checking
-- Major internal refactors: `EntrypointResolver`, `ScaffoldGenerator`, `ManagesFilesystem` trait
-
-See the [Changelog](CHANGELOG.md) for release details.
-
 ## Example Extensions
 
 - `examples/hello-world` -- minimal starter.
