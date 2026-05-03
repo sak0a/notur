@@ -287,8 +287,8 @@ assert_case_contains \
     "prompt" \
     "missing_yarn_menu" \
     "MANAGER=yarn" \
-    "warn:Detected multiple frontend package-manager signals for this panel." \
-    "warn:Choose how to continue:" \
+    "prompt-line:[Notur] Detected multiple frontend package-manager signals for this panel." \
+    "prompt-line:[Notur] Choose how to continue:" \
     "prompt-line:  1. Yarn (not installed, lockfile found) (Recommended)" \
     "prompt-line:  2. Bun (installed, no lockfile found)" \
     "prompt-line:  3. PNPM (installed, no lockfile found)" \

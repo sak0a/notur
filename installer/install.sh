@@ -771,12 +771,12 @@ prompt_for_package_manager_selection() {
     while true; do
         idx=1
         if [ -n "$lockfile_managers" ] && [ "$(count_words "$lockfile_managers")" -gt 1 ]; then
-            warn "Detected multiple frontend package-manager signals for this panel."
+            print_prompt_line "${YELLOW}[Notur]${NC} Detected multiple frontend package-manager signals for this panel."
         else
-            warn "Detected ${recommended_mgr}.lock-style workflow, but ${recommended_mgr} is not ready to use."
+            print_prompt_line "${YELLOW}[Notur]${NC} Detected ${recommended_mgr}.lock-style workflow, but ${recommended_mgr} is not ready to use."
         fi
 
-        warn "Choose how to continue:"
+        print_prompt_line "${YELLOW}[Notur]${NC} Choose how to continue:"
 
         for manager in $managers; do
             local label status lockfile_status suffix
@@ -805,7 +805,7 @@ prompt_for_package_manager_selection() {
             3) echo "pnpm"; return 0 ;;
             4) echo "npm"; return 0 ;;
             5) return 1 ;;
-            *) warn "Invalid selection '${choice}'. Please choose a number from 1 to 5." ;;
+            *) print_prompt_line "${YELLOW}[Notur]${NC} Invalid selection '${choice}'. Please choose a number from 1 to 5." ;;
         esac
     done
 }
