@@ -512,10 +512,17 @@ class ExtensionAdminController extends Controller
     public function remove(string $extensionId): RedirectResponse
     {
         try {
-            Artisan::call('notur:remove', [
-                'extension' => $extensionId,
-                '--no-interaction' => true,
-            ]);
+            ['exitCode' => $exitCode, 'output' => $output] = $this->runRemoveCommand($extensionId);
+
+            if ($exitCode !== 0) {
+                $message = $output !== ''
+                    ? 'Removal failed: ' . $output
+                    : "Removal failed for extension '{$extensionId}'.";
+
+                return redirect()
+                    ->route('admin.notur.extensions')
+                    ->with('error', $message);
+            }
 
             return redirect()
                 ->route('admin.notur.extensions')
@@ -525,6 +532,19 @@ class ExtensionAdminController extends Controller
                 ->route('admin.notur.extensions')
                 ->with('error', 'Removal failed: ' . $e->getMessage());
         }
+    }
+
+    protected function runRemoveCommand(string $extensionId): array
+    {
+        $exitCode = Artisan::call('notur:remove', [
+            'extension' => $extensionId,
+            '--no-interaction' => true,
+        ]);
+
+        return [
+            'exitCode' => $exitCode,
+            'output' => trim(Artisan::output()),
+        ];
     }
 
     /**
