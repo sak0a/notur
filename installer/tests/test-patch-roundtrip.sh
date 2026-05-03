@@ -61,14 +61,21 @@ fi
 
 fail=0
 warned=0
+offset_count=0
 applied_forward=0
 applied_reverse=0
 
-# NOTE: GNU patch (Linux/CI) prints "offset"/"fuzz"/"No such line" on stdout
-# when a hunk applies imperfectly, which we detect below to flag warnings.
-# macOS BSD patch suppresses these notices entirely, so the per-patch WARN
-# diagnostic is Linux-only. The round-trip diff check at the end is the
-# authoritative correctness gate and works on both platforms.
+# NOTE: GNU patch (Linux/CI) emits "succeeded at N (offset Y lines)" when a
+# hunk's context matched but at a different line number than the patch
+# header. This is benign and inherent to maintaining a *single shared*
+# v1.12 patch set across v1.12.0/v1.12.1/v1.12.2, because two upstream
+# files (Console.tsx, DashboardContainer.tsx) shifted line numbers between
+# minor releases. We still gate on `diff -rq` against pristine source as
+# the authoritative correctness check, so offsets are reported as INFO
+# only — they don't fail the test. Genuine signals of trouble (fuzz,
+# reject, "No such line", or .orig files) still mark the run as failed.
+# macOS BSD patch silently suppresses these notices entirely; CI's GNU
+# patch is the platform that surfaces them.
 apply_pass() {
     local label="$1" pattern="$2"
     local saved_dir
@@ -94,10 +101,18 @@ apply_pass() {
         else
             applied_reverse=$((applied_reverse + 1))
         fi
-        if echo "$out" | grep -qE 'offset|fuzz|reject|No such line'; then
+        # Real warning signals: fuzz / reject / malformed hunk header.
+        if echo "$out" | grep -qE 'fuzz|reject|No such line'; then
             echo "$label WARN: $name"
-            echo "$out" | grep -E 'offset|fuzz|reject|No such line' | sed 's/^/    /'
+            echo "$out" | grep -E 'fuzz|reject|No such line' | sed 's/^/    /'
             warned=1
+        fi
+        # Offset is informational — the hunk applied at a shifted line
+        # because v1.12.{0,1,2} differ in line counts above the hunk.
+        if echo "$out" | grep -q 'succeeded at .* offset'; then
+            echo "$label INFO: $name applied with line offset"
+            echo "$out" | grep 'succeeded at .* offset' | sed 's/^/    /'
+            offset_count=$((offset_count + 1))
         fi
     done
     cd "$saved_dir"
@@ -133,7 +148,11 @@ if [ -n "$diff_out" ]; then
 fi
 
 if [ $fail -eq 0 ] && [ $warned -eq 0 ]; then
-    echo "OK: round-trip clean for $TAG (no warnings, no .orig, diff empty)"
+    if [ $offset_count -gt 0 ]; then
+        echo "OK: round-trip clean for $TAG (no warnings, no .orig, diff empty; $offset_count hunk(s) applied with line offset — informational only)"
+    else
+        echo "OK: round-trip clean for $TAG (no warnings, no .orig, diff empty)"
+    fi
     exit 0
 fi
 
