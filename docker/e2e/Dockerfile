@@ -55,6 +55,17 @@ RUN git clone --depth 1 --branch ${PANEL_VERSION} \
 
 WORKDIR /var/www/pterodactyl
 
+# Pterodactyl's source tree hard-codes `'version' => 'canary'` in
+# config/app.php; the upstream release process replaces this token when
+# building tagged release artifacts. We clone source directly via git, so
+# the token is left in place — meaning version-aware tooling (Notur's
+# installer / e2e workflow) sees "canary" instead of v1.12.x and refuses
+# to proceed. Stamp the cloned tag into config/app.php here so the runtime
+# version probe matches what we actually built against.
+RUN PANEL_VERSION_NUMBER="${PANEL_VERSION#v}" \
+    && sed -i "s/'version' => 'canary'/'version' => '${PANEL_VERSION_NUMBER}'/" config/app.php \
+    && grep "'version'" config/app.php
+
 # Install panel PHP dependencies
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
