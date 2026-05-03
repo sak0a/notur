@@ -42,6 +42,9 @@ storage/framework/views/
 bootstrap/cache/*.php
 !bootstrap/cache/.gitkeep
 
+# Generated superpowers docs
+docs/superpowers/
+
 # Testing
 /coverage/
 .phpunit.cache/
