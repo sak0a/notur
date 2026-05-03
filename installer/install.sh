@@ -204,7 +204,7 @@ confirm() {
     # Read confirmations from the controlling terminal so piped/scripted stdin
     # (e.g. curl ... | bash) does not auto-decline prompts.
     if [ -r /dev/tty ]; then
-        echo -en "${YELLOW}[Notur]${NC} ${prompt} [y/N]: " > /dev/tty
+        print_prompt_line "${YELLOW}[Notur]${NC} ${prompt} [y/N]: "
         read -r response < /dev/tty
     else
         warn "No interactive terminal available for prompt: ${prompt}"
@@ -261,6 +261,30 @@ get_node_packages() {
 
 is_interactive_shell() {
     [ -r /dev/tty ]
+}
+
+print_prompt_line() {
+    local text="$1"
+
+    if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+        printf '%b\n' "$text" > /dev/tty
+    else
+        printf '%b\n' "$text" >&2
+    fi
+}
+
+prompt_for_number() {
+    local prompt="$1"
+    local response
+
+    if [ ! -r /dev/tty ]; then
+        warn "No interactive terminal available for prompt: ${prompt}"
+        return 1
+    fi
+
+    print_prompt_line "${YELLOW}[Notur]${NC} ${prompt}: "
+    read -r response < /dev/tty
+    printf '%s\n' "$response"
 }
 
 # Helper: Print manual Node.js install hints
@@ -575,8 +599,7 @@ fi
 info "Node.js version: ${node_version}"
 # === node-version-check-end ===
 
-# Detect package manager implied by an existing lockfile.
-detect_lockfile_pkg_manager() {
+detect_lockfile_pkg_managers() {
     local found=""
 
     if [ -f "yarn.lock" ]; then
@@ -592,19 +615,65 @@ detect_lockfile_pkg_manager() {
         found="${found} bun"
     fi
 
-    case "$found" in
-        *" yarn"*" pnpm"*|*" yarn"*" npm"*|*" yarn"*" bun"*|*" pnpm"*" npm"*|*" pnpm"*" bun"*|*" npm"*" bun"*)
-            warn "Multiple frontend lockfiles detected in ${PANEL_DIR}:$(printf '%s' "$found"). Using priority order: yarn > pnpm > npm > bun."
-            ;;
-    esac
+    printf '%s\n' "${found# }"
+}
 
-    case "$found" in
-        *" yarn"*) echo "yarn" ;;
-        *" pnpm"*) echo "pnpm" ;;
-        *" npm"*) echo "npm" ;;
-        *" bun"*) echo "bun" ;;
+detect_lockfile_pkg_manager() {
+    local found
+    found="$(detect_lockfile_pkg_managers)"
+
+    case " ${found} " in
+        *" yarn "*) echo "yarn" ;;
+        *" pnpm "*) echo "pnpm" ;;
+        *" npm "*) echo "npm" ;;
+        *" bun "*) echo "bun" ;;
         *) echo "" ;;
     esac
+}
+
+count_words() {
+    local count=0
+    local item
+    for item in $1; do
+        count=$((count + 1))
+    done
+    echo "$count"
+}
+
+package_manager_display_name() {
+    case "$1" in
+        yarn) echo "Yarn" ;;
+        pnpm) echo "PNPM" ;;
+        npm) echo "NPM" ;;
+        bun) echo "Bun" ;;
+        *) echo "$1" ;;
+    esac
+}
+
+package_manager_is_installed() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+package_manager_lockfile_status() {
+    local manager="$1"
+    local lockfile_managers="$2"
+
+    case " ${lockfile_managers} " in
+        *" ${manager} "*) echo "lockfile found" ;;
+        *) echo "no lockfile found" ;;
+    esac
+}
+
+log_lockfile_detection_warning() {
+    local lockfile_managers="$1"
+    local count
+
+    [ -n "$lockfile_managers" ] || return 0
+
+    count=$(count_words "$lockfile_managers")
+    if [ "$count" -gt 1 ]; then
+        warn "Multiple frontend lockfiles detected in ${PANEL_DIR}: ${lockfile_managers}. Using priority order: yarn > pnpm > npm > bun."
+    fi
 }
 
 # Detect available package manager.
@@ -691,31 +760,109 @@ bootstrap_yarn() {
     npm install -g yarn || return 1
 }
 
+prompt_for_package_manager_selection() {
+    local recommended_mgr="$1"
+    local lockfile_managers="$2"
+    local managers="yarn bun pnpm npm"
+    local idx=1
+    local manager
+    local choice
+
+    while true; do
+        idx=1
+        if [ -n "$lockfile_managers" ] && [ "$(count_words "$lockfile_managers")" -gt 1 ]; then
+            warn "Detected multiple frontend package-manager signals for this panel."
+        else
+            warn "Detected ${recommended_mgr}.lock-style workflow, but ${recommended_mgr} is not ready to use."
+        fi
+
+        warn "Choose how to continue:"
+
+        for manager in $managers; do
+            local label status lockfile_status suffix
+            label=$(package_manager_display_name "$manager")
+            if package_manager_is_installed "$manager"; then
+                status="installed"
+            else
+                status="not installed"
+            fi
+            lockfile_status=$(package_manager_lockfile_status "$manager" "$lockfile_managers")
+            suffix=""
+            if [ "$manager" = "$recommended_mgr" ]; then
+                suffix=" (Recommended)"
+            fi
+
+            print_prompt_line "  ${idx}. ${label} (${status}, ${lockfile_status})${suffix}"
+            idx=$((idx + 1))
+        done
+
+        print_prompt_line "  5. Cancel installer"
+        choice=$(prompt_for_number "Enter your choice [1-5]") || return 1
+
+        case "$choice" in
+            1) echo "yarn"; return 0 ;;
+            2) echo "bun"; return 0 ;;
+            3) echo "pnpm"; return 0 ;;
+            4) echo "npm"; return 0 ;;
+            5) return 1 ;;
+            *) warn "Invalid selection '${choice}'. Please choose a number from 1 to 5." ;;
+        esac
+    done
+}
+
+activate_package_manager_selection() {
+    local selected_mgr="$1"
+    local recommended_mgr="$2"
+    local lockfile_managers="$3"
+
+    if package_manager_is_installed "$selected_mgr"; then
+        PKG_MGR="$selected_mgr"
+        if [ "$selected_mgr" != "$recommended_mgr" ]; then
+            warn "Proceeding with ${selected_mgr} even though ${recommended_mgr} is recommended from the detected lockfile state. This may ignore the panel's lockfile and produce different dependency versions."
+        fi
+        return 0
+    fi
+
+    if [ "$selected_mgr" = "yarn" ]; then
+        bootstrap_yarn || die "Failed to install yarn automatically."
+        PKG_MGR="yarn"
+        return 0
+    fi
+
+    warn "$(package_manager_display_name "$selected_mgr") is not installed and this installer only supports automatic bootstrap for Yarn right now."
+    if [ -n "$lockfile_managers" ]; then
+        warn "Detected lockfile managers: ${lockfile_managers}"
+    fi
+    return 1
+}
+
 ensure_selected_pkg_manager() {
     local lockfile_pkg_mgr="$1"
+    local lockfile_managers="$2"
     local fallback_pkg_mgr
+    local selected_mgr
+    local multiple_lockfiles=0
 
-    if command -v "$PKG_MGR" >/dev/null 2>&1; then
+    if [ -n "$lockfile_managers" ] && [ "$(count_words "$lockfile_managers")" -gt 1 ]; then
+        multiple_lockfiles=1
+    fi
+
+    if package_manager_is_installed "$PKG_MGR" && [ "$multiple_lockfiles" -eq 0 ]; then
+        return 0
+    fi
+
+    if is_interactive_shell && { [ "$multiple_lockfiles" -eq 1 ] || ! package_manager_is_installed "$PKG_MGR"; }; then
+        while true; do
+            selected_mgr=$(prompt_for_package_manager_selection "$lockfile_pkg_mgr" "$lockfile_managers") || die "Package manager selection cancelled."
+            activate_package_manager_selection "$selected_mgr" "$lockfile_pkg_mgr" "$lockfile_managers" && return 0
+        done
+    fi
+
+    if package_manager_is_installed "$PKG_MGR"; then
         return 0
     fi
 
     if [ "$PKG_MGR" = "$lockfile_pkg_mgr" ] && [ "$PKG_MGR" = "yarn" ]; then
-        if is_interactive_shell; then
-            if confirm "Detected yarn.lock, but yarn is not installed. Install yarn and continue with the panel's original package manager?"; then
-                bootstrap_yarn || die "Failed to install yarn automatically."
-                return 0
-            fi
-
-            fallback_pkg_mgr=$(detect_fallback_pkg_manager "yarn")
-            if [ -n "$fallback_pkg_mgr" ]; then
-                warn "Proceeding with ${fallback_pkg_mgr} even though yarn.lock was detected. This may ignore the panel's lockfile and produce different dependency versions."
-                PKG_MGR="$fallback_pkg_mgr"
-                return 0
-            fi
-
-            die "yarn.lock was detected, yarn is not installed, and no fallback package manager is available."
-        fi
-
         fallback_pkg_mgr=$(detect_fallback_pkg_manager "yarn")
         if [ -n "$fallback_pkg_mgr" ]; then
             warn "yarn.lock was detected, but yarn is not installed and no interactive prompt is available. Falling back to ${fallback_pkg_mgr}; this may ignore the panel's lockfile."
@@ -727,13 +874,15 @@ ensure_selected_pkg_manager() {
     die "Selected package manager '${PKG_MGR}' is not installed."
 }
 
+LOCKFILE_PKG_MANAGERS=$(detect_lockfile_pkg_managers)
 LOCKFILE_PKG_MGR=$(detect_lockfile_pkg_manager)
 PKG_MGR=$(detect_pkg_manager)
 if [ -z "$PKG_MGR" ]; then
     die "No package manager found. Install one of: bun, pnpm, yarn, or npm"
 fi
 
-ensure_selected_pkg_manager "$LOCKFILE_PKG_MGR"
+log_lockfile_detection_warning "$LOCKFILE_PKG_MANAGERS"
+ensure_selected_pkg_manager "$LOCKFILE_PKG_MGR" "$LOCKFILE_PKG_MANAGERS"
 info "Using package manager: ${PKG_MGR}"
 
 # Package manager command helpers

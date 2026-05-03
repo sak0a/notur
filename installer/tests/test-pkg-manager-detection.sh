@@ -2,7 +2,8 @@
 # test-pkg-manager-detection.sh — verify lockfile-first package-manager
 # detection, Alpine/non-Alpine fallback ordering, and PKG_MANAGER overrides.
 #
-# Strategy: extract detect_lockfile_pkg_manager() + detect_pkg_manager() from
+# Strategy: extract detect_lockfile_pkg_managers() + detect_lockfile_pkg_manager()
+# + detect_pkg_manager() from
 # install.sh, stub is_alpine and `command -v`, create lockfiles in a temp
 # directory, then assert the chosen manager.
 
@@ -43,12 +44,14 @@ run_detect() {
     bash <<'INNER'
         set -eu
         # Extract the package-manager detection helper definitions.
+        lockfiles_block=$(sed -n "/^detect_lockfile_pkg_managers()/,/^}$/p" "$INSTALL_SH")
         lockfile_block=$(sed -n "/^detect_lockfile_pkg_manager()/,/^}$/p" "$INSTALL_SH")
         func_block=$(sed -n "/^detect_pkg_manager()/,/^}$/p" "$INSTALL_SH")
-        if [ -z "$lockfile_block" ] || [ -z "$func_block" ]; then
+        if [ -z "$lockfiles_block" ] || [ -z "$lockfile_block" ] || [ -z "$func_block" ]; then
             echo "ERR: could not extract package-manager detection helpers from install.sh" >&2
             exit 2
         fi
+        eval "$lockfiles_block"
         eval "$lockfile_block"
         eval "$func_block"
 
