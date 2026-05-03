@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# test-pkg-manager-detection.sh — verify detect_pkg_manager picks the right
-# tool on Alpine vs non-Alpine, and honors PKG_MANAGER overrides.
+# test-pkg-manager-detection.sh — verify lockfile-first package-manager
+# detection, Alpine/non-Alpine fallback ordering, and PKG_MANAGER overrides.
 #
-# Strategy: extract the detect_pkg_manager() function from install.sh, stub
-# is_alpine and `command -v` to simulate different environments, then assert
-# the chosen manager.
+# Strategy: extract detect_lockfile_pkg_manager() + detect_pkg_manager() from
+# install.sh, stub is_alpine and `command -v`, create lockfiles in a temp
+# directory, then assert the chosen manager.
 
 set -euo pipefail
 
@@ -23,6 +23,7 @@ fail=0
 #   $1 = "yes" or "no"  (whether is_alpine returns true)
 #   $2 = space-separated list of "available" pkg managers (e.g. "bun npm")
 #   $3 = optional PKG_MANAGER env override
+#   $4 = optional lockfiles to create, space-separated: yarn pnpm npm bun bunb
 #
 # Inputs are passed via the environment (not interpolated into the bash -c
 # string), and the script body is a single-quoted heredoc so $vars inside it
@@ -32,23 +33,28 @@ run_detect() {
     local alpine="$1"
     local available="$2"
     local pkg_env="${3:-}"
+    local lockfiles="${4:-}"
 
     INSTALL_SH="$INSTALL_SH" \
     T_ALPINE="$alpine" \
     T_AVAILABLE="$available" \
     T_PKG_ENV="$pkg_env" \
+    T_LOCKFILES="$lockfiles" \
     bash <<'INNER'
         set -eu
-        # Extract the detect_pkg_manager function definition.
+        # Extract the package-manager detection helper definitions.
+        lockfile_block=$(sed -n "/^detect_lockfile_pkg_manager()/,/^}$/p" "$INSTALL_SH")
         func_block=$(sed -n "/^detect_pkg_manager()/,/^}$/p" "$INSTALL_SH")
-        if [ -z "$func_block" ]; then
-            echo "ERR: could not extract detect_pkg_manager from install.sh" >&2
+        if [ -z "$lockfile_block" ] || [ -z "$func_block" ]; then
+            echo "ERR: could not extract package-manager detection helpers from install.sh" >&2
             exit 2
         fi
+        eval "$lockfile_block"
         eval "$func_block"
 
         # Stubs.
         warn() { :; }
+        PANEL_DIR="/tmp/panel"
         if [ "$T_ALPINE" = "yes" ]; then
             is_alpine() { return 0; }
         else
@@ -69,6 +75,20 @@ run_detect() {
             fi
             builtin command "$@"
         }
+
+        WORKDIR="$(mktemp -d)"
+        trap 'rm -rf "$WORKDIR"' EXIT
+        cd "$WORKDIR"
+
+        for lockfile in $T_LOCKFILES; do
+            case "$lockfile" in
+                yarn) : > yarn.lock ;;
+                pnpm) : > pnpm-lock.yaml ;;
+                npm)  : > package-lock.json ;;
+                bun)  : > bun.lock ;;
+                bunb) : > bun.lockb ;;
+            esac
+        done
 
         if [ -n "$T_PKG_ENV" ]; then
             export PKG_MANAGER="$T_PKG_ENV"
@@ -105,6 +125,14 @@ assert_eq "bun + yarn on Alpine -> yarn"     "yarn"  "$(run_detect yes 'bun yarn
 assert_eq "bun + npm on Alpine -> npm"       "npm"   "$(run_detect yes 'bun npm')"
 assert_eq "only bun on Alpine -> bun"        "bun"   "$(run_detect yes 'bun')"
 assert_eq "none on Alpine -> empty"          ""      "$(run_detect yes '')"
+
+echo ""
+echo "=== Lockfiles take precedence over command availability ==="
+assert_eq "yarn.lock -> yarn"                "yarn"  "$(run_detect no 'bun pnpm npm' '' 'yarn')"
+assert_eq "pnpm lockfile -> pnpm"            "pnpm"  "$(run_detect no 'bun yarn npm' '' 'pnpm')"
+assert_eq "package-lock -> npm"              "npm"   "$(run_detect no 'bun pnpm yarn' '' 'npm')"
+assert_eq "bun.lockb -> bun"                 "bun"   "$(run_detect no 'pnpm yarn npm' '' 'bunb')"
+assert_eq "multiple lockfiles -> yarn wins"  "yarn"  "$(run_detect no 'pnpm npm' '' 'npm yarn')"
 
 echo ""
 echo "=== PKG_MANAGER env override is respected on both ==="

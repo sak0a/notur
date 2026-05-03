@@ -259,6 +259,10 @@ get_node_packages() {
     esac
 }
 
+is_interactive_shell() {
+    [ -r /dev/tty ]
+}
+
 # Helper: Print manual Node.js install hints
 print_node_install_hint() {
     local sys_pkg_mgr
@@ -571,6 +575,38 @@ fi
 info "Node.js version: ${node_version}"
 # === node-version-check-end ===
 
+# Detect package manager implied by an existing lockfile.
+detect_lockfile_pkg_manager() {
+    local found=""
+
+    if [ -f "yarn.lock" ]; then
+        found="${found} yarn"
+    fi
+    if [ -f "pnpm-lock.yaml" ]; then
+        found="${found} pnpm"
+    fi
+    if [ -f "package-lock.json" ]; then
+        found="${found} npm"
+    fi
+    if [ -f "bun.lock" ] || [ -f "bun.lockb" ]; then
+        found="${found} bun"
+    fi
+
+    case "$found" in
+        *" yarn"*" pnpm"*|*" yarn"*" npm"*|*" yarn"*" bun"*|*" pnpm"*" npm"*|*" pnpm"*" bun"*|*" npm"*" bun"*)
+            warn "Multiple frontend lockfiles detected in ${PANEL_DIR}:$(printf '%s' "$found"). Using priority order: yarn > pnpm > npm > bun."
+            ;;
+    esac
+
+    case "$found" in
+        *" yarn"*) echo "yarn" ;;
+        *" pnpm"*) echo "pnpm" ;;
+        *" npm"*) echo "npm" ;;
+        *" bun"*) echo "bun" ;;
+        *) echo "" ;;
+    esac
+}
+
 # Detect available package manager.
 #
 # Default preference: bun > pnpm > yarn > npm (bun is fastest when available).
@@ -580,12 +616,20 @@ info "Node.js version: ${node_version}"
 # containers. pnpm/yarn/npm are all `apk add`-able and just as compatible with
 # the Notur + Pterodactyl build pipeline. Set PKG_MANAGER=bun to override.
 detect_pkg_manager() {
+    local lockfile_pkg_mgr
+
     if [ -n "${PKG_MANAGER:-}" ]; then
         # User specified via environment variable
         case "$PKG_MANAGER" in
             bun|pnpm|yarn|npm) echo "$PKG_MANAGER"; return ;;
             *) warn "Unknown PKG_MANAGER '$PKG_MANAGER', auto-detecting..." ;;
         esac
+    fi
+
+    lockfile_pkg_mgr=$(detect_lockfile_pkg_manager)
+    if [ -n "$lockfile_pkg_mgr" ]; then
+        echo "$lockfile_pkg_mgr"
+        return
     fi
 
     if is_alpine; then
@@ -607,11 +651,89 @@ detect_pkg_manager() {
     fi
 }
 
+detect_fallback_pkg_manager() {
+    local skip="${1:-}"
+
+    if is_alpine; then
+        if [ "$skip" != "pnpm" ] && command -v pnpm &> /dev/null; then echo "pnpm"
+        elif [ "$skip" != "yarn" ] && command -v yarn &> /dev/null; then echo "yarn"
+        elif [ "$skip" != "npm" ] && command -v npm &> /dev/null; then echo "npm"
+        elif [ "$skip" != "bun" ] && command -v bun &> /dev/null; then echo "bun"
+        else echo ""
+        fi
+        return
+    fi
+
+    if [ "$skip" != "bun" ] && command -v bun &> /dev/null; then echo "bun"
+    elif [ "$skip" != "pnpm" ] && command -v pnpm &> /dev/null; then echo "pnpm"
+    elif [ "$skip" != "yarn" ] && command -v yarn &> /dev/null; then echo "yarn"
+    elif [ "$skip" != "npm" ] && command -v npm &> /dev/null; then echo "npm"
+    else echo ""
+    fi
+}
+
+bootstrap_yarn() {
+    local node_pkgs
+
+    if command -v yarn >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        node_pkgs=$(get_node_packages)
+        [ -n "$node_pkgs" ] || return 1
+
+        info "npm is required to install yarn. Installing Node.js tooling first..."
+        install_sys_package "$node_pkgs" || return 1
+    fi
+
+    info "Installing yarn to match yarn.lock..."
+    npm install -g yarn || return 1
+}
+
+ensure_selected_pkg_manager() {
+    local lockfile_pkg_mgr="$1"
+    local fallback_pkg_mgr
+
+    if command -v "$PKG_MGR" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if [ "$PKG_MGR" = "$lockfile_pkg_mgr" ] && [ "$PKG_MGR" = "yarn" ]; then
+        if is_interactive_shell; then
+            if confirm "Detected yarn.lock, but yarn is not installed. Install yarn and continue with the panel's original package manager?"; then
+                bootstrap_yarn || die "Failed to install yarn automatically."
+                return 0
+            fi
+
+            fallback_pkg_mgr=$(detect_fallback_pkg_manager "yarn")
+            if [ -n "$fallback_pkg_mgr" ]; then
+                warn "Proceeding with ${fallback_pkg_mgr} even though yarn.lock was detected. This may ignore the panel's lockfile and produce different dependency versions."
+                PKG_MGR="$fallback_pkg_mgr"
+                return 0
+            fi
+
+            die "yarn.lock was detected, yarn is not installed, and no fallback package manager is available."
+        fi
+
+        fallback_pkg_mgr=$(detect_fallback_pkg_manager "yarn")
+        if [ -n "$fallback_pkg_mgr" ]; then
+            warn "yarn.lock was detected, but yarn is not installed and no interactive prompt is available. Falling back to ${fallback_pkg_mgr}; this may ignore the panel's lockfile."
+            PKG_MGR="$fallback_pkg_mgr"
+            return 0
+        fi
+    fi
+
+    die "Selected package manager '${PKG_MGR}' is not installed."
+}
+
+LOCKFILE_PKG_MGR=$(detect_lockfile_pkg_manager)
 PKG_MGR=$(detect_pkg_manager)
 if [ -z "$PKG_MGR" ]; then
     die "No package manager found. Install one of: bun, pnpm, yarn, or npm"
 fi
 
+ensure_selected_pkg_manager "$LOCKFILE_PKG_MGR"
 info "Using package manager: ${PKG_MGR}"
 
 # Package manager command helpers
