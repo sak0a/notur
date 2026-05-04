@@ -5,7 +5,7 @@ import { SlotErrorBoundary } from '../../bridge/src/ErrorBoundary';
 // Suppress console.error in test output
 const originalConsoleError = console.error;
 beforeEach(() => {
-    console.error = jest.fn();
+    console.error = vi.fn();
 });
 afterEach(() => {
     console.error = originalConsoleError;

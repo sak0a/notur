@@ -4,7 +4,7 @@ import { act } from 'react-dom/test-utils';
 import { PluginRegistry } from '../../../bridge/src/PluginRegistry';
 
 // We need to mock the SDK's getNoturApi
-jest.mock('../../../sdk/src/types', () => ({
+vi.mock('../../../sdk/src/types', () => ({
     getNoturApi: () => (window as any).__NOTUR__,
 }));
 
@@ -14,7 +14,7 @@ describe('useNoturEvent', () => {
     let container: HTMLDivElement;
     let registry: PluginRegistry;
 
-    function createEventHookRenderer(eventName: string, handler: jest.Mock) {
+    function createEventHookRenderer(eventName: string, handler: ReturnType<typeof vi.fn>) {
         function TestComponent() {
             useNoturEvent(eventName, handler);
             return null;
@@ -47,7 +47,7 @@ describe('useNoturEvent', () => {
     });
 
     it('subscribes to named event', () => {
-        const handler = jest.fn();
+        const handler = vi.fn();
         const { TestComponent } = createEventHookRenderer('test-event', handler);
 
         act(() => {
@@ -63,7 +63,7 @@ describe('useNoturEvent', () => {
     });
 
     it('receives event payload', () => {
-        const handler = jest.fn();
+        const handler = vi.fn();
         const { TestComponent } = createEventHookRenderer('my-event', handler);
 
         act(() => {
@@ -79,7 +79,7 @@ describe('useNoturEvent', () => {
     });
 
     it('unsubscribes on unmount', () => {
-        const handler = jest.fn();
+        const handler = vi.fn();
         const { TestComponent } = createEventHookRenderer('cleanup-event', handler);
 
         act(() => {
@@ -100,7 +100,7 @@ describe('useNoturEvent', () => {
     });
 
     it('emits events via useEmitEvent', () => {
-        const handler = jest.fn();
+        const handler = vi.fn();
         registry.onEvent('emit-test', handler);
 
         const { result, TestComponent } = createEmitHookRenderer();

@@ -73,7 +73,7 @@ describe('PluginRegistry Extended', () => {
 
     describe('event bus', () => {
         it('emits and receives events', () => {
-            const handler = jest.fn();
+            const handler = vi.fn();
 
             registry.onEvent('test-event', handler);
             registry.emitEvent('test-event', { data: 'test-payload' });
@@ -83,8 +83,8 @@ describe('PluginRegistry Extended', () => {
         });
 
         it('supports multiple listeners', () => {
-            const handler1 = jest.fn();
-            const handler2 = jest.fn();
+            const handler1 = vi.fn();
+            const handler2 = vi.fn();
 
             registry.onEvent('multi-event', handler1);
             registry.onEvent('multi-event', handler2);
@@ -95,7 +95,7 @@ describe('PluginRegistry Extended', () => {
         });
 
         it('unsubscribes correctly', () => {
-            const handler = jest.fn();
+            const handler = vi.fn();
 
             const unsubscribe = registry.onEvent('unsub-event', handler);
             registry.emitEvent('unsub-event', {});
@@ -116,8 +116,8 @@ describe('PluginRegistry Extended', () => {
         });
 
         it('isolates events by name', () => {
-            const handler1 = jest.fn();
-            const handler2 = jest.fn();
+            const handler1 = vi.fn();
+            const handler2 = vi.fn();
 
             registry.onEvent('event-a', handler1);
             registry.onEvent('event-b', handler2);
