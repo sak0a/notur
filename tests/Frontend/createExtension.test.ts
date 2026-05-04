@@ -1,8 +1,8 @@
 import { createExtension } from '../../sdk/src/createExtension';
 
 // Mock the window.__NOTUR__ API
-const mockRegisterExtension = jest.fn();
-const mockRegisterDestroyCallback = jest.fn();
+const mockRegisterExtension = vi.fn();
+const mockRegisterDestroyCallback = vi.fn();
 
 beforeEach(() => {
     (window as any).__NOTUR__ = {
@@ -11,7 +11,7 @@ beforeEach(() => {
             registerDestroyCallback: mockRegisterDestroyCallback,
         },
     };
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 });
 
 afterEach(() => {
@@ -74,7 +74,7 @@ describe('createExtension', () => {
     });
 
     it('calls onInit callback', () => {
-        const onInit = jest.fn();
+        const onInit = vi.fn();
         createExtension({
             config: { id: 'test/ext', name: 'Test', version: '1.0.0' },
             onInit,
@@ -84,9 +84,9 @@ describe('createExtension', () => {
     });
 
     it('handles onInit errors gracefully', () => {
-        const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
         // Also suppress the console.log from createExtension
-        jest.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'log').mockImplementation();
 
         createExtension({
             config: { id: 'test/ext', name: 'Test', version: '1.0.0' },
@@ -98,11 +98,11 @@ describe('createExtension', () => {
             expect.any(Error),
         );
         consoleSpy.mockRestore();
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('registers onDestroy callback', () => {
-        const onDestroy = jest.fn();
+        const onDestroy = vi.fn();
         createExtension({
             config: { id: 'test/ext', name: 'Test', version: '1.0.0' },
             onDestroy,
@@ -113,14 +113,14 @@ describe('createExtension', () => {
 
     it('does not register destroy callback when not provided', () => {
         // Suppress log output
-        jest.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'log').mockImplementation();
 
         createExtension({
             config: { id: 'test/ext', name: 'Test', version: '1.0.0' },
         });
 
         expect(mockRegisterDestroyCallback).not.toHaveBeenCalled();
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('registers the extension itself', () => {
@@ -149,7 +149,7 @@ describe('createExtension', () => {
 
     it('defaults to empty slots and routes', () => {
         // Suppress log output
-        jest.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'log').mockImplementation();
 
         createExtension({
             config: { id: 'test/ext', name: 'Test', version: '1.0.0' },
@@ -161,12 +161,12 @@ describe('createExtension', () => {
                 routes: [],
             }),
         );
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('warns for invalid extension id format and duplicate route paths', () => {
-        const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-        jest.spyOn(console, 'log').mockImplementation();
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation();
+        vi.spyOn(console, 'log').mockImplementation();
 
         createExtension({
             config: { id: 'INVALID_ID', name: 'Test', version: '1.0.0' },
@@ -180,6 +180,6 @@ describe('createExtension', () => {
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('should start with "/"'));
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('without namespace'));
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('duplicate route path'));
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 });

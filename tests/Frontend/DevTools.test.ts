@@ -15,7 +15,7 @@ describe('DevTools', () => {
 
     afterEach(() => {
         delete (window as any).__NOTUR__;
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('creates a callable debug function', () => {
@@ -29,18 +29,18 @@ describe('DevTools', () => {
     });
 
     it('debug() logs a summary without throwing', () => {
-        jest.spyOn(console, 'group').mockImplementation();
-        jest.spyOn(console, 'groupEnd').mockImplementation();
-        jest.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'group').mockImplementation();
+        vi.spyOn(console, 'groupEnd').mockImplementation();
+        vi.spyOn(console, 'log').mockImplementation();
 
         const debug = createDevTools(registry);
         expect(() => debug()).not.toThrow();
     });
 
     it('debug.extensions() lists registered extensions', () => {
-        const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-        jest.spyOn(console, 'group').mockImplementation();
-        jest.spyOn(console, 'groupEnd').mockImplementation();
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'group').mockImplementation();
+        vi.spyOn(console, 'groupEnd').mockImplementation();
 
         registry.registerExtension({
             id: 'test/ext',
@@ -59,9 +59,9 @@ describe('DevTools', () => {
     });
 
     it('debug.extensions() shows "(none)" when empty', () => {
-        const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-        jest.spyOn(console, 'group').mockImplementation();
-        jest.spyOn(console, 'groupEnd').mockImplementation();
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'group').mockImplementation();
+        vi.spyOn(console, 'groupEnd').mockImplementation();
 
         const debug = createDevTools(registry);
         debug.extensions();
@@ -72,9 +72,9 @@ describe('DevTools', () => {
     });
 
     it('debug.slots() lists registered slots', () => {
-        jest.spyOn(console, 'log').mockImplementation();
-        jest.spyOn(console, 'group').mockImplementation();
-        jest.spyOn(console, 'groupEnd').mockImplementation();
+        vi.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'group').mockImplementation();
+        vi.spyOn(console, 'groupEnd').mockImplementation();
 
         const TestComp: React.FC = () => React.createElement('div');
         TestComp.displayName = 'TestWidget';
@@ -95,9 +95,9 @@ describe('DevTools', () => {
     });
 
     it('debug.routes() lists registered routes', () => {
-        jest.spyOn(console, 'log').mockImplementation();
-        jest.spyOn(console, 'group').mockImplementation();
-        jest.spyOn(console, 'groupEnd').mockImplementation();
+        vi.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'group').mockImplementation();
+        vi.spyOn(console, 'groupEnd').mockImplementation();
 
         registry.registerRoute('server', {
             extensionId: 'test/ext',
@@ -115,9 +115,9 @@ describe('DevTools', () => {
     });
 
     it('debug.theme() lists theme overrides', () => {
-        jest.spyOn(console, 'log').mockImplementation();
-        jest.spyOn(console, 'group').mockImplementation();
-        jest.spyOn(console, 'groupEnd').mockImplementation();
+        vi.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'group').mockImplementation();
+        vi.spyOn(console, 'groupEnd').mockImplementation();
 
         registry.registerTheme({
             extensionId: 'test/ext',
@@ -133,7 +133,7 @@ describe('DevTools', () => {
     });
 
     it('debug.events() returns unsubscribe function', () => {
-        jest.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'log').mockImplementation();
 
         const debug = createDevTools(registry);
         const unsubscribe = debug.events();
@@ -142,9 +142,9 @@ describe('DevTools', () => {
     });
 
     it('debug.events() logs registry events', () => {
-        const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-        jest.spyOn(console, 'group').mockImplementation();
-        jest.spyOn(console, 'groupEnd').mockImplementation();
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'group').mockImplementation();
+        vi.spyOn(console, 'groupEnd').mockImplementation();
 
         const debug = createDevTools(registry);
         debug.events();
@@ -166,9 +166,9 @@ describe('DevTools', () => {
     });
 
     it('debug.events() stops logging after unsubscribe', () => {
-        const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-        jest.spyOn(console, 'group').mockImplementation();
-        jest.spyOn(console, 'groupEnd').mockImplementation();
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation();
+        vi.spyOn(console, 'group').mockImplementation();
+        vi.spyOn(console, 'groupEnd').mockImplementation();
 
         const debug = createDevTools(registry);
         const unsubscribe = debug.events();

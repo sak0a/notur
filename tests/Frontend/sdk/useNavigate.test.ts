@@ -7,9 +7,9 @@ describe('useNavigate', () => {
     let container: HTMLDivElement;
     let originalPushState: typeof window.history.pushState;
     let originalReplaceState: typeof window.history.replaceState;
-    let mockPushState: jest.Mock;
-    let mockReplaceState: jest.Mock;
-    let popstateHandler: jest.Mock;
+    let mockPushState: ReturnType<typeof vi.fn>;
+    let mockReplaceState: ReturnType<typeof vi.fn>;
+    let popstateHandler: ReturnType<typeof vi.fn>;
 
     function createHookRenderer(extensionId: string) {
         const result: { current: ReturnType<typeof useNavigate> | null } = { current: null };
@@ -29,13 +29,13 @@ describe('useNavigate', () => {
         // Mock history methods
         originalPushState = window.history.pushState;
         originalReplaceState = window.history.replaceState;
-        mockPushState = jest.fn();
-        mockReplaceState = jest.fn();
+        mockPushState = vi.fn();
+        mockReplaceState = vi.fn();
         window.history.pushState = mockPushState;
         window.history.replaceState = mockReplaceState;
 
         // Track popstate events
-        popstateHandler = jest.fn();
+        popstateHandler = vi.fn();
         window.addEventListener('popstate', popstateHandler);
     });
 

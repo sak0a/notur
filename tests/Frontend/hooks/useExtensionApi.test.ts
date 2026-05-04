@@ -4,7 +4,7 @@ import { act } from 'react-dom/test-utils';
 import { useExtensionApi } from '../../../bridge/src/hooks/useExtensionApi';
 
 // Mock fetch
-const mockFetch = jest.fn();
+const mockFetch = vi.fn();
 (globalThis as any).fetch = mockFetch;
 
 // Helper to capture hook result via a wrapper component

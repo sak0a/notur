@@ -27,7 +27,7 @@ npm run build              # Build bridge + sdk
 npm run build:bridge       # Build bridge runtime (webpack)
 npm run build:sdk          # Build SDK (tsc)
 npm run dev:bridge         # Watch mode for bridge
-npm run test:frontend      # Jest tests
+npm run test:frontend      # Vitest tests
 ```
 
 ## Architecture
@@ -87,5 +87,5 @@ Exposes `window.__NOTUR__` global API on page load. Core components:
 ## Testing
 
 - PHP tests use Orchestra Testbench with SQLite in-memory DB
-- Frontend tests use Jest + React Testing Library
-- Test suites: `Unit` and `Integration` (phpunit.xml), `Frontend` (jest.config.js in tests/Frontend/)
+- Frontend tests use Vitest + React Testing Library
+- Test suites: `Unit` and `Integration` (phpunit.xml), `Frontend` (vitest.config.js in tests/Frontend/)

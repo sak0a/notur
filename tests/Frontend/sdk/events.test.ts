@@ -1,8 +1,8 @@
 import { createScopedEventChannel } from '../../../sdk/src/events';
 
 describe('createScopedEventChannel', () => {
-    const emitEvent = jest.fn();
-    const onEvent = jest.fn();
+    const emitEvent = vi.fn();
+    const onEvent = vi.fn();
 
     beforeEach(() => {
         (window as any).__NOTUR__ = {
@@ -11,7 +11,7 @@ describe('createScopedEventChannel', () => {
                 onEvent,
             },
         };
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     afterEach(() => {
@@ -26,11 +26,11 @@ describe('createScopedEventChannel', () => {
     });
 
     it('subscribes with namespaced event names', () => {
-        const unsubscribe = jest.fn();
+        const unsubscribe = vi.fn();
         onEvent.mockReturnValue(unsubscribe);
 
         const channel = createScopedEventChannel('acme/demo');
-        const callback = jest.fn();
+        const callback = vi.fn();
         const off = channel.on('updated', callback);
 
         expect(onEvent).toHaveBeenCalledWith('ext:acme/demo:updated', callback);

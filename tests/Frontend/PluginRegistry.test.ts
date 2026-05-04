@@ -57,7 +57,7 @@ describe('PluginRegistry', () => {
         });
 
         it('notifies listeners on slot registration', () => {
-            const listener = jest.fn();
+            const listener = vi.fn();
             registry.on('slot:dashboard.widgets', listener);
 
             registry.registerSlot({
@@ -126,7 +126,7 @@ describe('PluginRegistry', () => {
 
     describe('event system', () => {
         it('unsubscribes correctly', () => {
-            const listener = jest.fn();
+            const listener = vi.fn();
             const unsubscribe = registry.on('change', listener);
 
             registry.registerSlot({
