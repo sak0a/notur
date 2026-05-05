@@ -1,7 +1,7 @@
 {
     "$schema": "./schema/registry-index.schema.json",
     "version": "1.0.0",
-    "generated_at": "2026-02-03T00:00:00Z",
+    "generated_at": "2026-05-05T23:57:06Z",
     "extensions": [
         {
             "id": "notur/hello-world",
@@ -26,6 +26,7 @@
             "license": "MIT",
             "repository": "https://github.com/sak0a/notur",
             "archive_url": "https://github.com/sak0a/notur/releases/download/cs2-modframework-v1.1.0/notur-cs2-modframework-1.1.0.notur",
+            "sha256": "a5b2d72345ef929698652b94cf93af56d72d1a3afb5a68a5ce1577fa41859c30",
             "tags": ["cs2", "modding", "counterstrikesharp", "metamod", "swiftly"],
             "compatibility": {
                 "notur": ">=1.0.0",
