@@ -79,6 +79,49 @@ npm run build:sdk
 npm run test:frontend
 ```
 
+## Docker E2E
+
+The repo ships with a real browser-backed E2E environment built on the existing Docker panel setup. It boots a Pterodactyl panel, installs the current Notur checkout into that panel, seeds a deterministic root admin, and runs the shell and Playwright suites against the same environment.
+
+```bash
+# Build the reusable E2E base image once.
+# This is the slow dependency layer with OS packages, Node, Composer, Pterodactyl, and browser libraries.
+bash docker/e2e/build-base.sh
+
+# Run the full shell + browser E2E suite
+bash docker/e2e/run-e2e.sh
+
+# Run only the browser suite
+bash docker/e2e/run-e2e.sh --suite browser
+
+# Run the destructive Notur install/uninstall lifecycle suite
+# This checks the panel before install, installs Notur, uninstalls Notur, and checks the panel again.
+bash docker/e2e/run-e2e.sh --suite install-uninstall
+
+# Keep containers running for inspection after the suite finishes
+bash docker/e2e/run-e2e.sh --keep
+
+# Force a fully fresh rebuild when debugging Docker image state
+bash docker/e2e/run-e2e.sh --no-cache --rebuild-base
+```
+
+The reusable local base image is named `notur/e2e-base:php8.2-node22-panel1.12.2`. It contains the slow-moving E2E dependencies: PHP extensions, system packages, Node.js, Bun, Composer, the Pterodactyl panel tarball, and browser runtime libraries. Normal runs reuse it and only rebuild the lightweight repo-specific layers. If the base image is missing, `run-e2e.sh` fails with instructions instead of silently downloading all packages again.
+
+The default `all` suite runs the shell and browser E2E suites against a bootstrapped Notur panel. The `install-uninstall` suite is intentionally explicit because it destructively removes Notur from the panel while verifying that the underlying Pterodactyl installation remains usable.
+
+Seeded admin credentials inside the E2E environment:
+
+```text
+Email: admin@example.com
+Password: notur-admin-password
+```
+
+The browser specs live in `tests/E2E/browser/` and can also be invoked directly against an already running E2E panel with:
+
+```bash
+npm run test:e2e:browser
+```
+
 ## Architecture
 
 ```

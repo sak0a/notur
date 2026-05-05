@@ -50,6 +50,8 @@ docs/superpowers/
 .phpunit.cache/
 *.coverage
 clover.xml
+/playwright-report/
+/test-results/
 
 # Optional: local panel checkout for development (uncomment if needed)
 /pterodactyl-panel-v1.11.11/

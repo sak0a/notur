@@ -81,7 +81,7 @@
 
         <div class="row">
             <div class="col-xs-12">
-                <div class="box box-info">
+                <div class="box box-info" data-testid="extension-health-card" data-extension-id="{{ $extension->extension_id }}">
                     <div class="box-header with-border">
                         <h3 class="box-title">
                             <i class="fa fa-heartbeat" style="margin-right: 8px; opacity: 0.5;"></i>
@@ -136,7 +136,7 @@
                                                     $rowClass = 'warning';
                                                 }
                                             @endphp
-                                            <tr class="{{ $rowClass }}">
+                                            <tr class="{{ $rowClass }}" data-testid="extension-health-check" data-check-id="{{ $checkId }}">
                                                 <td>
                                                     <strong>{{ $definition['label'] ?? $checkId }}</strong>
                                                     @if(!empty($definition['description']))

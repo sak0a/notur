@@ -2,15 +2,21 @@
 set -euo pipefail
 
 # Notur E2E Test Runner
-# Orchestrates the Docker-based end-to-end test suite.
+# Orchestrates the Docker-based shell, browser, and destructive lifecycle end-to-end suites.
 #
-# Usage: bash docker/e2e/run-e2e.sh [--no-build] [--keep]
-#   --no-build   Skip rebuilding Docker images
-#   --keep       Keep containers running after tests
+# Usage: bash docker/e2e/run-e2e.sh [--no-build] [--no-cache] [--rebuild-base] [--keep] [--suite all|shell|browser|install-uninstall]
+#   --no-build           Skip rebuilding Docker images
+#   --no-cache           Rebuild Docker images without cache
+#   --rebuild-base       Rebuild the reusable E2E base image before app images
+#   --keep               Keep containers running after tests
+#   --suite <suite>      Select which test suite to run (default: all)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
+BASE_IMAGE="${E2E_BASE_IMAGE:-notur/e2e-base:php8.2-node22-panel1.12.2}"
+APP_IMAGE="${E2E_APP_IMAGE:-notur/e2e-app:local}"
+TEST_RUNNER_IMAGE="${E2E_TEST_RUNNER_IMAGE:-notur/e2e-test-runner:local}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -24,15 +30,52 @@ warn()  { echo -e "${YELLOW}[E2E]${NC} $1"; }
 error() { echo -e "${RED}[E2E]${NC} $1" >&2; }
 
 NO_BUILD=false
+NO_CACHE=false
+REBUILD_BASE=false
 KEEP=false
+SUITE=all
 
-for arg in "$@"; do
-    case "$arg" in
-        --no-build) NO_BUILD=true ;;
-        --keep)     KEEP=true ;;
-        *)          error "Unknown argument: $arg"; exit 1 ;;
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --no-build)
+            NO_BUILD=true
+            shift
+            ;;
+        --no-cache)
+            NO_CACHE=true
+            shift
+            ;;
+        --rebuild-base)
+            REBUILD_BASE=true
+            shift
+            ;;
+        --keep)
+            KEEP=true
+            shift
+            ;;
+        --suite)
+            shift
+            if [ "$#" -eq 0 ]; then
+                error "--suite requires a value: all, shell, browser, or install-uninstall"
+                exit 1
+            fi
+            SUITE="$1"
+            shift
+            ;;
+        *)
+            error "Unknown argument: $1"
+            exit 1
+            ;;
     esac
 done
+
+case "$SUITE" in
+    all|shell|browser|install-uninstall) ;;
+    *)
+        error "Invalid suite '$SUITE'. Expected: all, shell, browser, or install-uninstall"
+        exit 1
+        ;;
+esac
 
 cleanup() {
     if [ "$KEEP" = false ]; then
@@ -45,26 +88,90 @@ cleanup() {
 
 trap cleanup EXIT
 
+compose() {
+    E2E_BASE_IMAGE="$BASE_IMAGE" \
+    E2E_APP_IMAGE="$APP_IMAGE" \
+    E2E_TEST_RUNNER_IMAGE="$TEST_RUNNER_IMAGE" \
+        docker compose -f "$COMPOSE_FILE" "$@"
+}
+
+check_panel_available() {
+    local retries=0
+    local max_retries=60
+
+    until compose exec -T app bash -lc 'curl -fsS --max-time 10 http://127.0.0.1/auth/login >/dev/null || curl -fsS --max-time 10 http://127.0.0.1/ >/dev/null'; do
+        retries=$((retries + 1))
+        if [ "$retries" -ge "$max_retries" ]; then
+            error "Panel did not become available within ${max_retries} attempts"
+            return 1
+        fi
+        sleep 2
+    done
+}
+
 info "Starting Notur E2E test suite"
 echo ""
 
+if [ "$NO_BUILD" = true ]; then
+    REQUIRED_IMAGES=("$APP_IMAGE")
+    if [ "$SUITE" != "install-uninstall" ]; then
+        REQUIRED_IMAGES+=("$TEST_RUNNER_IMAGE")
+    fi
+
+    for image in "${REQUIRED_IMAGES[@]}"; do
+        if ! docker image inspect "$image" >/dev/null 2>&1; then
+            error "Required E2E image is missing: ${image}"
+            echo ""
+            echo "Build images first or run without --no-build."
+            exit 1
+        fi
+    done
+fi
+
 # Step 1: Build images
 if [ "$NO_BUILD" = false ]; then
+    if [ "$REBUILD_BASE" = true ]; then
+        info "Building reusable E2E base image: ${BASE_IMAGE}"
+        "${SCRIPT_DIR}/build-base.sh"
+        echo ""
+    elif docker image inspect "$BASE_IMAGE" >/dev/null 2>&1; then
+        ok "Reusable E2E base image is available: ${BASE_IMAGE}"
+        echo ""
+    else
+        error "Reusable E2E base image is missing: ${BASE_IMAGE}"
+        echo ""
+        echo "Build it once with:"
+        echo "  bash docker/e2e/build-base.sh"
+        echo ""
+        echo "Or let this runner rebuild it explicitly with:"
+        echo "  bash docker/e2e/run-e2e.sh --rebuild-base --suite ${SUITE}"
+        exit 1
+    fi
+
     info "Building Docker images..."
-    docker compose -f "$COMPOSE_FILE" build --no-cache
+    BUILD_SERVICES=(app)
+    if [ "$SUITE" != "install-uninstall" ]; then
+        BUILD_SERVICES+=(test-runner)
+    fi
+
+    if [ "$NO_CACHE" = true ]; then
+        compose build --no-cache "${BUILD_SERVICES[@]}"
+    else
+        compose build "${BUILD_SERVICES[@]}"
+    fi
     echo ""
 fi
 
 # Step 2: Start database and app services
 info "Starting database and app services..."
-docker compose -f "$COMPOSE_FILE" up -d db app
+compose up -d db app
 echo ""
 
 # Step 3: Wait for MySQL to be ready
 info "Waiting for MySQL to be ready..."
 RETRIES=0
 MAX_RETRIES=60
-until docker compose -f "$COMPOSE_FILE" exec -T db mysqladmin ping -h 127.0.0.1 -u root -pnotur_e2e --silent 2>/dev/null; do
+until compose exec -T db mysqladmin ping -h 127.0.0.1 -u root -pnotur_e2e --silent 2>/dev/null; do
     RETRIES=$((RETRIES + 1))
     if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
         error "MySQL did not become ready within ${MAX_RETRIES} attempts"
@@ -75,83 +182,30 @@ done
 ok "MySQL is ready"
 echo ""
 
-# Step 4: Generate app key and run panel migrations
-info "Setting up Pterodactyl Panel..."
-docker compose -f "$COMPOSE_FILE" exec -T app bash -c '
-    cd /var/www/pterodactyl
-    php artisan key:generate --force
-    php artisan migrate --force --seed 2>&1 || php artisan migrate --force 2>&1
-'
-ok "Panel migrations complete"
+if [ "$SUITE" = "install-uninstall" ]; then
+    info "Checking panel availability before Notur installation..."
+    check_panel_available
+    ok "Panel is available before Notur installation"
+    echo ""
+fi
+
+# Step 4: Bootstrap a usable panel with Notur and deterministic E2E data
+info "Bootstrapping the Pterodactyl + Notur E2E environment..."
+compose exec -T app bash /opt/notur/docker/e2e/setup-panel.sh
+ok "Panel bootstrap complete"
 echo ""
 
-# Step 5: Run Notur installer
-info "Running Notur installer..."
-docker compose -f "$COMPOSE_FILE" exec -T app bash -c '
-    cd /var/www/pterodactyl
+if [ "$SUITE" = "install-uninstall" ]; then
+    info "Running destructive install/uninstall lifecycle suite..."
+    compose exec -T app bash /opt/notur/docker/e2e/install-uninstall.sh
+    ok "Install/uninstall lifecycle suite passed!"
+    exit 0
+fi
 
-    # Simulate composer require by copying Notur into vendor
-    mkdir -p vendor/notur/notur
-    cp -r /opt/notur/* vendor/notur/notur/ 2>/dev/null || true
-
-    # Run the install script
-    bash vendor/notur/notur/installer/install.sh /var/www/pterodactyl 2>&1 || {
-        echo "Installer failed, attempting manual setup..."
-        # Manual fallback: run migrations and set up directories
-        php artisan migrate --force 2>&1
-        mkdir -p notur/extensions
-        mkdir -p public/notur/extensions
-        echo "{\"extensions\":{}}" > notur/extensions.json
-
-        # Build and copy bridge
-        if [ -d vendor/notur/notur/bridge ]; then
-            cd vendor/notur/notur/bridge
-            bun install --frozen-lockfile 2>/dev/null || true
-            bun run build 2>/dev/null || bunx webpack --mode production 2>/dev/null || true
-            cp dist/bridge.js /var/www/pterodactyl/public/notur/bridge.js 2>/dev/null || true
-            cd /var/www/pterodactyl
-        fi
-    }
-'
-ok "Notur installation complete"
+# Step 5: Run the requested test suite
+info "Running E2E suite: ${SUITE}"
 echo ""
-
-# Step 6: Install hello-world extension
-info "Installing hello-world test extension..."
-docker compose -f "$COMPOSE_FILE" exec -T app bash -c '
-    cd /var/www/pterodactyl
-
-    # Copy hello-world extension
-    mkdir -p notur/extensions/notur/hello-world
-    cp -r /opt/notur/examples/hello-world/* notur/extensions/notur/hello-world/
-
-    # Register it in extensions.json
-    cat > notur/extensions.json << EXTJSON
-{
-    "extensions": {
-        "notur/hello-world": {
-            "enabled": true,
-            "version": "1.0.0",
-            "installed_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-        }
-    }
-}
-EXTJSON
-
-    # Copy frontend bundle to public directory
-    mkdir -p public/notur/extensions/notur/hello-world
-    if [ -f notur/extensions/notur/hello-world/resources/frontend/dist/hello-world.js ]; then
-        cp notur/extensions/notur/hello-world/resources/frontend/dist/hello-world.js \
-           public/notur/extensions/notur/hello-world/hello-world.js
-    fi
-'
-ok "Hello-world extension installed"
-echo ""
-
-# Step 7: Run the test suite
-info "Running E2E tests..."
-echo ""
-docker compose -f "$COMPOSE_FILE" run --rm test-runner
+compose run --rm -e E2E_SUITE="$SUITE" test-runner
 EXIT_CODE=$?
 
 echo ""

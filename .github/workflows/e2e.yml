@@ -43,7 +43,7 @@ jobs:
   e2e:
     name: E2E Test Suite
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
@@ -51,299 +51,69 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Cache Docker layers
-        uses: actions/cache@v4
+      - name: Build E2E base image
+        uses: docker/build-push-action@v6
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-e2e-docker-${{ hashFiles('docker/e2e/Dockerfile') }}
-          restore-keys: ${{ runner.os }}-e2e-docker-
+          context: .
+          file: docker/e2e/Dockerfile.base
+          load: true
+          tags: notur/e2e-base:php8.2-node22-panel1.12.2
+          cache-from: type=gha,scope=e2e-base
+          cache-to: type=gha,scope=e2e-base,mode=max
 
-      - name: Build and run E2E tests
+      - name: Build E2E app image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/e2e/Dockerfile
+          target: app
+          load: true
+          tags: notur/e2e-app:ci
+          build-args: |
+            E2E_BASE_IMAGE=notur/e2e-base:php8.2-node22-panel1.12.2
+          cache-from: type=gha,scope=e2e-app
+          cache-to: type=gha,scope=e2e-app,mode=max
+
+      - name: Build E2E test-runner image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/e2e/Dockerfile
+          target: test-runner
+          load: true
+          tags: notur/e2e-test-runner:ci
+          build-args: |
+            E2E_BASE_IMAGE=notur/e2e-base:php8.2-node22-panel1.12.2
+          cache-from: type=gha,scope=e2e-test-runner
+          cache-to: type=gha,scope=e2e-test-runner,mode=max
+
+      - name: Run shell and browser E2E tests
+        env:
+          E2E_APP_IMAGE: notur/e2e-app:ci
+          E2E_TEST_RUNNER_IMAGE: notur/e2e-test-runner:ci
+          E2E_BASE_IMAGE: notur/e2e-base:php8.2-node22-panel1.12.2
+        run: bash docker/e2e/run-e2e.sh --no-build --keep
+
+      - name: Reset E2E containers before install/uninstall suite
         run: |
           cd docker/e2e
-          docker compose build
-          docker compose up -d db app
+          docker compose down -v --remove-orphans 2>/dev/null || true
 
-          # Wait for MySQL health check
-          echo "Waiting for MySQL..."
-          retries=0
-          until docker compose exec -T db mysqladmin ping -h 127.0.0.1 -u root -pnotur_e2e --silent 2>/dev/null; do
-            retries=$((retries + 1))
-            if [ "$retries" -ge 60 ]; then
-              echo "MySQL did not become ready"
-              docker compose logs db
-              exit 1
-            fi
-            sleep 2
-          done
-          echo "MySQL is ready"
-
-          # Install Notur into the panel using current branch code
-          docker compose exec -T app bash -c '
-            cd /var/www/pterodactyl
-            set -euo pipefail
-            export NODE_OPTIONS=--openssl-legacy-provider
-
-            # Install from current branch via path repository (tests latest code, not Packagist)
-            git config --global --add safe.directory /opt/notur
-            composer config platform.php 8.2.30 --no-interaction
-            composer config audit.block-insecure false --no-interaction
-            composer config audit.ignore "PKSA-8qx3-n5y5-vvnd,PKSA-w7xr-vk7n-rstm" --no-interaction
-            composer config repositories.notur "{\"type\":\"path\",\"url\":\"/opt/notur\",\"options\":{\"symlink\":false}}" --no-interaction
-            if ! COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_DISABLE_AUDIT=1 composer require notur/notur:@dev --no-interaction --with-all-dependencies 2>&1; then
-              echo "Composer require failed. Retrying once with verbose output..."
-              COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_DISABLE_AUDIT=1 composer require notur/notur:@dev --no-interaction --with-all-dependencies -vvv
-              exit 1
-            fi
-
-            # Ensure DB settings in .env match docker-compose environment
-            if [ -f ".env" ]; then
-              sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=mysql/" .env
-              sed -i "s/^DB_HOST=.*/DB_HOST=db/" .env
-              sed -i "s/^DB_PORT=.*/DB_PORT=3306/" .env
-              sed -i "s/^DB_DATABASE=.*/DB_DATABASE=panel/" .env
-              sed -i "s/^DB_USERNAME=.*/DB_USERNAME=pterodactyl/" .env
-              sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=pterodactyl/" .env
-            fi
-
-            # Inject Notur scripts into Blade layout
-            SCRIPTS_BLADE="resources/views/layouts/scripts.blade.php"
-            WRAPPER_BLADE="resources/views/templates/wrapper.blade.php"
-            if [ -f "${SCRIPTS_BLADE}" ]; then
-              TARGET_BLADE="${SCRIPTS_BLADE}"
-            elif [ -f "${WRAPPER_BLADE}" ]; then
-              TARGET_BLADE="${WRAPPER_BLADE}"
-            fi
-
-            if [ -n "${TARGET_BLADE:-}" ] && ! grep -q "notur::scripts" "${TARGET_BLADE}"; then
-              echo "" >> "${TARGET_BLADE}"
-              echo "@include(\"notur::scripts\")" >> "${TARGET_BLADE}"
-            fi
-
-            # Apply React source patches (skip reverse patches)
-            # Mirror install.sh detection: try composer.lock first (in case the
-            # panel was installed as a dependency), then fall back to
-            # config/app.php (where the standalone panel surfaces its version).
-            # pterodactyl/panel is the root package in a self-hosted install so
-            # it does NOT appear in composer.lock packages — config/app.php is
-            # the authoritative source there.
-            PATCH_DIR=""
-            PANEL_VERSION=""
-            if [ -f "composer.lock" ]; then
-              PANEL_VERSION=$(php -r " \
-                \$lock = json_decode(file_get_contents(\"composer.lock\"), true); \
-                if (!is_array(\$lock)) { exit(0); } \
-                foreach ([\"packages\", \"packages-dev\"] as \$section) { \
-                  if (empty(\$lock[\$section]) || !is_array(\$lock[\$section])) { continue; } \
-                  foreach (\$lock[\$section] as \$pkg) { \
-                    if ((\$pkg[\"name\"] ?? \"\") === \"pterodactyl/panel\") { \
-                      echo (string) (\$pkg[\"version\"] ?? \"\"); \
-                      exit(0); \
-                    } \
-                  } \
-                }" 2>/dev/null || true)
-            fi
-            if [ -z "${PANEL_VERSION}" ] && [ -f "config/app.php" ]; then
-              PANEL_VERSION=$(grep "'"'"'version'"'"'" config/app.php | head -1 | sed "s/.*'"'"'version'"'"'.*'"'"'\([^'"'"']*\)'"'"'.*/\1/" || echo "")
-            fi
-
-            echo "Detected panel version: ${PANEL_VERSION:-unknown}"
-
-            # Mirror install.sh: only v1.12.x is supported; hard-fail otherwise.
-            # Accept both "1.12.0" and "v1.12.0" forms.
-            PANEL_VERSION_NORMALIZED="${PANEL_VERSION#v}"
-            case "${PANEL_VERSION_NORMALIZED}" in
-              1.12.*)
-                PATCH_DIR="vendor/notur/notur/installer/patches/v1.12"
-                ;;
-              "")
-                echo "E2E: could not detect Pterodactyl panel version. Notur requires v1.12.x." >&2
-                exit 1
-                ;;
-              *)
-                echo "E2E: unsupported Pterodactyl version '\''${PANEL_VERSION}'\''. Notur supports v1.12.x only." >&2
-                exit 1
-                ;;
-            esac
-
-            if [ ! -d "${PATCH_DIR}" ]; then
-              echo "E2E: patch directory ${PATCH_DIR} not found" >&2
-              exit 1
-            fi
-
-            echo "Using patch set: ${PATCH_DIR##*/}"
-            for patch in "${PATCH_DIR}"/*.patch; do
-              [ -f "${patch}" ] || continue
-              PATCH_NAME=$(basename "${patch}")
-              echo "${PATCH_NAME}" | grep -q "reverse" && continue
-              echo "Applying patch: ${PATCH_NAME}"
-              if patch --dry-run -p1 < "${patch}" &>/dev/null; then
-                patch -p1 < "${patch}"
-                echo "Applied: ${PATCH_NAME}"
-              else
-                echo "Skipping: ${PATCH_NAME} (already applied or incompatible)"
-              fi
-            done
-
-            # Rebuild frontend with patches applied
-            echo "Installing frontend dependencies..."
-            yarn install --frozen-lockfile 2>&1 || npm install 2>&1
-
-            echo "Building production assets..."
-            if yarn run build:production 2>&1; then
-              echo "Frontend build succeeded"
-            else
-              echo "Frontend build failed"
-              exit 1
-            fi
-
-            if [ ! -f "public/assets/manifest.json" ]; then
-              echo "Build artifacts missing: public/assets/manifest.json"
-              ls -la public/assets 2>/dev/null || true
-              exit 1
-            fi
-
-            # Set up Notur directories and copy bridge
-            mkdir -p notur/extensions public/notur/extensions
-            BRIDGE_JS="vendor/notur/notur/bridge/dist/bridge.js"
-            if [ ! -f "${BRIDGE_JS}" ]; then
-              echo "Bridge runtime missing; building..."
-              if [ -d "vendor/notur/notur" ]; then
-                cd vendor/notur/notur
-                NODE_OPTIONS=--openssl-legacy-provider bun install --frozen-lockfile 2>&1 || NODE_OPTIONS=--openssl-legacy-provider npm install 2>&1
-                if ! NODE_OPTIONS=--openssl-legacy-provider bun run build:bridge 2>&1; then
-                  if ! NODE_OPTIONS=--openssl-legacy-provider npm run build:bridge 2>&1; then
-                    if [ -d "bridge" ]; then
-                      cd bridge
-                      if ! NODE_OPTIONS=--openssl-legacy-provider bunx webpack --mode production 2>&1; then
-                        echo "Bridge build failed"
-                        exit 1
-                      fi
-                      cd ..
-                    else
-                      echo "Bridge build failed (bridge directory missing)"
-                      exit 1
-                    fi
-                  fi
-                fi
-                cd /var/www/pterodactyl
-              fi
-            fi
-            if [ -f "${BRIDGE_JS}" ]; then
-              cp "${BRIDGE_JS}" public/notur/bridge.js
-            else
-              echo "Bridge runtime missing after build"
-              exit 1
-            fi
-
-            # Initialize extensions.json
-            [ -f notur/extensions.json ] || echo "{\"extensions\":{}}" > notur/extensions.json
-
-            # Ensure package discovery + routes are registered
-            php artisan package:discover --ansi 2>&1 || true
-            php artisan config:clear 2>&1 || true
-            php artisan route:clear 2>&1 || true
-
-            # Run migrations (core + Notur package explicitly)
-            php artisan migrate --force 2>&1
-            php artisan migrate --path=vendor/notur/notur/database/migrations --force 2>&1
-
-            # Verify Notur tables exist
-            TABLES=$(mysql --ssl=0 -h db -P 3306 -u pterodactyl -ppterodactyl panel -e "SHOW TABLES LIKE \"notur_%\";" 2>/tmp/mysql-check.err || true)
-            if ! echo "$TABLES" | grep -q "notur_"; then
-              echo "Notur tables missing after migration"
-              if [ -s /tmp/mysql-check.err ]; then
-                echo "MySQL error output:"
-                cat /tmp/mysql-check.err
-              fi
-              mysql --ssl=0 -h db -P 3306 -u pterodactyl -ppterodactyl panel -e "SHOW TABLES;" 2>/dev/null || true
-              exit 1
-            fi
-
-            # Fix permissions
-            chown -R www-data:www-data storage bootstrap/cache notur public/notur 2>/dev/null || true
-          '
-
-          # Install test extension
-          docker compose exec -T app bash -c '
-            cd /var/www/pterodactyl
-            set -euo pipefail
-
-            # Pack example extension into a real .notur archive and install via CLI.
-            rm -rf /tmp/hello-world-src /tmp/hello-world.notur
-            cp -R /opt/notur/examples/hello-world /tmp/hello-world-src
-            php -r "require \"vendor/autoload.php\"; \\Notur\\Support\\NoturArchive::pack(\"/tmp/hello-world-src\", \"/tmp/hello-world.notur\");"
-            php artisan notur:install /tmp/hello-world.notur --force
-
-            # Refresh caches and ensure Notur migrations are applied
-            php artisan config:clear 2>/dev/null || true
-            php artisan route:clear 2>/dev/null || true
-            php artisan cache:clear 2>/dev/null || true
-            php artisan migrate --path=vendor/notur/notur/database/migrations --force 2>&1
-
-            # Verify extension routes are registered
-            if ! php artisan route:list 2>/dev/null | grep -q "notur/hello-world"; then
-              echo "Notur extension routes not registered"
-              php artisan route:list 2>/dev/null | grep -i notur || true
-              exit 1
-            fi
-
-            # Re-chown storage AND bootstrap/cache AFTER all artisan calls in
-            # this block so nginx → php-fpm (www-data) can append to
-            # laravel-*.log on subsequent HTTP requests. Each artisan call
-            # here ran as root and would otherwise leave root-owned log/cache
-            # files behind, producing 500s with
-            #   "could not be opened in append mode: Permission denied"
-            # the next time a request enters Laravel.
-            chown -R www-data:www-data storage bootstrap/cache notur public/notur 2>/dev/null || true
-          '
-
-          # Run tests
-          docker compose run --rm test-runner
-
-          # Verify real CLI lifecycle commands inside panel container
-          docker compose exec -T app bash -c '
-            cd /var/www/pterodactyl
-            set -euo pipefail
-
-            php artisan notur:list > /tmp/notur-list-before.txt
-            if ! grep -q "notur/hello-world" /tmp/notur-list-before.txt; then
-              echo "notur:install did not register hello-world in notur:list"
-              cat /tmp/notur-list-before.txt
-              exit 1
-            fi
-
-            if ! php artisan notur:disable notur/hello-world; then
-              echo "notur:disable failed for notur/hello-world"
-              exit 1
-            fi
-
-            if ! php artisan notur:enable notur/hello-world; then
-              echo "notur:enable failed for notur/hello-world"
-              exit 1
-            fi
-
-            if ! printf "yes\n" | php artisan notur:remove notur/hello-world; then
-              echo "notur:remove failed for notur/hello-world"
-              exit 1
-            fi
-
-            if php artisan notur:list | grep -q "notur/hello-world"; then
-              echo "notur/hello-world still present after notur:remove"
-              exit 1
-            fi
-          '
+      - name: Run install/uninstall E2E tests
+        env:
+          E2E_APP_IMAGE: notur/e2e-app:ci
+          E2E_TEST_RUNNER_IMAGE: notur/e2e-test-runner:ci
+          E2E_BASE_IMAGE: notur/e2e-base:php8.2-node22-panel1.12.2
+        run: bash docker/e2e/run-e2e.sh --no-build --suite install-uninstall --keep
 
       - name: Collect logs on failure
         if: failure()
         run: |
           cd docker/e2e
-          docker compose logs app > /tmp/app-logs.txt 2>&1
-          docker compose logs db > /tmp/db-logs.txt 2>&1
+          docker compose logs app > /tmp/app-logs.txt 2>&1 || true
+          docker compose logs db > /tmp/db-logs.txt 2>&1 || true
+          docker compose logs test-runner > /tmp/test-runner-logs.txt 2>&1 || true
 
-          # docker-compose logs only shows supervisord stdout/stderr — the
-          # actual Laravel/nginx/php-fpm errors live in files inside the
-          # container. Pull them out so we can debug 500s post-mortem.
           docker compose exec -T app bash -c '
             echo "=== laravel.log (last 200 lines) ==="
             tail -n 200 /var/www/pterodactyl/storage/logs/laravel.log 2>/dev/null || echo "(missing)"
@@ -356,18 +126,11 @@ jobs:
               || tail -n 100 /var/log/php8.2-fpm.log 2>/dev/null \
               || echo "(no fpm log file — fpm logs to stderr by default)"
             echo
-            echo "=== storage perms ==="
-            ls -la /var/www/pterodactyl/storage 2>&1 | head -20
-            ls -la /var/www/pterodactyl/storage/framework 2>&1 | head -20
-            echo
             echo "=== .env (with secrets redacted) ==="
             sed -E "s/(APP_KEY|HASHIDS_SALT|DB_PASSWORD|MAIL_PASSWORD|RECAPTCHA_SECRET_KEY)=.*/\1=***REDACTED***/" /var/www/pterodactyl/.env 2>/dev/null || echo "(missing)"
             echo
-            echo "=== public/assets/manifest.json keys ==="
-            php -r "echo implode(\"\n\", array_keys(json_decode(file_get_contents(\"/var/www/pterodactyl/public/assets/manifest.json\"), true) ?: []));" 2>&1 | head -30 || echo "(missing/invalid)"
-            echo
-            echo "=== HEAD / response (verbose) ==="
-            curl -sSi http://127.0.0.1/ 2>&1 | head -40 || true
+            echo "=== extensions.json ==="
+            cat /var/www/pterodactyl/notur/extensions.json 2>/dev/null || echo "(missing)"
           ' > /tmp/runtime-logs.txt 2>&1 || true
 
       - name: Upload logs on failure

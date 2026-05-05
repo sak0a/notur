@@ -1,0 +1,93 @@
+# Reusable base for the Notur Docker E2E environment.
+#
+# Build once locally:
+#   docker build -f docker/e2e/Dockerfile.base -t notur/e2e-base:php8.2-node22-panel1.12.2 .
+FROM php:8.2-fpm
+
+ARG NODE_VERSION=22
+ARG PANEL_VERSION=v1.12.2
+
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    unzip \
+    zip \
+    libzip-dev \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libsodium-dev \
+    libcurl4-openssl-dev \
+    mariadb-client \
+    patch \
+    ca-certificates \
+    gnupg \
+    nginx \
+    supervisor \
+    fonts-liberation \
+    libasound2t64 \
+    libatk-bridge2.0-0t64 \
+    libatk1.0-0t64 \
+    libatspi2.0-0t64 \
+    libcairo2 \
+    libcups2t64 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libglib2.0-0t64 \
+    libnspr4 \
+    libnss3 \
+    libpango-1.0-0 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    libxshmfence1 \
+    && docker-php-ext-install \
+    pdo_mysql \
+    mbstring \
+    zip \
+    bcmath \
+    sodium \
+    gd \
+    xml \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN printf '[client]\nssl=0\n' > /root/.my.cnf
+
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://bun.sh/install | bash \
+    && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
+    && ln -s /root/.bun/bin/bunx /usr/local/bin/bunx
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+RUN mkdir -p /var/www/pterodactyl \
+    && curl -fsSL -o /tmp/panel.tar.gz \
+       "https://github.com/pterodactyl/panel/releases/download/${PANEL_VERSION}/panel.tar.gz" \
+    && tar -xzf /tmp/panel.tar.gz -C /var/www/pterodactyl \
+    && rm /tmp/panel.tar.gz
+
+WORKDIR /var/www/pterodactyl
+
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+
+RUN npm install -g yarn \
+    && yarn install --frozen-lockfile
+
+RUN cp .env.example .env \
+    && php artisan key:generate --force \
+    && php artisan package:discover --ansi
+
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache

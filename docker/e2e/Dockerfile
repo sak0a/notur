@@ -1,112 +1,24 @@
 # Notur E2E Test Environment
-# Based on PHP 8.2 + Node 22, installs Pterodactyl Panel + Notur + test extension
-FROM php:8.2-fpm
+# Depends on the reusable base built from docker/e2e/Dockerfile.base.
+ARG E2E_BASE_IMAGE=notur/e2e-base:php8.2-node22-panel1.12.2
 
-# Pterodactyl Panel v1.12.x requires Node >= 22 (declared in upstream
-# package.json engines). Keep this in sync with .github/workflows/ci.yml's
-# frontend-build matrix.
-ARG NODE_VERSION=22
-ARG PANEL_VERSION=v1.12.2
+FROM ${E2E_BASE_IMAGE} AS notur-node-deps
 
-# Work around OpenSSL 3 compatibility issues in Node 17+ for webpack builds.
-ENV NODE_OPTIONS=--openssl-legacy-provider
+WORKDIR /opt/notur
 
-# System dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    curl \
-    unzip \
-    zip \
-    libzip-dev \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libsodium-dev \
-    libcurl4-openssl-dev \
-    mariadb-client \
-    patch \
-    ca-certificates \
-    gnupg \
-    nginx \
-    supervisor \
-    && docker-php-ext-install \
-    pdo_mysql \
-    mbstring \
-    zip \
-    bcmath \
-    sodium \
-    gd \
-    xml \
-    && rm -rf /var/lib/apt/lists/*
+COPY package.json package-lock.json ./
 
-# Configure the mysql CLI to skip TLS. The compose db service runs
-# MySQL 8.0, which presents a self-signed cert on every connection,
-# and our mariadb-client verifies certs by default — so any direct
-# `mysql` invocation fails with "TLS/SSL error: self-signed
-# certificate in certificate chain". This bites Laravel's migrate
-# when it shells out to mysql to load database/schema/mysql-schema.sql,
-# but the workflow's own SHOW TABLES probes already pass --ssl=0
-# explicitly. Disabling TLS for the CLI globally inside this test
-# container is fine — the db is a private docker-compose service.
-RUN printf '[client]\nssl=0\n' > /root/.my.cnf
+RUN npm ci --no-audit --no-fund \
+    && npx playwright install chromium
 
-# Install Node.js
-RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+FROM ${E2E_BASE_IMAGE} AS panel-base
 
-# Install Bun
-RUN curl -fsSL https://bun.sh/install | bash \
-    && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
-    && ln -s /root/.bun/bin/bunx /usr/local/bin/bunx
+COPY . /opt/notur
 
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-# Download the Pterodactyl Panel release tarball — same artifact the
-# upstream install docs tell operators to fetch:
-#   https://pterodactyl.io/panel/1.0/getting_started.html
-# The tarball ships with the real version baked into config/app.php
-# (no 'canary' placeholder), pre-built public/assets/, and the source
-# tree intact. This matches the real install path our installer
-# targets and removes the need to "git clone + sed-rewrite the version".
-RUN mkdir -p /var/www/pterodactyl \
-    && curl -fsSL -o /tmp/panel.tar.gz \
-       "https://github.com/pterodactyl/panel/releases/download/${PANEL_VERSION}/panel.tar.gz" \
-    && tar -xzf /tmp/panel.tar.gz -C /var/www/pterodactyl \
-    && rm /tmp/panel.tar.gz
+FROM panel-base AS app
 
 WORKDIR /var/www/pterodactyl
 
-# Install panel PHP dependencies (vendor/ is not shipped in the tarball).
-# --no-scripts: defer composer's post-install hooks (Pterodactyl's
-# composer.json runs `php artisan package:discover` post-autoload-dump,
-# which boots SettingsServiceProvider and needs APP_KEY — but .env
-# doesn't exist yet at this point). We run the discovery step manually
-# below, after the environment is fully set up.
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts
-
-# Install yarn + frontend deps so the post-patch rebuild in the e2e
-# workflow has node_modules ready. Skip the initial build:production:
-# the tarball already includes pre-built public/assets/ for the no-patch
-# baseline, and the workflow rebuilds anyway after applying React patches,
-# so building twice would just burn minutes.
-RUN npm install -g yarn \
-    && yarn install --frozen-lockfile
-
-# Set up panel environment + run the package discovery we deferred above.
-RUN cp .env.example .env \
-    && php artisan key:generate --force \
-    && php artisan package:discover --ansi
-
-# Fix storage permissions for www-data (PHP-FPM user)
-RUN chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
-
-# Copy Notur source into vendor-like location for testing
-COPY . /opt/notur
-
-# Nginx configuration for serving the panel
 RUN echo 'server { \n\
     listen 80; \n\
     root /var/www/pterodactyl/public; \n\
@@ -124,7 +36,6 @@ RUN echo 'server { \n\
     } \n\
 }' > /etc/nginx/sites-available/default
 
-# Supervisor to run PHP-FPM + Nginx together
 RUN echo '[supervisord] \n\
 nodaemon=true \n\
 \n\
@@ -138,8 +49,14 @@ command=/usr/sbin/nginx -g "daemon off;" \n\
 autostart=true \n\
 autorestart=true' > /etc/supervisor/conf.d/panel.conf
 
-# Expose HTTP
 EXPOSE 80
 
-# Default: start supervisor (PHP-FPM + Nginx)
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+
+FROM notur-node-deps AS test-runner
+
+WORKDIR /opt/notur
+
+COPY . /opt/notur
+
+WORKDIR /var/www/pterodactyl

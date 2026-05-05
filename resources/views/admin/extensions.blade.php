@@ -26,16 +26,27 @@
     <div class="row">
         <div class="col-xs-12">
             @if(session('success'))
-                <div class="alert alert-success alert-dismissible">
+                <div class="alert alert-success alert-dismissible" data-testid="notur-flash-success">
                     <button type="button" class="close" data-dismiss="alert">&times;</button>
                     {{ session('success') }}
                 </div>
             @endif
 
             @if(session('error'))
-                <div class="alert alert-danger alert-dismissible">
+                <div class="alert alert-danger alert-dismissible" data-testid="notur-flash-error">
                     <button type="button" class="close" data-dismiss="alert">&times;</button>
                     {{ session('error') }}
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div class="alert alert-danger" data-testid="notur-validation-errors">
+                    <strong>There were issues with your request.</strong>
+                    <ul class="mt-2">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
                 </div>
             @endif
 
@@ -202,7 +213,7 @@
                             <code>php artisan notur:install vendor/extension-name</code>
                         </div>
                     @else
-                        <table class="table table-hover">
+                        <table class="table table-hover" data-testid="installed-extensions-table">
                             <thead>
                                 <tr>
                                     <th>Extension</th>
@@ -222,9 +233,9 @@
                                         $description = $manifest['description'] ?? '';
                                         $dependencies = $manifest['dependencies'] ?? [];
                                     @endphp
-                                    <tr>
+                                    <tr data-testid="extension-row" data-extension-id="{{ $extension->extension_id }}">
                                         <td>
-                                            <a href="{{ route('admin.notur.extensions.show', $extension->extension_id) }}">
+                                            <a href="{{ route('admin.notur.extensions.show', $extension->extension_id) }}" data-testid="extension-details-link">
                                                 {{ $extension->name }}
                                             </a>
                                         </td>
@@ -249,7 +260,7 @@
                                         <td>
                                             <small style="font-family: var(--nb-mono, monospace);">{{ $extension->created_at ? $extension->created_at->format('Y-m-d') : 'N/A' }}</small>
                                         </td>
-                                        <td>
+                                        <td data-testid="extension-status">
                                             @if($extension->enabled)
                                                 <span class="label label-success"><span class="nb-status nb-status--active"></span>Enabled</span>
                                             @else
@@ -257,27 +268,27 @@
                                             @endif
                                         </td>
                                         <td class="text-center" style="white-space: nowrap;">
-                                            <a href="{{ route('admin.notur.extensions.show', $extension->extension_id) }}" class="btn btn-xs btn-primary" title="Details">
+                                            <a href="{{ route('admin.notur.extensions.show', $extension->extension_id) }}" class="btn btn-xs btn-primary" title="Details" aria-label="View details for {{ $extension->extension_id }}">
                                                 <i class="fa fa-eye"></i>
                                             </a>
                                             @if($extension->enabled)
                                                 <form action="{{ route('admin.notur.extensions.disable', $extension->extension_id) }}" method="POST" class="inline">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-xs btn-warning" title="Disable">
+                                                    <button type="submit" class="btn btn-xs btn-warning" title="Disable" aria-label="Disable {{ $extension->extension_id }}">
                                                         <i class="fa fa-pause"></i>
                                                     </button>
                                                 </form>
                                             @else
                                                 <form action="{{ route('admin.notur.extensions.enable', $extension->extension_id) }}" method="POST" class="inline">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-xs btn-success" title="Enable">
+                                                    <button type="submit" class="btn btn-xs btn-success" title="Enable" aria-label="Enable {{ $extension->extension_id }}">
                                                         <i class="fa fa-play"></i>
                                                     </button>
                                                 </form>
                                             @endif
                                             <form action="{{ route('admin.notur.extensions.remove', $extension->extension_id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to remove {{ $extension->extension_id }}? This will delete all extension files and roll back migrations.');">
                                                 @csrf
-                                                <button type="submit" class="btn btn-xs btn-danger" title="Remove">
+                                                <button type="submit" class="btn btn-xs btn-danger" title="Remove" aria-label="Remove {{ $extension->extension_id }}">
                                                     <i class="fa fa-trash"></i>
                                                 </button>
                                             </form>
