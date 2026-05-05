@@ -530,7 +530,7 @@ class ExtensionAdminController extends Controller
         } catch (\Throwable $e) {
             return redirect()
                 ->route('admin.notur.extensions')
-                ->with('error', 'Installation failed: ' . $e->getMessage());
+                ->with('error', 'Removal failed: ' . $e->getMessage());
         }
     }
 
