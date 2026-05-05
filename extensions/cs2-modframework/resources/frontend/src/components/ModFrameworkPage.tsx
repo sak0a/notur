@@ -113,6 +113,16 @@ const successBoxStyle: React.CSSProperties = {
     justifyContent: 'space-between',
 };
 
+const warningBoxStyle: React.CSSProperties = {
+    background: 'rgba(245, 158, 11, 0.1)',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    borderRadius: '10px',
+    padding: '1rem',
+    color: '#f59e0b',
+    fontSize: '0.875rem',
+    marginBottom: '1rem',
+};
+
 // Global keyframe style (injected once)
 const STYLE_ID = 'notur-cs2-modframework-styles';
 
@@ -150,6 +160,9 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
 
     const [modal, setModal] = useState<ModalState | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+    const [selectedVersions, setSelectedVersions] = useState<Partial<Record<FrameworkName, string>>>({});
+    const serverSupported = status?.server?.supported ?? true;
+    const unsupportedReason = status?.server?.reason ?? 'This server is not eligible for CS2 mod framework management.';
 
     const openModal = useCallback((action: 'install' | 'uninstall', framework: FrameworkName) => {
         setSuccessMsg(null);
@@ -163,7 +176,7 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
 
         let result: InstallResult;
         if (modal.action === 'install') {
-            result = await installFramework(modal.framework);
+            result = await installFramework(modal.framework, selectedVersions[modal.framework]);
         } else {
             result = await uninstallFramework(modal.framework);
         }
@@ -172,7 +185,7 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
             setSuccessMsg(result.message);
         }
         closeModal();
-    }, [modal, installFramework, uninstallFramework, closeModal]);
+    }, [modal, selectedVersions, installFramework, uninstallFramework, closeModal]);
 
     const getModalTitle = (): string => {
         if (!modal) return '';
@@ -249,6 +262,8 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
             }, '\u2715'),
         ) : null,
 
+        !serverSupported ? React.createElement('div', { style: warningBoxStyle }, unsupportedReason) : null,
+
         // Framework cards
         React.createElement('div', { style: gridStyle },
             FRAMEWORKS.map(fw => {
@@ -266,10 +281,13 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
                     icon: fw.icon,
                     status: fwStatus,
                     version: fwVersion,
+                    selectedVersion: selectedVersions[fw.key] ?? fwVersion?.version,
                     gameInfoOk,
                     dependency: fw.dependency ? (FRAMEWORKS.find(f => f.key === fw.dependency)?.label) : undefined,
                     dependencyInstalled: depInstalled,
                     isLoading: actionLoading === fw.key || (fw.key === 'metamod' && actionLoading === 'counterstrikesharp'),
+                    disabledReason: serverSupported ? undefined : unsupportedReason,
+                    onVersionChange: (version) => setSelectedVersions(current => ({ ...current, [fw.key]: version })),
                     onInstall: () => openModal('install', fw.key),
                     onUninstall: () => openModal('uninstall', fw.key),
                 });

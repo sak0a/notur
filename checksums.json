@@ -1,0 +1,21 @@
+{
+    ".gitignore": "f1a9a09b226cf8e98a4286200c5d9ebd5c28924707ac3317947f8ecf06ab167b",
+    "composer.json": "55bf693d27f8e0bd1984e1fdaeaebaed5e7c4065735e3741bd5d82634da2b3e9",
+    "extension.yaml": "408bf4c818fa0387538eb96276abbe6415630e049ba1233b3147fe4e7fc871b0",
+    "package-lock.json": "380a525bfb8beccb948b552765df221a966f1154cf467b3ce499ee9ddebe7257",
+    "package.json": "9af281ceda2560e7af354fa52cc43e0a31310426492db138992244df3cfa2731",
+    "resources/frontend/dist/cs2-modframework.js": "f46f02f2873500fb8d99802fd2370023116e20ff01429e36ecbd58eb5dac5c41",
+    "resources/frontend/src/api/useModFramework.ts": "3b48df4e7809bc591132c6b441d4f86e42ac4e031f8cae41bc9c277d47538318",
+    "resources/frontend/src/components/ConfirmModal.tsx": "ead8765f9700b8b759da119ec7d74e362411c76955ce39af51ab7176e3ca4929",
+    "resources/frontend/src/components/FrameworkCard.tsx": "2bc4ad592561cf39773d3dda8d80842170b9542a42ac7cd214fe71e28d4ea31d",
+    "resources/frontend/src/components/ModFrameworkPage.tsx": "43322722e9068ee7318ec7cf83f81bb820b4e0f8b7dbf5f2b62bb4e96e5cbc23",
+    "resources/frontend/src/index.tsx": "2fd4a6014046c5c890b2c38dcb1c23eaa558fc5bf324224795ded0b5d5a4d312",
+    "src/Controllers/ModFrameworkController.php": "2ac95a1720e6f29b760257c3c5e1c0d4313d495268a08dad1494181699c82958",
+    "src/Cs2ModframeworkExtension.php": "e6f5fd4833f6935f191d6d664370c5cc419de021eef08a039a38793afe952e61",
+    "src/Services/FrameworkInstaller.php": "0132b16b5bd3f425777ec70f12b934050b82da9aeea3f42889a57587c6029c5a",
+    "src/Services/GameInfoModifier.php": "8706225649245fbde1fa9c249a4af00005cc696b1413816d8d13416f9d7caf0f",
+    "src/Services/GitHubReleaseResolver.php": "1331297610c7599ea5dd78f20c72a5d91bf6838a99a043e6dce841e214b57071",
+    "src/routes/api-client.php": "2a1163f6b2d95bf0cc2f188b5ea5dbf617b257c5d17c7efece351974bc402978",
+    "tsconfig.json": "a69d9eb2b3b87398b84786c4aa17c476c30a1040a2ceb96ee6ff2fa0fa0fb5ba",
+    "webpack.config.js": "20b9b9772b19d3c6434e5448da0da42c0fc4b5f0660fd4bbc7e57527153f6a8b"
+}

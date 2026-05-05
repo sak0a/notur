@@ -6,6 +6,7 @@ const EXTENSION_ID = 'notur/cs2-modframework';
 export interface FrameworkStatus {
     installed: boolean;
     directory: string | null;
+    restart_required?: boolean;
 }
 
 export interface StatusResponse {
@@ -13,6 +14,10 @@ export interface StatusResponse {
     counterstrikesharp: FrameworkStatus;
     metamod: FrameworkStatus;
     gameinfo_entries: Record<string, boolean>;
+    server?: {
+        supported: boolean;
+        reason: string | null;
+    };
 }
 
 export interface VersionInfo {
@@ -31,6 +36,7 @@ export interface InstallResult {
     success: boolean;
     framework: string;
     version?: string;
+    backup?: string;
     message: string;
 }
 
@@ -78,11 +84,14 @@ export function useModFramework(serverUuid: string) {
         }
     }, []);
 
-    const installFramework = useCallback(async (framework: FrameworkName): Promise<InstallResult> => {
+    const installFramework = useCallback(async (framework: FrameworkName, version?: string): Promise<InstallResult> => {
         setActionLoading(framework);
         setError(null);
         try {
-            const res = await apiPostRef.current('/install', { framework }) as { data: InstallResult };
+            const payload = version && version.trim() !== ''
+                ? { framework, version: version.trim() }
+                : { framework };
+            const res = await apiPostRef.current('/install', payload) as { data: InstallResult };
             await fetchStatus();
             return res.data;
         } catch (e: any) {
