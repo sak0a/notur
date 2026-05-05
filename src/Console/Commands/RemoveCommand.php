@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Notur\Console\Commands;
 
 use Notur\Events\ExtensionRemoved;
+use Notur\Exceptions\ExtensionNotFoundException;
 use Notur\ExtensionManager;
 use Notur\ExtensionManifest;
 use Notur\MigrationManager;
@@ -41,8 +42,12 @@ class RemoveCommand extends ExtensionLifecycleCommand
 
         $this->info("Removing extension '{$extensionId}'...");
 
-        // Disable first
-        $manager->disable($extensionId);
+        // Disable first when the extension still exists in the master manifest.
+        try {
+            $manager->disable($extensionId);
+        } catch (ExtensionNotFoundException $e) {
+            $this->warn("Extension '{$extensionId}' was missing from the Notur manifest; continuing database and file cleanup.");
+        }
 
         // Roll back migrations
         if (!$this->option('keep-data')) {

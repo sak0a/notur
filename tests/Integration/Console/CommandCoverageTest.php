@@ -165,6 +165,31 @@ class CommandCoverageTest extends TestCase
         ]);
     }
 
+    public function test_remove_command_cleans_up_database_only_extension(): void
+    {
+        InstalledExtension::create([
+            'extension_id' => 'acme/orphaned',
+            'name' => 'Orphaned Extension',
+            'version' => '1.0.0',
+            'enabled' => true,
+            'manifest' => ['id' => 'acme/orphaned'],
+        ]);
+
+        $this->artisan('notur:remove', [
+            'extension' => 'acme/orphaned',
+            '--force' => true,
+            '--no-interaction' => true,
+        ])
+            ->expectsOutput("Removing extension 'acme/orphaned'...")
+            ->expectsOutput("Extension 'acme/orphaned' was missing from the Notur manifest; continuing database and file cleanup.")
+            ->expectsOutput("Extension 'acme/orphaned' has been removed.")
+            ->assertExitCode(0);
+
+        $this->assertDatabaseMissing('notur_extensions', [
+            'extension_id' => 'acme/orphaned',
+        ]);
+    }
+
     public function test_status_command_outputs_json(): void
     {
         InstalledExtension::create([
