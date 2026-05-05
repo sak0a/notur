@@ -17,14 +17,14 @@
     @include('notur::admin.partials.brutalist-styles')
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible">
+        <div class="alert alert-success alert-dismissible" data-testid="notur-flash-success">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
             {{ session('success') }}
         </div>
     @endif
 
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible">
+        <div class="alert alert-danger alert-dismissible" data-testid="notur-flash-error">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
             {{ session('error') }}
         </div>
@@ -354,7 +354,7 @@
                             </a>
                         </div>
                     </div>
-                    <form action="{{ route('admin.notur.extensions.settings', $extension->extension_id) }}" method="POST">
+                    <form action="{{ route('admin.notur.extensions.settings', $extension->extension_id) }}" method="POST" data-testid="extension-settings-form">
                         @csrf
                         <div class="box-body">
                             @if(!empty($settingsSchema['description']))
@@ -383,7 +383,7 @@
                                         $inputType = 'text';
                                     }
                                 @endphp
-                                <div class="form-group {{ $errors->has($fieldKey) ? 'has-error' : '' }}">
+                                <div class="form-group {{ $errors->has($fieldKey) ? 'has-error' : '' }}" data-testid="extension-setting-field" data-setting-key="{{ $fieldKey }}">
                                     <label for="{{ $fieldId }}">
                                         {{ $field['label'] ?? $fieldKey }}
                                         @if(!empty($field['required']))

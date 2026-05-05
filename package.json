@@ -14,9 +14,11 @@
     "build": "npm run build:tailwind && npm run build:bridge && npm run build:sdk",
     "dev:bridge": "npx webpack-cli --mode development --watch --config bridge/webpack.config.js",
     "dev:tailwind": "npx @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css --watch",
-    "test:frontend": "vitest run --config tests/Frontend/vitest.config.js"
+    "test:frontend": "vitest run --config tests/Frontend/vitest.config.js",
+    "test:e2e:browser": "npx playwright test --config=playwright.config.ts"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.2",
     "@tailwindcss/cli": "^4.1.0",
     "@testing-library/react": "^12.1.5",
     "@types/react": "^16.14.0",

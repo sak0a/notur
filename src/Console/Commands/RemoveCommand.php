@@ -15,7 +15,8 @@ class RemoveCommand extends ExtensionLifecycleCommand
 {
     protected $signature = 'notur:remove
         {extension : The extension ID (vendor/name)}
-        {--keep-data : Keep extension data (skip migration rollback)}';
+        {--keep-data : Keep extension data (skip migration rollback)}
+        {--force : Skip confirmation prompts}';
 
     protected $description = 'Remove a Notur extension';
 
@@ -29,7 +30,12 @@ class RemoveCommand extends ExtensionLifecycleCommand
             return 1;
         }
 
-        if (!$this->confirm("Are you sure you want to remove '{$extensionId}'?")) {
+        if (!$this->option('force') && !$this->input->isInteractive()) {
+            $this->error("Non-interactive removal requires --force for extension '{$extensionId}'.");
+            return 1;
+        }
+
+        if (!$this->option('force') && !$this->confirm("Are you sure you want to remove '{$extensionId}'?")) {
             return 0;
         }
 

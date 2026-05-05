@@ -538,6 +538,7 @@ class ExtensionAdminController extends Controller
     {
         $exitCode = Artisan::call('notur:remove', [
             'extension' => $extensionId,
+            '--force' => true,
             '--no-interaction' => true,
         ]);
 

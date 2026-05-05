@@ -143,6 +143,28 @@ class CommandCoverageTest extends TestCase
             ->assertExitCode(1);
     }
 
+    public function test_remove_command_requires_force_when_non_interactive(): void
+    {
+        InstalledExtension::create([
+            'extension_id' => 'acme/test',
+            'name' => 'Test Extension',
+            'version' => '1.0.0',
+            'enabled' => true,
+            'manifest' => ['id' => 'acme/test'],
+        ]);
+
+        $this->artisan('notur:remove', [
+            'extension' => 'acme/test',
+            '--no-interaction' => true,
+        ])
+            ->expectsOutput("Non-interactive removal requires --force for extension 'acme/test'.")
+            ->assertExitCode(1);
+
+        $this->assertDatabaseHas('notur_extensions', [
+            'extension_id' => 'acme/test',
+        ]);
+    }
+
     public function test_status_command_outputs_json(): void
     {
         InstalledExtension::create([
