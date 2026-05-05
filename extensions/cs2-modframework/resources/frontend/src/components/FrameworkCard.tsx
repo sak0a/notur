@@ -8,10 +8,13 @@ interface FrameworkCardProps {
     icon: string;
     status: FrameworkStatus | null;
     version: VersionInfo | null;
+    selectedVersion?: string;
     gameInfoOk?: boolean;
     dependency?: string;
     dependencyInstalled?: boolean;
     isLoading: boolean;
+    disabledReason?: string;
+    onVersionChange?: (version: string) => void;
     onInstall: () => void;
     onUninstall: () => void;
 }
@@ -100,6 +103,16 @@ const versionTextStyle: React.CSSProperties = {
     fontSize: '0.78rem',
 };
 
+const versionInputStyle: React.CSSProperties = {
+    width: '120px',
+    padding: '0.4rem 0.55rem',
+    borderRadius: '6px',
+    border: '1px solid var(--notur-border, rgba(255, 255, 255, 0.12))',
+    background: 'rgba(15, 23, 42, 0.35)',
+    color: 'var(--notur-text-primary, #f0f0f0)',
+    fontSize: '0.78rem',
+};
+
 const footerStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
@@ -156,14 +169,18 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
     icon,
     status,
     version,
+    selectedVersion,
     gameInfoOk,
     dependency,
     dependencyInstalled,
     isLoading,
+    disabledReason,
+    onVersionChange,
     onInstall,
     onUninstall,
 }) => {
     const installed = status?.installed ?? false;
+    const disabled = Boolean(disabledReason);
 
     const iconStyle: React.CSSProperties = {
         ...iconContainerStyle,
@@ -204,12 +221,34 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
                     },
                 }, 'gameinfo.gi entry missing')
                 : null,
+            installed && status?.restart_required
+                ? React.createElement('span', {
+                    style: {
+                        ...baseBadgeStyle,
+                        background: 'rgba(14, 165, 233, 0.1)',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(14, 165, 233, 0.2)',
+                    },
+                }, 'Restart required')
+                : null,
         ),
 
         // Footer: version + action button
         React.createElement('div', { style: footerStyle },
-            React.createElement('span', { style: versionTextStyle },
-                version ? `Latest: v${version.version}` : '',
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '0.35rem' } },
+                React.createElement('span', { style: versionTextStyle },
+                    version ? `Latest: v${version.version}` : 'Latest unavailable',
+                ),
+                !installed && version
+                    ? React.createElement('input', {
+                        style: versionInputStyle,
+                        value: selectedVersion ?? version.version,
+                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => onVersionChange?.(e.target.value),
+                        disabled: isLoading || disabled,
+                        title: 'Version to install',
+                        'aria-label': `${label} version to install`,
+                    })
+                    : null,
             ),
             isLoading
                 ? React.createElement('button', { style: disabledBtnStyle, disabled: true },
@@ -226,6 +265,12 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
                     }),
                     'Working...',
                 )
+                : disabled
+                    ? React.createElement('button', {
+                        style: disabledBtnStyle,
+                        disabled: true,
+                        title: disabledReason,
+                    }, installed ? 'Unavailable' : 'Install')
                 : installed
                     ? React.createElement('button', {
                         style: uninstallBtnStyle,

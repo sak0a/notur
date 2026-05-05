@@ -43,27 +43,38 @@ class GitHubReleaseResolver
         });
     }
 
-    public function resolveSwiftly(): ?array
+    public function resolveSwiftly(?string $version = null): ?array
     {
         return $this->resolveGitHubRelease(
             self::SWIFTLY_REPO,
             fn (string $name) => str_contains($name, 'linux') && str_contains($name, 'with-runtimes') && str_ends_with($name, '.zip'),
+            $version,
         );
     }
 
-    public function resolveCounterStrikeSharp(): ?array
+    public function resolveCounterStrikeSharp(?string $version = null): ?array
     {
         return $this->resolveGitHubRelease(
             self::CSS_REPO,
             fn (string $name) => str_contains($name, 'with-runtime') && str_contains($name, 'linux') && str_ends_with($name, '.zip'),
+            $version,
         );
     }
 
-    public function resolveMetamod(): ?array
+    public function resolveMetamod(?string $version = null): ?array
     {
         try {
-            $response = $this->client->get(self::METAMOD_LATEST_URL);
-            $filename = trim($response->getBody()->__toString());
+            if ($version !== null && $version !== '') {
+                if (preg_match('/^[\d.]+-git\d+$/', $version) !== 1) {
+                    return null;
+                }
+
+                $filename = "mmsource-{$version}-linux.tar.gz";
+                $this->client->head(self::METAMOD_BASE_URL . $filename);
+            } else {
+                $response = $this->client->get(self::METAMOD_LATEST_URL);
+                $filename = trim($response->getBody()->__toString());
+            }
 
             if (empty($filename)) {
                 return null;
@@ -89,10 +100,13 @@ class GitHubReleaseResolver
         }
     }
 
-    private function resolveGitHubRelease(string $repo, callable $assetMatcher): ?array
+    private function resolveGitHubRelease(string $repo, callable $assetMatcher, ?string $version = null): ?array
     {
         try {
-            $response = $this->client->get("https://api.github.com/repos/{$repo}/releases/latest");
+            $endpoint = $version !== null && $version !== ''
+                ? "https://api.github.com/repos/{$repo}/releases/tags/" . (str_starts_with($version, 'v') ? $version : "v{$version}")
+                : "https://api.github.com/repos/{$repo}/releases/latest";
+            $response = $this->client->get($endpoint);
             $release = json_decode($response->getBody()->__toString(), true);
 
             $tagName = $release['tag_name'] ?? null;

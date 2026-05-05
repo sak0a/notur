@@ -7,6 +7,13 @@ module.exports = defineConfig({
         globals: true,
         include: ['tests/Frontend/**/*.{test,spec}.{ts,tsx}'],
         exclude: ['node_modules', 'bridge/dist'],
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'html'],
+            reportsDirectory: 'coverage/frontend',
+            include: ['bridge/src/**/*.{ts,tsx}', 'sdk/src/**/*.{ts,tsx}'],
+            exclude: ['**/*.d.ts'],
+        },
     },
     resolve: {
         alias: {

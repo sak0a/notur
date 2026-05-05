@@ -13,16 +13,18 @@ use Pterodactyl\Repositories\Wings\DaemonFileRepository;
 use Notur\Cs2Modframework\Services\FrameworkInstaller;
 use Notur\Cs2Modframework\Services\GitHubReleaseResolver;
 use Notur\Cs2Modframework\Services\GameInfoModifier;
+use Notur\Cs2Modframework\Services\ServerEligibility;
 
 class ModFrameworkController extends Controller
 {
     public function __construct(
         private readonly DaemonFileRepository $fileRepository,
         private readonly GitHubReleaseResolver $releaseResolver,
+        private readonly ServerEligibility $eligibility,
     ) {
     }
 
-    private function createInstaller(Server $server): FrameworkInstaller
+    private function createInstaller(Server $server, ?array $eligibility = null): FrameworkInstaller
     {
         $repo = clone $this->fileRepository;
         $repo->setServer($server);
@@ -31,6 +33,7 @@ class ModFrameworkController extends Controller
             $repo,
             $this->releaseResolver,
             new GameInfoModifier($repo),
+            $eligibility ?? $this->eligibility->check($server),
         );
     }
 
@@ -52,10 +55,16 @@ class ModFrameworkController extends Controller
     {
         try {
             $serverModel = $this->resolveServer($request);
-            $installer = $this->createInstaller($serverModel);
+            $eligibility = $this->eligibility->check($serverModel);
+            $installer = $this->createInstaller($serverModel, $eligibility);
 
             return response()->json([
-                'data' => $installer->getStatus(),
+                'data' => $installer->getStatus() + [
+                    'server' => [
+                        'supported' => $eligibility['supported'],
+                        'reason' => $eligibility['reason'],
+                    ],
+                ],
             ]);
         } catch (\Throwable $e) {
             Log::error("[Notur cs2-modframework] status error: {$e->getMessage()}", [
@@ -90,13 +99,22 @@ class ModFrameworkController extends Controller
     {
         $request->validate([
             'framework' => 'required|string|in:swiftly,counterstrikesharp,metamod',
+            'version' => 'nullable|string|max:64',
         ]);
 
         try {
             $serverModel = $this->resolveServer($request);
-            $installer = $this->createInstaller($serverModel);
+            $eligibility = $this->eligibility->check($serverModel);
+            if (!$eligibility['supported']) {
+                return response()->json([
+                    'message' => $eligibility['reason'] ?? 'This server is not eligible for CS2 mod framework installation.',
+                ], 422);
+            }
 
-            $result = $installer->install($request->input('framework'));
+            $installer = $this->createInstaller($serverModel, $eligibility);
+
+            $version = $request->filled('version') ? trim((string) $request->input('version')) : null;
+            $result = $installer->install($request->input('framework'), $version);
 
             return response()->json(['data' => $result]);
         } catch (\Throwable $e) {
@@ -120,7 +138,14 @@ class ModFrameworkController extends Controller
 
         try {
             $serverModel = $this->resolveServer($request);
-            $installer = $this->createInstaller($serverModel);
+            $eligibility = $this->eligibility->check($serverModel);
+            if (!$eligibility['supported']) {
+                return response()->json([
+                    'message' => $eligibility['reason'] ?? 'This server is not eligible for CS2 mod framework management.',
+                ], 422);
+            }
+
+            $installer = $this->createInstaller($serverModel, $eligibility);
 
             $result = $installer->uninstall($request->input('framework'));
 

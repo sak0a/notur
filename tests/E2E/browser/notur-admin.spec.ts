@@ -332,6 +332,15 @@ test.describe.serial('Notur admin browser E2E', () => {
 
         await expect(page.getByText('Hello World Extension')).toBeVisible({ timeout: 20_000 });
         await expect(page.getByText('Hello from Notur!')).toBeVisible();
+
+        await page.evaluate(() => {
+            window.history.pushState({}, '', '/hello');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+        });
+
+        await expect(page).toHaveURL(/\/hello$/);
+        await expect(page.getByRole('heading', { name: 'Hello World' })).toBeVisible();
+        await expect(page.getByText('This is a full page rendered by the notur/hello-world extension.')).toBeVisible();
     });
 
     test('extension API rejects guests and responds for authenticated panel users', async ({ browser }) => {
@@ -346,7 +355,7 @@ test.describe.serial('Notur admin browser E2E', () => {
                 },
             );
 
-            expect(guestResponse.status()).not.toBe(200);
+            expect([302, 401, 403]).toContain(guestResponse.status());
         } finally {
             await guestContext.close();
         }
@@ -359,6 +368,24 @@ test.describe.serial('Notur admin browser E2E', () => {
         expect(response.status()).toBe(200);
         expect(payload.message).toBe('Hello from Notur!');
         expect(payload.extension).toBe(HELLO_WORLD_ID);
+
+        const userContext = await browser.newContext();
+        const userPage = await userContext.newPage();
+
+        try {
+            await loginAs(userPage, NON_ADMIN_EMAIL, NON_ADMIN_PASSWORD);
+
+            const userResponse = await userPage.request.get('/api/client/notur/notur/hello-world/greet', {
+                failOnStatusCode: false,
+            });
+            const userPayload = await userResponse.json();
+
+            expect(userResponse.status()).toBe(200);
+            expect(userPayload.message).toBe('Hello from Notur!');
+            expect(userPayload.extension).toBe(HELLO_WORLD_ID);
+        } finally {
+            await userContext.close();
+        }
     });
 
     test('extension details page loads', async () => {
@@ -648,6 +675,33 @@ test.describe.serial('Notur admin browser E2E', () => {
         } finally {
             rmSync(dirname(archivePath), { recursive: true, force: true });
         }
+    });
+
+    test('install extension from registry id via admin UI', async () => {
+        const page = adminPage;
+
+        await page.locator('input[name="registry_id"]').fill(HELLO_WORLD_ID);
+        await page.locator('form', { has: page.locator('input[name="registry_id"]') }).getByRole('button', { name: 'Install' }).click();
+
+        await expectFlashSuccess(page, 'Extension installed successfully.');
+        await expect(page.locator('[data-testid="notur-flash-success"]')).toContainText('Registry checksum verified.');
+        await expect(extensionRow(page, HELLO_WORLD_ID)).toContainText('Hello World');
+        await expect
+            .poll(() =>
+                mysqlScalar(
+                    `SELECT COUNT(*) FROM notur_extensions WHERE extension_id='${escapeSql(HELLO_WORLD_ID)}';`,
+                ),
+            )
+            .toBe('1');
+        await expect.poll(async () =>
+            extensionRouteStatus(page, '/api/client/notur/notur/hello-world/greet'),
+        ).toBe(200);
+
+        page.once('dialog', (dialog) => dialog.accept());
+        await extensionRow(page, HELLO_WORLD_ID).getByRole('button', { name: `Remove ${HELLO_WORLD_ID}` }).click();
+        await expect(page.locator('[data-testid="notur-flash-success"]')).toContainText(
+            `Extension '${HELLO_WORLD_ID}' has been removed.`,
+        );
     });
 });
 

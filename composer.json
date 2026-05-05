@@ -53,6 +53,12 @@
     "config": {
         "sort-packages": true
     },
+    "scripts": {
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite Unit",
+        "test:integration": "phpunit --testsuite Integration",
+        "test:coverage": "XDEBUG_MODE=coverage phpunit --coverage-text --coverage-html coverage/php"
+    },
     "minimum-stability": "dev",
     "prefer-stable": true
 }

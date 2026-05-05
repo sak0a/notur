@@ -34,6 +34,7 @@ class FrameworkInstaller
         private readonly DaemonFileRepository $fileRepository,
         private readonly GitHubReleaseResolver $releaseResolver,
         private readonly GameInfoModifier $gameInfoModifier,
+        private readonly array $serverEligibility = ['supported' => true, 'reason' => null],
     ) {
     }
 
@@ -48,19 +49,28 @@ class FrameworkInstaller
             $status[$framework] = [
                 'installed' => $installed,
                 'directory' => $installed ? "game/csgo/addons/{$dir}" : null,
+                'restart_required' => $installed,
             ];
         }
 
         $status['gameinfo_entries'] = [];
         foreach (self::GAMEINFO_ENTRIES as $framework => $entry) {
-            $status['gameinfo_entries'][$framework] = $gameinfoContent !== null && str_contains($gameinfoContent, $entry);
+            $status['gameinfo_entries'][$framework] = $gameinfoContent !== null && GameInfoModifier::hasEntryInContent($gameinfoContent, $entry);
         }
 
         return $status;
     }
 
-    public function install(string $framework): array
+    public function install(string $framework, ?string $version = null): array
     {
+        if (!$this->isEligible()) {
+            return [
+                'success' => false,
+                'framework' => $framework,
+                'message' => $this->serverEligibility['reason'] ?? 'This server is not eligible for CS2 mod framework installation.',
+            ];
+        }
+
         $label = self::FRAMEWORK_LABELS[$framework];
 
         // CSS requires Metamod — auto-install if missing
@@ -78,11 +88,19 @@ class FrameworkInstaller
             }
         }
 
-        return $this->doInstall($framework);
+        return $this->doInstall($framework, $version);
     }
 
     public function uninstall(string $framework): array
     {
+        if (!$this->isEligible()) {
+            return [
+                'success' => false,
+                'framework' => $framework,
+                'message' => $this->serverEligibility['reason'] ?? 'This server is not eligible for CS2 mod framework management.',
+            ];
+        }
+
         $label = self::FRAMEWORK_LABELS[$framework];
 
         // Warn if trying to uninstall Metamod while CSS is installed
@@ -100,8 +118,16 @@ class FrameworkInstaller
         $dir = self::FRAMEWORK_DIRS[$framework];
 
         try {
-            // Delete the framework directory
-            $this->fileRepository->deleteFiles(self::ADDONS_DIR, [$dir]);
+            $addons = $this->listAddons();
+            if (!$this->dirExistsInList($addons, $dir)) {
+                return [
+                    'success' => true,
+                    'framework' => $framework,
+                    'message' => "{$label} is not installed.",
+                ];
+            }
+
+            $backupDir = $this->backupFrameworkDirectory($dir);
 
             // Remove gameinfo.gi entry if applicable
             $entry = self::GAMEINFO_ENTRIES[$framework] ?? null;
@@ -117,9 +143,10 @@ class FrameworkInstaller
             return [
                 'success' => true,
                 'framework' => $framework,
-                'message' => "{$label} uninstalled successfully.",
+                'backup' => "game/csgo/addons/{$backupDir}",
+                'message' => "{$label} uninstalled safely. Existing files were moved to game/csgo/addons/{$backupDir}.",
             ];
-        } catch (DaemonConnectionException $e) {
+        } catch (\Throwable $e) {
             Log::error("CS2 ModFramework: Failed to uninstall {$framework}", [
                 'error' => $e->getMessage(),
             ]);
@@ -132,22 +159,24 @@ class FrameworkInstaller
         }
     }
 
-    private function doInstall(string $framework): array
+    private function doInstall(string $framework, ?string $version = null): array
     {
         $label = self::FRAMEWORK_LABELS[$framework];
 
         // Resolve download info
         $release = match ($framework) {
-            'swiftly' => $this->releaseResolver->resolveSwiftly(),
-            'counterstrikesharp' => $this->releaseResolver->resolveCounterStrikeSharp(),
-            'metamod' => $this->releaseResolver->resolveMetamod(),
+            'swiftly' => $this->releaseResolver->resolveSwiftly($version),
+            'counterstrikesharp' => $this->releaseResolver->resolveCounterStrikeSharp($version),
+            'metamod' => $this->releaseResolver->resolveMetamod($version),
         };
 
         if ($release === null) {
             return [
                 'success' => false,
                 'framework' => $framework,
-                'message' => "Could not resolve latest {$label} release. Please try again later.",
+                'message' => $version
+                    ? "Could not resolve {$label} release {$version}. Check the version and try again."
+                    : "Could not resolve latest {$label} release. Please try again later.",
             ];
         }
 
@@ -180,7 +209,7 @@ class FrameworkInstaller
                 'version' => $version,
                 'message' => "{$label} v{$version} installed successfully.",
             ];
-        } catch (DaemonConnectionException $e) {
+        } catch (\Throwable $e) {
             Log::error("CS2 ModFramework: Failed to install {$framework}", [
                 'error' => $e->getMessage(),
                 'url' => $downloadUrl,
@@ -208,7 +237,7 @@ class FrameworkInstaller
             $metamodDir = $this->fileRepository->getDirectory(self::ADDONS_DIR . '/metamod');
             foreach ($metamodDir as $file) {
                 $name = $file['name'] ?? '';
-                if (str_contains(strtolower($name), 'counterstrikesharp') && str_ends_with($name, '.vdf')) {
+                if (strtolower($name) === 'counterstrikesharp.vdf') {
                     $this->fileRepository->deleteFiles(self::ADDONS_DIR . '/metamod', [$name]);
                 }
             }
@@ -244,5 +273,22 @@ class FrameworkInstaller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function backupFrameworkDirectory(string $dir): string
+    {
+        $backupDir = $dir . '.notur-backup-' . gmdate('Ymd-His');
+
+        $this->fileRepository->renameFiles(self::ADDONS_DIR, [[
+            'from' => $dir,
+            'to' => $backupDir,
+        ]]);
+
+        return $backupDir;
+    }
+
+    private function isEligible(): bool
+    {
+        return (bool) ($this->serverEligibility['supported'] ?? false);
     }
 }

@@ -55,11 +55,5 @@ createExtension({
             name: 'Mod Frameworks',
             component: ModFrameworkPage,
         },
-        {
-            area: 'server',
-            path: '/server/:id/mod-frameworks',
-            name: 'Mod Frameworks (compat)',
-            component: ModFrameworkPage,
-        },
     ],
 });
