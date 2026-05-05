@@ -107,6 +107,8 @@ bash docker/e2e/run-e2e.sh --no-cache --rebuild-base
 
 The reusable local base image is named `notur/e2e-base:php8.2-node22-panel1.12.2`. It contains the slow-moving E2E dependencies: PHP extensions, system packages, Node.js, Bun, Composer, the Pterodactyl panel tarball, and browser runtime libraries. Normal runs reuse it and only rebuild the lightweight repo-specific layers. If the base image is missing, `run-e2e.sh` fails with instructions instead of silently downloading all packages again.
 
+GitHub Actions uses the published GHCR base image `ghcr.io/sak0a/notur-e2e-base:php8.2-node22-panel1.12.2` instead of rebuilding that slow layer on every PR. Publish or refresh it manually from the `Publish E2E Base Image` workflow after changing `docker/e2e/Dockerfile.base` or the PHP/Node/panel version tuple.
+
 The default `all` suite runs the shell and browser E2E suites against a bootstrapped Notur panel. The `install-uninstall` suite is intentionally explicit because it destructively removes Notur from the panel while verifying that the underlying Pterodactyl installation remains usable.
 
 Seeded admin credentials inside the E2E environment:

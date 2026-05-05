@@ -19,6 +19,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/e2e.yml'
+      - '.github/workflows/e2e-base-image.yml'
   pull_request:
     branches: [master]
     paths:
@@ -37,7 +38,17 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/e2e.yml'
+      - '.github/workflows/e2e-base-image.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  E2E_BASE_IMAGE: ghcr.io/${{ github.repository_owner }}/notur-e2e-base:php8.2-node22-panel1.12.2
+  E2E_APP_IMAGE: notur/e2e-app:ci
+  E2E_TEST_RUNNER_IMAGE: notur/e2e-test-runner:ci
 
 jobs:
   e2e:
@@ -51,15 +62,20 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build E2E base image
-        uses: docker/build-push-action@v6
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          context: .
-          file: docker/e2e/Dockerfile.base
-          load: true
-          tags: notur/e2e-base:php8.2-node22-panel1.12.2
-          cache-from: type=gha,scope=e2e-base
-          cache-to: type=gha,scope=e2e-base,mode=max
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull E2E base image
+        run: |
+          docker pull "$E2E_BASE_IMAGE" || {
+            echo "::error::Missing E2E base image: $E2E_BASE_IMAGE"
+            echo "::error::Run the 'Publish E2E Base Image' workflow first."
+            exit 1
+          }
 
       - name: Build E2E app image
         uses: docker/build-push-action@v6
@@ -68,9 +84,9 @@ jobs:
           file: docker/e2e/Dockerfile
           target: app
           load: true
-          tags: notur/e2e-app:ci
+          tags: ${{ env.E2E_APP_IMAGE }}
           build-args: |
-            E2E_BASE_IMAGE=notur/e2e-base:php8.2-node22-panel1.12.2
+            E2E_BASE_IMAGE=${{ env.E2E_BASE_IMAGE }}
           cache-from: type=gha,scope=e2e-app
           cache-to: type=gha,scope=e2e-app,mode=max
 
@@ -81,17 +97,13 @@ jobs:
           file: docker/e2e/Dockerfile
           target: test-runner
           load: true
-          tags: notur/e2e-test-runner:ci
+          tags: ${{ env.E2E_TEST_RUNNER_IMAGE }}
           build-args: |
-            E2E_BASE_IMAGE=notur/e2e-base:php8.2-node22-panel1.12.2
+            E2E_BASE_IMAGE=${{ env.E2E_BASE_IMAGE }}
           cache-from: type=gha,scope=e2e-test-runner
           cache-to: type=gha,scope=e2e-test-runner,mode=max
 
       - name: Run shell and browser E2E tests
-        env:
-          E2E_APP_IMAGE: notur/e2e-app:ci
-          E2E_TEST_RUNNER_IMAGE: notur/e2e-test-runner:ci
-          E2E_BASE_IMAGE: notur/e2e-base:php8.2-node22-panel1.12.2
         run: bash docker/e2e/run-e2e.sh --no-build --keep
 
       - name: Reset E2E containers before install/uninstall suite
@@ -100,10 +112,6 @@ jobs:
           docker compose down -v --remove-orphans 2>/dev/null || true
 
       - name: Run install/uninstall E2E tests
-        env:
-          E2E_APP_IMAGE: notur/e2e-app:ci
-          E2E_TEST_RUNNER_IMAGE: notur/e2e-test-runner:ci
-          E2E_BASE_IMAGE: notur/e2e-base:php8.2-node22-panel1.12.2
         run: bash docker/e2e/run-e2e.sh --no-build --suite install-uninstall --keep
 
       - name: Collect logs on failure
