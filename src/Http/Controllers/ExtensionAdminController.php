@@ -471,12 +471,12 @@ class ExtensionAdminController extends Controller
                 $tmpPath = sys_get_temp_dir() . '/notur-upload-' . uniqid('', true) . '.notur';
                 $uploadedFile->move(dirname($tmpPath), basename($tmpPath));
 
-                $exitCode = Artisan::call('notur:install', [
+                $exitCode = Artisan::call('notur:add', [
                     'extension' => $tmpPath,
                     '--force' => true,
                 ]);
             } else {
-                $exitCode = Artisan::call('notur:install', [
+                $exitCode = Artisan::call('notur:add', [
                     'extension' => $registryId,
                     '--force' => true,
                 ]);
@@ -530,7 +530,7 @@ class ExtensionAdminController extends Controller
         } catch (\Throwable $e) {
             return redirect()
                 ->route('admin.notur.extensions')
-                ->with('error', 'Removal failed: ' . $e->getMessage());
+                ->with('error', 'Installation failed: ' . $e->getMessage());
         }
     }
 

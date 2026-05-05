@@ -23,7 +23,7 @@ The registry is a static JSON file (`registry.json`) hosted on a GitHub reposito
 
 1. **Sync**: `php artisan notur:registry:sync` fetches `registry.json` from the configured registry URL and caches it locally at `storage/notur/registry-cache.json`. The cache TTL is configurable.
 2. **Search**: `php artisan notur:registry:sync --search "analytics"` searches the cached (or freshly fetched) index by ID, name, description, and tags.
-3. **Install**: `php artisan notur:install acme/analytics` looks up the extension in the registry, downloads the `.notur` archive from its GitHub release, and installs it.
+3. **Install**: `php artisan notur:add acme/analytics` looks up the extension in the registry, downloads the `.notur` archive from its GitHub release, and installs it.
 4. **Update**: `php artisan notur:update` compares installed versions against the registry and offers to update any extensions with newer versions available.
 5. **Status**: `php artisan notur:registry:status` shows cache age, TTL, size, and extension count.
 
@@ -325,7 +325,7 @@ Notur supports Ed25519 signatures on `.notur` archives to verify their integrity
 
 1. The publisher signs the archive with their Ed25519 secret key.
 2. The signature is stored in a `.sig` file alongside the archive.
-3. When `notur.require_signatures` is `true`, the `InstallCommand` verifies the signature using the configured public key before installation.
+3. When `notur.require_signatures` is `true`, the `AddCommand` verifies the signature using the configured public key before installation.
 4. If verification fails, installation is aborted.
 
 ### Configuration

@@ -53,7 +53,7 @@ if ! mysql_notur_tables | grep -q "notur_extensions"; then
 fi
 
 echo "[E2E] Running non-interactive Notur uninstall..."
-COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_DISABLE_AUDIT=1 php artisan notur:uninstall --confirm --no-interaction
+COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_DISABLE_AUDIT=1 php artisan notur:framework:uninstall --confirm --no-interaction
 
 echo "[E2E] Verifying panel still responds after Notur uninstall..."
 panel_available

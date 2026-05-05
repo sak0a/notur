@@ -82,7 +82,7 @@ A `.notur` file is a tar.gz archive containing:
 
 Upload the `.notur` file via:
 1. **Admin UI** (recommended): Navigate to `/admin/notur/extensions` and use the upload form
-2. **CLI**: `php artisan notur:install /path/to/extension.notur`
+2. **CLI**: `php artisan notur:add /path/to/extension.notur`
 
 ---
 

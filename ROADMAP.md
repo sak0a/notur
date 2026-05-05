@@ -2,7 +2,7 @@
 
 ## Phase 2: CLI + Extension Lifecycle
 
-- [x] **`notur:uninstall` command** — Full framework removal:
+- [x] **`notur:framework:uninstall` command** — Full framework removal:
   - Restore patched React files from `.notur-backup` copies
   - Roll back all Notur database migrations (4 tables)
   - Remove Blade injection (`@include('notur::scripts')`)
@@ -10,7 +10,7 @@
   - Run `composer remove notur/notur`
   - Trigger frontend rebuild (`bun run build:production`)
 - [x] **Reverse patches** — Generate and ship reverse `.patch` files for each React patch so uninstall can cleanly revert without relying on backup copies
-- [x] **`notur:install` command** — Install extensions from registry or local path
+- [x] **`notur:add` command** — Install extensions from registry or local path
 - [x] **`notur:remove` command** — Remove an installed extension (rollback migrations, delete files, update manifest)
 - [x] **`notur:enable` / `notur:disable`** — Toggle extensions without removing files
 - [x] **`notur:update`** — Update an extension to a newer version (run new migrations, swap files)

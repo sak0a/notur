@@ -697,7 +697,7 @@ Navigate to `/admin/notur/extensions` in your Pterodactyl panel and upload the `
 **Via CLI:**
 
 ```bash
-php artisan notur:install /path/to/acme-server-analytics-1.0.0.notur
+php artisan notur:add /path/to/acme-server-analytics-1.0.0.notur
 ```
 
 ## Available Frontend Slots

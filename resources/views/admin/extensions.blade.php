@@ -210,7 +210,7 @@
                     @if($extensions->isEmpty())
                         <div class="callout callout-info m-[15px]">
                             <p>No extensions are installed. Use the form above or the command line:</p>
-                            <code>php artisan notur:install vendor/extension-name</code>
+                            <code>php artisan notur:add vendor/extension-name</code>
                         </div>
                     @else
                         <table class="table table-hover" data-testid="installed-extensions-table">

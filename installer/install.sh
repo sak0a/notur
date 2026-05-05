@@ -1409,10 +1409,10 @@ info "Web user: ${WEB_USER}"
 echo ""
 info "Next steps:"
 if is_docker_env; then
-    info "  Install an extension:  docker exec -it <container> php artisan notur:install vendor/name"
+    info "  Install an extension:  docker exec -it <container> php artisan notur:add vendor/name"
     info "  List extensions:       docker exec -it <container> php artisan notur:list"
 else
-    info "  Install an extension:  php artisan notur:install vendor/name"
+    info "  Install an extension:  php artisan notur:add vendor/name"
     info "  List extensions:       php artisan notur:list"
 fi
 info "  Manage extensions:     Browse to /admin/notur/extensions"

@@ -48,8 +48,8 @@ All notable changes to the Notur Extension Library are documented here.
 ### Changed
 - **`ExtensionManager` refactored** — Entrypoint resolution extracted to `EntrypointResolver` (~300 lines moved). Manager reduced from 803 to 567 lines.
 - **`NewCommand` refactored** — File-writing logic extracted to `ScaffoldGenerator` (~690 lines moved). Command reduced from 1,031 to 326 lines.
-- **`InstallCommand` / `RemoveCommand`** — Now extend `ExtensionLifecycleCommand` base class with shared `clearNoturCaches()` and `removeExtensionFiles()`.
-- **`UninstallCommand`** — Uses `ManagesFilesystem` trait instead of duplicated `deleteDirectory()`.
+- **`AddCommand` / `RemoveCommand`** — Now extend `ExtensionLifecycleCommand` base class with shared `clearNoturCaches()` and `removeExtensionFiles()`.
+- **`FrameworkUninstallCommand`** — Uses `ManagesFilesystem` trait instead of duplicated `deleteDirectory()`.
 - **`ExtensionManifest`** — Throws `ManifestException` instead of `InvalidArgumentException`.
 - **`DependencyResolver`** — Throws `DependencyResolutionException` instead of `RuntimeException`.
 - **`ErrorBoundary`** — Uses `recordDiagnosticError()` instead of direct array push.
@@ -147,9 +147,9 @@ All notable changes to the Notur Extension Library are documented here.
 ## Phase 2: CLI + Extension Lifecycle
 
 ### Added
-- **`notur:uninstall` command** -- Complete framework removal: restores patched files, rolls back migrations, removes Blade injection, deletes directories, removes Composer package, triggers frontend rebuild.
+- **`notur:framework:uninstall` command** -- Complete framework removal: restores patched files, rolls back migrations, removes Blade injection, deletes directories, removes Composer package, triggers frontend rebuild.
 - **Reverse patches** -- Shipped reverse `.patch` files for each React patch to enable clean uninstallation without relying on backup copies.
-- **`notur:install` command** -- Install extensions from the registry (by ID) or from local `.notur` archive files. Supports `--force` for reinstallation and `--no-migrate` to skip migrations.
+- **`notur:add` command** -- Install extensions from the registry (by ID) or from local `.notur` archive files. Supports `--force` for reinstallation and `--no-migrate` to skip migrations.
 - **`notur:remove` command** -- Remove an installed extension: disables it, rolls back its migrations (unless `--keep-data`), deletes files, and updates the manifest.
 - **`notur:enable` / `notur:disable` commands** -- Toggle extensions on/off without removing files or data. Dispatches `ExtensionEnabled` / `ExtensionDisabled` events and clears the cache.
 - **`notur:update` command** -- Check for and install extension updates from the registry. Supports `--check` for dry-run mode and updating individual or all extensions.

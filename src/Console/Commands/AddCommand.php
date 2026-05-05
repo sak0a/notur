@@ -15,14 +15,14 @@ use Notur\Support\NoturArchive;
 use Notur\Support\RegistryClient;
 use Notur\Support\SignatureVerifier;
 
-class InstallCommand extends ExtensionLifecycleCommand
+class AddCommand extends ExtensionLifecycleCommand
 {
-    protected $signature = 'notur:install
+    protected $signature = 'notur:add
         {extension : The extension ID (vendor/name) or path to a .notur file}
         {--force : Overwrite if already installed}
         {--no-migrate : Skip running migrations}';
 
-    protected $description = 'Install a Notur extension';
+    protected $description = 'Add a Notur extension';
 
     public function handle(
         ExtensionManager $manager,

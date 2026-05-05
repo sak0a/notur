@@ -26,7 +26,7 @@ Every subsequent phase should keep these gates green unless a phase explicitly u
 
 1. `./vendor/bin/phpunit --display-warnings` must pass.
 2. `npm run test:frontend -- --runInBand` must pass.
-3. `notur:install` must reject archives with missing/invalid checksums by default.
+3. `notur:add` must reject archives with missing/invalid checksums by default.
 4. Signature-required installs from registry must fail fast on missing/invalid `.sig`.
 5. `notur:new` frontend scaffolds must not hardcode Bun-only commands.
 6. CI frontend test step must not ignore failures.

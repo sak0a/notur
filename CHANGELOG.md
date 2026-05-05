@@ -34,7 +34,7 @@ All notable changes to the Notur Extension Library will be documented in this fi
 - **Installer Git safe.directory handling**: bind-mounted Docker installs no longer emit Composer/Git “dubious ownership” failures for `/app`.
 - **Installer Yarn recovery**: if Yarn is selected but cannot parse/install the existing lockfile while another supported lockfile manager is also present, the installer can fall back cleanly instead of aborting immediately.
 - **Admin extension removal feedback**: web-triggered extension removal now respects the `notur:remove` exit code and surfaces failures back to the UI instead of always claiming success.
-- Missing reverse patches for `index.tsx` and `admin.blade.php` so `notur:uninstall` now restores the panel to pristine source.
+- Missing reverse patches for `index.tsx` and `admin.blade.php` so `notur:framework:uninstall` now restores the panel to pristine source.
 - Malformed third hunk in `FileManager.tsx.patch` that emitted a "No such line 117" warning during install.
 
 ## [1.3.2] - 2026-04-03
@@ -74,8 +74,8 @@ All notable changes to the Notur Extension Library will be documented in this fi
 
 - **`ExtensionManager` refactored** — Entrypoint resolution extracted to `EntrypointResolver` (~300 lines moved). Manager reduced from 803 to 567 lines.
 - **`NewCommand` refactored** — File-writing logic extracted to `ScaffoldGenerator` (~690 lines moved). Command reduced from 1,031 to 326 lines.
-- **`InstallCommand` / `RemoveCommand`** — Now extend `ExtensionLifecycleCommand` base class with shared `clearNoturCaches()` and `removeExtensionFiles()`.
-- **`UninstallCommand`** — Uses `ManagesFilesystem` trait instead of duplicated `deleteDirectory()`.
+- **`AddCommand` / `RemoveCommand`** — Now extend `ExtensionLifecycleCommand` base class with shared `clearNoturCaches()` and `removeExtensionFiles()`.
+- **`FrameworkUninstallCommand`** — Uses `ManagesFilesystem` trait instead of duplicated `deleteDirectory()`.
 - **`ExtensionManifest`** — Throws `ManifestException` instead of `InvalidArgumentException`.
 - **`DependencyResolver`** — Throws `DependencyResolutionException` instead of `RuntimeException`.
 - **`ErrorBoundary`** — Uses `recordDiagnosticError()` instead of direct array push.

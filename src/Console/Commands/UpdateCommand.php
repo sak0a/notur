@@ -56,7 +56,7 @@ class UpdateCommand extends Command
         }
 
         // Reinstall with --force to update
-        return $this->call('notur:install', [
+        return $this->call('notur:add', [
             'extension' => $extensionId,
             '--force' => true,
         ]);
@@ -108,7 +108,7 @@ class UpdateCommand extends Command
         }
 
         foreach ($updates as $update) {
-            $this->call('notur:install', [
+            $this->call('notur:add', [
                 'extension' => $update['id'],
                 '--force' => true,
             ]);
