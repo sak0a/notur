@@ -4,6 +4,12 @@ All notable changes to the Notur Extension Library will be documented in this fi
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-05-05
+
+### Fixed
+
+- Extension removal now cleans up database-only orphaned extensions when `notur_extensions` still contains a row but `notur/extensions.json` no longer contains the extension entry.
+
 ## [1.4.0] - 2026-05-03
 
 ### Breaking
