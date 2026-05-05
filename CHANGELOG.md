@@ -4,6 +4,10 @@ All notable changes to the Notur Extension Library will be documented in this fi
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped `notur/cs2-modframework` extension metadata to v1.1.0.
+
 ## [1.4.2] - 2026-05-05
 
 ### Fixed

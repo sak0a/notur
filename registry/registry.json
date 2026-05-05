@@ -21,11 +21,11 @@
             "id": "notur/cs2-modframework",
             "name": "CS2 Mod Frameworks",
             "description": "One-click install of SwiftlyS2, CounterStrikeSharp & Metamod for CS2 servers.",
-            "version": "1.0.4",
+            "version": "1.1.0",
             "author": "Notur Team",
             "license": "MIT",
             "repository": "https://github.com/sak0a/notur",
-            "archive_url": "https://github.com/sak0a/notur/releases/download/cs2-modframework-v1.0.4/notur-cs2-modframework-1.0.4.notur",
+            "archive_url": "https://github.com/sak0a/notur/releases/download/cs2-modframework-v1.1.0/notur-cs2-modframework-1.1.0.notur",
             "tags": ["cs2", "modding", "counterstrikesharp", "metamod", "swiftly"],
             "compatibility": {
                 "notur": ">=1.0.0",
