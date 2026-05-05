@@ -47,7 +47,6 @@ permissions:
 
 env:
   E2E_BASE_IMAGE: ghcr.io/${{ github.repository_owner }}/notur-e2e-base:php8.2-node22-panel1.12.2
-  E2E_FALLBACK_BASE_IMAGE: notur/e2e-base:php8.2-node22-panel1.12.2
   E2E_APP_IMAGE: notur/e2e-app:ci
   E2E_TEST_RUNNER_IMAGE: notur/e2e-test-runner:ci
 
@@ -70,29 +69,13 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve E2E base image
-        id: base
+      - name: Pull E2E base image
         run: |
-          if docker pull "$E2E_BASE_IMAGE"; then
-            echo "image=$E2E_BASE_IMAGE" >> "$GITHUB_OUTPUT"
-            echo "build=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::Missing E2E base image: $E2E_BASE_IMAGE"
-            echo "::warning::Run the 'Publish E2E Base Image' workflow to avoid rebuilding the base layer."
-            echo "image=$E2E_FALLBACK_BASE_IMAGE" >> "$GITHUB_OUTPUT"
-            echo "build=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Build fallback E2E base image
-        if: steps.base.outputs.build == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/e2e/Dockerfile.base
-          load: true
-          tags: ${{ env.E2E_FALLBACK_BASE_IMAGE }}
-          cache-from: type=gha,scope=e2e-base
-          cache-to: type=gha,scope=e2e-base,mode=max
+          docker pull "$E2E_BASE_IMAGE" || {
+            echo "::error::Missing E2E base image: $E2E_BASE_IMAGE"
+            echo "::error::Run the 'Publish E2E Base Image' workflow first."
+            exit 1
+          }
 
       - name: Build E2E app image
         uses: docker/build-push-action@v6
@@ -103,7 +86,7 @@ jobs:
           load: true
           tags: ${{ env.E2E_APP_IMAGE }}
           build-args: |
-            E2E_BASE_IMAGE=${{ steps.base.outputs.image }}
+            E2E_BASE_IMAGE=${{ env.E2E_BASE_IMAGE }}
           cache-from: type=gha,scope=e2e-app
           cache-to: type=gha,scope=e2e-app,mode=max
 
@@ -116,7 +99,7 @@ jobs:
           load: true
           tags: ${{ env.E2E_TEST_RUNNER_IMAGE }}
           build-args: |
-            E2E_BASE_IMAGE=${{ steps.base.outputs.image }}
+            E2E_BASE_IMAGE=${{ env.E2E_BASE_IMAGE }}
           cache-from: type=gha,scope=e2e-test-runner
           cache-to: type=gha,scope=e2e-test-runner,mode=max
 
