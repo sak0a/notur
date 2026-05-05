@@ -59,7 +59,45 @@ cp -R /opt/notur/examples/hello-world /tmp/hello-world-src
 php -r 'require "vendor/autoload.php"; \Notur\Support\NoturArchive::pack("/tmp/hello-world-src", "/tmp/hello-world.notur");'
 mkdir -p public/notur/e2e-registry storage/notur
 cp /tmp/hello-world.notur public/notur/e2e-registry/hello-world.notur
-php -r '$archive="/tmp/hello-world.notur"; $registry=["fetched_at"=>gmdate("Y-m-d\\TH:i:s\\Z"), "registry"=>["version"=>"1.0.0", "extensions"=>[["id"=>"notur/hello-world", "name"=>"Hello World", "description"=>"E2E registry fixture for archive-backed installs.", "version"=>"1.0.0", "archive_url"=>"http://127.0.0.1/notur/e2e-registry/hello-world.notur", "sha256"=>hash_file("sha256", $archive), "tags"=>["e2e", "fixture"]]]]]; file_put_contents("storage/notur/registry-cache.json", json_encode($registry, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);'
+php <<'PHP'
+<?php
+
+$archive = '/tmp/hello-world.notur';
+$cachePath = 'storage/notur/registry-cache.json';
+$checksum = hash_file('sha256', $archive);
+
+if ($checksum === false) {
+    fwrite(STDERR, "Failed to hash {$archive}\n");
+    exit(1);
+}
+
+$registry = [
+    'fetched_at' => gmdate('Y-m-d\TH:i:s\Z'),
+    'registry' => [
+        'version' => '1.0.0',
+        'extensions' => [[
+            'id' => 'notur/hello-world',
+            'name' => 'Hello World',
+            'description' => 'E2E registry fixture for archive-backed installs.',
+            'version' => '1.0.0',
+            'archive_url' => 'http://127.0.0.1/notur/e2e-registry/hello-world.notur',
+            'sha256' => $checksum,
+            'tags' => ['e2e', 'fixture'],
+        ]],
+    ],
+];
+
+$json = json_encode($registry, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+if ($json === false) {
+    fwrite(STDERR, 'Failed to encode E2E registry cache: ' . json_last_error_msg() . "\n");
+    exit(1);
+}
+
+if (file_put_contents($cachePath, $json . PHP_EOL) === false) {
+    fwrite(STDERR, "Failed to write {$cachePath}\n");
+    exit(1);
+}
+PHP
 php artisan notur:add /tmp/hello-world.notur --force
 
 rm -rf notur/extensions/notur/full-extension
