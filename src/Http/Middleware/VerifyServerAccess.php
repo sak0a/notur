@@ -6,6 +6,7 @@ namespace Notur\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -26,6 +27,7 @@ class VerifyServerAccess
     public function handle(Request $request, Closure $next, string $parameterName = 'server'): Response
     {
         $serverIdentifier = $request->route($parameterName);
+        $serverLabel = $this->serverLabel($serverIdentifier);
 
         if ($serverIdentifier === null || $serverIdentifier === '') {
             return $this->errorResponse($request, 404, 'Server identifier required.');
@@ -45,19 +47,19 @@ class VerifyServerAccess
         try {
             // Admin users bypass access check
             if ($this->isAdmin($user)) {
-                $server = $this->findServer((string) $serverIdentifier);
+                $server = $this->resolveServer($serverIdentifier);
                 if ($server === null) {
-                    return $this->errorResponse($request, 404, "Server '{$serverIdentifier}' not found.");
+                    return $this->errorResponse($request, 404, "Server '{$serverLabel}' not found.");
                 }
                 $request->attributes->set('server', $server);
                 return $next($request);
             }
 
             // Regular users: verify ownership or subuser access
-            $server = $this->findAccessibleServer((string) $serverIdentifier, $user);
+            $server = $this->resolveAccessibleServer($serverIdentifier, $user);
 
             if ($server === null) {
-                return $this->errorResponse($request, 404, "Server '{$serverIdentifier}' not found or access denied.");
+                return $this->errorResponse($request, 404, "Server '{$serverLabel}' not found or access denied.");
             }
 
             $request->attributes->set('server', $server);
@@ -65,7 +67,7 @@ class VerifyServerAccess
             return $next($request);
         } catch (\Throwable $e) {
             Log::error("[Notur] VerifyServerAccess error: {$e->getMessage()}", [
-                'server' => $serverIdentifier,
+                'server' => $serverLabel,
                 'user' => $user->id ?? null,
                 'exception' => $e,
             ]);
@@ -91,10 +93,12 @@ class VerifyServerAccess
      */
     private function findServer(string $identifier): ?object
     {
-        return \Pterodactyl\Models\Server::query()
-            ->where(fn ($q) => $q->where('uuid', $identifier)->orWhere('uuidShort', $identifier))
-            ->where('suspended', false)
-            ->first();
+        $query = \Pterodactyl\Models\Server::query()
+            ->where(fn ($q) => $q->where('uuid', $identifier)->orWhere('uuidShort', $identifier));
+
+        $this->applyNotSuspendedFilter($query);
+
+        return $query->first();
     }
 
     /**
@@ -103,14 +107,98 @@ class VerifyServerAccess
      */
     private function findAccessibleServer(string $identifier, mixed $user): ?object
     {
-        return \Pterodactyl\Models\Server::query()
+        $query = \Pterodactyl\Models\Server::query()
             ->where(fn ($q) => $q->where('uuid', $identifier)->orWhere('uuidShort', $identifier))
-            ->where('suspended', false)
             ->where(fn ($q) => $q
                 ->where('owner_id', $user->id)
                 ->orWhereHas('subusers', fn ($sq) => $sq->where('user_id', $user->id))
-            )
-            ->first();
+            );
+
+        $this->applyNotSuspendedFilter($query);
+
+        return $query->first();
+    }
+
+    private function resolveServer(mixed $serverIdentifier): ?object
+    {
+        if ($this->isServerModel($serverIdentifier)) {
+            return $this->isSuspended($serverIdentifier) ? null : $serverIdentifier;
+        }
+
+        return $this->findServer((string) $serverIdentifier);
+    }
+
+    private function resolveAccessibleServer(mixed $serverIdentifier, mixed $user): ?object
+    {
+        if ($this->isServerModel($serverIdentifier)) {
+            if ($this->isSuspended($serverIdentifier)) {
+                return null;
+            }
+
+            return $this->userCanAccessServer($serverIdentifier, $user) ? $serverIdentifier : null;
+        }
+
+        return $this->findAccessibleServer((string) $serverIdentifier, $user);
+    }
+
+    private function isServerModel(mixed $value): bool
+    {
+        return is_object($value) && is_a($value, \Pterodactyl\Models\Server::class);
+    }
+
+    private function userCanAccessServer(object $server, mixed $user): bool
+    {
+        if ((int) ($server->owner_id ?? 0) === (int) ($user->id ?? 0)) {
+            return true;
+        }
+
+        if (method_exists($server, 'subusers')) {
+            return $server->subusers()
+                ->where('user_id', $user->id)
+                ->exists();
+        }
+
+        return false;
+    }
+
+    private function applyNotSuspendedFilter(mixed $query): void
+    {
+        try {
+            if (Schema::hasColumn('servers', 'suspended')) {
+                $query->where('suspended', false);
+            }
+        } catch (\Throwable) {
+            // Some panel/test schemas do not expose the suspended column.
+        }
+    }
+
+    private function isSuspended(object $server): bool
+    {
+        if ($server instanceof \Illuminate\Database\Eloquent\Model && $server->getAttribute('suspended') !== null) {
+            return (bool) $server->getAttribute('suspended');
+        }
+
+        if (property_exists($server, 'suspended')) {
+            return (bool) $server->suspended;
+        }
+
+        return false;
+    }
+
+    private function serverLabel(mixed $serverIdentifier): string
+    {
+        if (is_object($serverIdentifier)) {
+            foreach (['uuid', 'uuidShort', 'id'] as $attribute) {
+                $value = $serverIdentifier->{$attribute} ?? null;
+                if (is_scalar($value) && (string) $value !== '') {
+                    return (string) $value;
+                }
+            }
+
+            return $serverIdentifier::class;
+        }
+
+        return (string) $serverIdentifier;
     }
 
     /**

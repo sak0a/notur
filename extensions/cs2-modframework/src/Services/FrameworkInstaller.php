@@ -19,6 +19,27 @@ class FrameworkInstaller
         'metamod' => 'metamod',
     ];
 
+    private const FRAMEWORK_DIR_ALIASES = [
+        'swiftly' => ['swiftlys2', 'swiftly'],
+        'counterstrikesharp' => ['counterstrikesharp'],
+        'metamod' => ['metamod'],
+    ];
+
+    private const FRAMEWORK_MARKERS = [
+        'swiftly' => [
+            '/game/csgo/addons/swiftlys2' => ['core', 'extensions', 'plugins', 'bin'],
+            '/game/csgo/addons/swiftly' => ['core', 'extensions', 'plugins', 'bin'],
+        ],
+        'counterstrikesharp' => [
+            '/game/csgo/addons/counterstrikesharp' => ['api', 'bin', 'plugins', 'gamedata', 'configs', 'CounterStrikeSharp.API.dll'],
+            '/game/csgo/addons/metamod' => ['counterstrikesharp.vdf'],
+        ],
+        'metamod' => [
+            '/game/csgo/addons/metamod' => ['bin', 'metaplugins.ini', 'plugins'],
+            '/game/csgo/addons' => ['metamod.vdf'],
+        ],
+    ];
+
     private const GAMEINFO_ENTRIES = [
         'swiftly' => 'Game	csgo/addons/swiftlys2',
         'metamod' => 'Game	csgo/addons/metamod',
@@ -45,10 +66,11 @@ class FrameworkInstaller
 
         $status = [];
         foreach (self::FRAMEWORK_DIRS as $framework => $dir) {
-            $installed = $this->dirExistsInList($addons, $dir);
+            $detectedDirectory = $this->detectFrameworkDirectory($framework, $addons, $gameinfoContent);
+            $installed = $detectedDirectory !== null;
             $status[$framework] = [
                 'installed' => $installed,
-                'directory' => $installed ? "game/csgo/addons/{$dir}" : null,
+                'directory' => $detectedDirectory !== null ? "game/csgo/addons/{$detectedDirectory}" : null,
                 'restart_required' => $installed,
             ];
         }
@@ -115,11 +137,10 @@ class FrameworkInstaller
             }
         }
 
-        $dir = self::FRAMEWORK_DIRS[$framework];
-
         try {
             $addons = $this->listAddons();
-            if (!$this->dirExistsInList($addons, $dir)) {
+            $dir = $this->detectFrameworkDirectory($framework, $addons, $this->readGameInfoSafe());
+            if ($dir === null) {
                 return [
                     'success' => true,
                     'framework' => $framework,
@@ -255,10 +276,75 @@ class FrameworkInstaller
         }
     }
 
-    private function dirExistsInList(array $listing, string $name): bool
+    private function detectFrameworkDirectory(string $framework, array $addons, ?string $gameinfoContent): ?string
     {
+        $directory = $this->findDirectoryInList($addons, self::FRAMEWORK_DIR_ALIASES[$framework] ?? [self::FRAMEWORK_DIRS[$framework]]);
+        if ($directory !== null) {
+            return $directory;
+        }
+
+        if ($this->hasFrameworkMarker($framework)) {
+            return self::FRAMEWORK_DIRS[$framework];
+        }
+
+        $entry = self::GAMEINFO_ENTRIES[$framework] ?? null;
+        if ($entry !== null && $gameinfoContent !== null && GameInfoModifier::hasEntryInContent($gameinfoContent, $entry)) {
+            return self::FRAMEWORK_DIRS[$framework];
+        }
+
+        return null;
+    }
+
+    private function hasFrameworkMarker(string $framework): bool
+    {
+        foreach (self::FRAMEWORK_MARKERS[$framework] ?? [] as $path => $markers) {
+            $listing = $this->listDirectorySafe($path);
+            if ($listing === null) {
+                continue;
+            }
+
+            foreach ($markers as $marker) {
+                if ($this->entryExistsInList($listing, $marker)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function listDirectorySafe(string $path): ?array
+    {
+        try {
+            return $this->fileRepository->getDirectory($path);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function findDirectoryInList(array $listing, array $names): ?string
+    {
+        $normalizedNames = array_map(
+            static fn (string $name): string => strtolower($name),
+            $names,
+        );
+
         foreach ($listing as $item) {
-            if (($item['name'] ?? '') === $name && ($item['is_file'] ?? true) === false) {
+            $itemName = (string) ($item['name'] ?? '');
+            if (in_array(strtolower($itemName), $normalizedNames, true) && ($item['is_file'] ?? true) === false) {
+                return $itemName;
+            }
+        }
+
+        return null;
+    }
+
+    private function entryExistsInList(array $listing, string $name): bool
+    {
+        $normalizedName = strtolower($name);
+
+        foreach ($listing as $item) {
+            if (strtolower((string) ($item['name'] ?? '')) === $normalizedName) {
                 return true;
             }
         }
