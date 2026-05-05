@@ -170,7 +170,7 @@ class StatusDashboard
 
         if ($extensions->isEmpty()) {
             $this->command->line('  ' . NoturTheme::muted('No extensions installed.'));
-            $this->command->line('  ' . NoturTheme::muted('Run: php artisan notur:install <extension-id>'));
+            $this->command->line('  ' . NoturTheme::muted('Run: php artisan notur:add <extension-id>'));
             $this->command->newLine();
 
             return;
@@ -234,7 +234,7 @@ class StatusDashboard
         $this->renderSectionHeader('Quick Actions');
 
         $actions = [
-            ['key' => 'notur:install <id>', 'desc' => 'Install an extension'],
+            ['key' => 'notur:add <id>', 'desc' => 'Install an extension'],
             ['key' => 'notur:update', 'desc' => 'Update all extensions'],
             ['key' => 'notur:list', 'desc' => 'List installed extensions'],
             ['key' => 'notur:new', 'desc' => 'Create a new extension'],

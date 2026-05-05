@@ -72,13 +72,13 @@ When running commands without arguments in an interactive terminal, Notur provid
 
 ```bash
 # Install an extension by ID
-php artisan notur:install acme/server-analytics
+php artisan notur:add acme/server-analytics
 
 # Install from a local .notur file
-php artisan notur:install /path/to/extension.notur
+php artisan notur:add /path/to/extension.notur
 
 # Force reinstall an existing extension
-php artisan notur:install acme/server-analytics --force
+php artisan notur:add acme/server-analytics --force
 ```
 
 #### System Status Dashboard
@@ -106,10 +106,10 @@ All commands support `--no-interaction` or `-n` flag for CI/CD pipelines:
 
 ```bash
 # Install without prompts
-php artisan notur:install acme/analytics -n
+php artisan notur:add acme/analytics -n
 
 # Works in CI environments automatically
-CI=true php artisan notur:install acme/analytics
+CI=true php artisan notur:add acme/analytics
 ```
 
 ### Listing Extensions
@@ -133,16 +133,16 @@ Extensions can be installed from the registry or from a local `.notur` archive f
 
 ```bash
 # Install from the Notur registry
-php artisan notur:install acme/server-analytics
+php artisan notur:add acme/server-analytics
 
 # Install from a local .notur file
-php artisan notur:install /path/to/acme-server-analytics-1.0.0.notur
+php artisan notur:add /path/to/acme-server-analytics-1.0.0.notur
 
 # Force reinstall (overwrite existing)
-php artisan notur:install acme/server-analytics --force
+php artisan notur:add acme/server-analytics --force
 
 # Install without running migrations
-php artisan notur:install acme/server-analytics --no-migrate
+php artisan notur:add acme/server-analytics --no-migrate
 ```
 
 During installation, Notur will:
@@ -505,13 +505,13 @@ cd /var/www/pterodactyl
 
 # This will remove all extensions, restore patched files, drop Notur tables,
 # remove directories, and trigger a frontend rebuild.
-php artisan notur:uninstall
+php artisan notur:framework:uninstall
 
 # Or skip interactive confirmation
-php artisan notur:uninstall --confirm
+php artisan notur:framework:uninstall --confirm
 ```
 
-The uninstall command performs:
+The framework uninstall command performs:
 
 1. Restores patched React files from `.notur-backup` copies (or applies reverse patches)
 2. Rolls back Notur database migrations (drops `notur_extensions`, `notur_migrations`, `notur_settings`, `notur_activity_logs`)

@@ -12,7 +12,7 @@
 ## Near-Term Focus
 
 - Frontend test coverage expansion (SlotRenderWhen, CssVariables, ThemeProvider)
-- Command integration tests (InstallCommand, BuildCommand)
+- Command integration tests (AddCommand, BuildCommand)
 - Extension dev hot-reload (file-watcher + auto-rebuild)
 - Pelican Panel compatibility investigation
 

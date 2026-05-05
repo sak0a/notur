@@ -118,7 +118,7 @@ Store `NOTUR_SECRET_KEY` as a repository secret. Never log or echo it.
 
 ## How Verification Works
 
-When `notur:install` processes a `.notur` archive and `require_signatures` is enabled, the following happens:
+When `notur:add` processes a `.notur` archive and `require_signatures` is enabled, the following happens:
 
 1. The installer looks for a `.sig` file next to the archive (e.g., `my-extension.notur.sig`).
 2. If the `.sig` file is missing, installation is rejected with: `Signature file not found and signatures are required.`

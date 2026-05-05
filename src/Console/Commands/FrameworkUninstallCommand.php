@@ -9,11 +9,11 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Notur\Console\Concerns\ManagesFilesystem;
 
-class UninstallCommand extends Command
+class FrameworkUninstallCommand extends Command
 {
     use ManagesFilesystem;
 
-    protected $signature = 'notur:uninstall
+    protected $signature = 'notur:framework:uninstall
         {--confirm : Skip interactive confirmation}';
 
     protected $description = 'Completely remove the Notur extension framework from this Pterodactyl panel';

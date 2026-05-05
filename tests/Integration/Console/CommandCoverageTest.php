@@ -64,7 +64,7 @@ class CommandCoverageTest extends TestCase
             ->assertExitCode(1);
     }
 
-    public function test_install_command_fails_when_registry_entry_missing(): void
+    public function test_add_command_fails_when_registry_entry_missing(): void
     {
         $registry = Mockery::mock(RegistryClient::class);
         $registry->shouldReceive('getExtension')
@@ -73,7 +73,7 @@ class CommandCoverageTest extends TestCase
             ->andReturn(null);
         $this->app->instance(RegistryClient::class, $registry);
 
-        $this->artisan('notur:install', ['extension' => 'acme/missing'])
+        $this->artisan('notur:add', ['extension' => 'acme/missing'])
             ->assertExitCode(1);
     }
 
@@ -180,9 +180,9 @@ class CommandCoverageTest extends TestCase
             ->assertExitCode(0);
     }
 
-    public function test_uninstall_command_can_be_cancelled_interactively(): void
+    public function test_framework_uninstall_command_can_be_cancelled_interactively(): void
     {
-        $this->artisan('notur:uninstall')
+        $this->artisan('notur:framework:uninstall')
             ->expectsConfirmation('Are you sure you want to uninstall Notur?', 'no')
             ->expectsOutput('Uninstall cancelled.')
             ->assertExitCode(0);

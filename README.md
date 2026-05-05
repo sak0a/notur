@@ -38,7 +38,7 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 Near-term focus areas:
 
 - Frontend test coverage expansion (SlotRenderWhen, CssVariables, ThemeProvider)
-- Command integration tests (InstallCommand, BuildCommand)
+- Command integration tests (AddCommand, BuildCommand)
 - Extension dev hot-reload (file-watcher + auto-rebuild)
 - Pelican Panel compatibility investigation
 
@@ -146,7 +146,7 @@ Panel Response (HTML)
 ## Extension Lifecycle
 
 ```bash
-php artisan notur:install acme/server-analytics   # Install from registry
+php artisan notur:add acme/server-analytics   # Install from registry
 php artisan notur:enable acme/server-analytics     # Enable
 php artisan notur:disable acme/server-analytics    # Disable
 php artisan notur:remove acme/server-analytics     # Uninstall + rollback migrations

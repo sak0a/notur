@@ -57,7 +57,7 @@ php artisan migrate --path=vendor/notur/notur/database/migrations --force
 rm -rf /tmp/hello-world-src /tmp/hello-world.notur
 cp -R /opt/notur/examples/hello-world /tmp/hello-world-src
 php -r 'require "vendor/autoload.php"; \Notur\Support\NoturArchive::pack("/tmp/hello-world-src", "/tmp/hello-world.notur");'
-php artisan notur:install /tmp/hello-world.notur --force
+php artisan notur:add /tmp/hello-world.notur --force
 
 rm -rf notur/extensions/notur/full-extension
 mkdir -p notur/extensions/notur

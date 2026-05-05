@@ -583,7 +583,7 @@ All commands are prefixed with `notur:` in Artisan.
 
 | Command | Signature | Description |
 |---|---|---|
-| `notur:install` | `notur:install {extension} [--force] [--no-migrate]` | Install from registry or `.notur` file |
+| `notur:add` | `notur:add {extension} [--force] [--no-migrate]` | Install from registry or `.notur` file |
 | `notur:remove` | `notur:remove {extension} [--keep-data]` | Remove an extension |
 | `notur:enable` | `notur:enable {extension}` | Enable a disabled extension |
 | `notur:disable` | `notur:disable {extension}` | Disable an extension without removing files |
@@ -598,7 +598,7 @@ All commands are prefixed with `notur:` in Artisan.
 | `notur:keygen` | `notur:keygen` | Generate an Ed25519 keypair for extension signing |
 | `notur:registry:sync` | `notur:registry:sync [--search=] [--force]` | Sync or search the extension registry |
 | `notur:registry:status` | `notur:registry:status [--json]` | Show registry cache status |
-| `notur:uninstall` | `notur:uninstall [--confirm]` | Completely remove Notur from the panel |
+| `notur:framework:uninstall` | `notur:framework:uninstall [--confirm]` | Completely remove Notur from the panel |
 
 ### Preset Definitions
 

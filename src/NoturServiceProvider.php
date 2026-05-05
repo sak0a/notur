@@ -14,7 +14,7 @@ use Notur\Console\Commands\DevPullCommand;
 use Notur\Console\Commands\DisableCommand;
 use Notur\Console\Commands\EnableCommand;
 use Notur\Console\Commands\ExportCommand;
-use Notur\Console\Commands\InstallCommand;
+use Notur\Console\Commands\AddCommand;
 use Notur\Console\Commands\KeygenCommand;
 use Notur\Console\Commands\ListCommand;
 use Notur\Console\Commands\NewCommand;
@@ -22,7 +22,7 @@ use Notur\Console\Commands\RegistryStatusCommand;
 use Notur\Console\Commands\RegistrySyncCommand;
 use Notur\Console\Commands\RemoveCommand;
 use Notur\Console\Commands\StatusCommand;
-use Notur\Console\Commands\UninstallCommand;
+use Notur\Console\Commands\FrameworkUninstallCommand;
 use Notur\Console\Commands\UpdateCommand;
 use Notur\Console\Commands\ValidateCommand;
 use Notur\Support\ActivityLogger;
@@ -90,7 +90,7 @@ class NoturServiceProvider extends ServiceProvider
 
         // Register artisan commands (unconditionally so Artisan::call() works from web controllers)
         $this->commands([
-            InstallCommand::class,
+            AddCommand::class,
             RemoveCommand::class,
             EnableCommand::class,
             DisableCommand::class,
@@ -105,7 +105,7 @@ class NoturServiceProvider extends ServiceProvider
             RegistryStatusCommand::class,
             NewCommand::class,
             ValidateCommand::class,
-            UninstallCommand::class,
+            FrameworkUninstallCommand::class,
             StatusCommand::class,
         ]);
 
