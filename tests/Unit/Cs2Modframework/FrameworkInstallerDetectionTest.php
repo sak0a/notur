@@ -80,6 +80,45 @@ class FrameworkInstallerDetectionTest extends TestCase
         $this->assertSame('game/csgo/addons/counterstrikesharp', $status['counterstrikesharp']['directory']);
     }
 
+    public function test_detects_css_marker_inside_case_variant_metamod_directory(): void
+    {
+        $installer = $this->makeInstaller(new FakeDaemonFileRepository([
+            '/game/csgo/addons' => [
+                ['name' => 'MetaMod', 'is_file' => false],
+            ],
+            '/game/csgo/addons/MetaMod' => [
+                ['name' => 'counterstrikesharp.vdf', 'is_file' => true],
+                ['name' => 'bin', 'is_file' => false],
+            ],
+        ]));
+
+        $status = $installer->getStatus();
+
+        $this->assertTrue($status['metamod']['installed']);
+        $this->assertSame('game/csgo/addons/MetaMod', $status['metamod']['directory']);
+        $this->assertTrue($status['counterstrikesharp']['installed']);
+        $this->assertSame('game/csgo/addons/counterstrikesharp', $status['counterstrikesharp']['directory']);
+    }
+
+    public function test_detects_framework_markers_when_addons_listing_is_unavailable(): void
+    {
+        $installer = $this->makeInstaller(new FakeDaemonFileRepository([
+            '/game/csgo/addons/metamod' => [
+                ['name' => 'metaplugins.ini', 'is_file' => true],
+                ['name' => 'plugins', 'is_file' => false],
+                ['name' => 'counterstrikesharp.vdf', 'is_file' => true],
+            ],
+            '/game/csgo/addons/counterstrikesharp' => [
+                ['name' => 'CounterStrikeSharp.API.dll', 'is_file' => true],
+            ],
+        ]));
+
+        $status = $installer->getStatus();
+
+        $this->assertTrue($status['metamod']['installed']);
+        $this->assertTrue($status['counterstrikesharp']['installed']);
+    }
+
     public function test_detects_gameinfo_entries_as_install_signals(): void
     {
         $installer = $this->makeInstaller(new FakeDaemonFileRepository(

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Notur\Cs2Modframework\Services;
 
 use Pterodactyl\Repositories\Wings\DaemonFileRepository;
-use Pterodactyl\Exceptions\Http\Connection\DaemonConnectionException;
 use Illuminate\Support\Facades\Log;
 
 class FrameworkInstaller
@@ -32,10 +31,13 @@ class FrameworkInstaller
         ],
         'counterstrikesharp' => [
             '/game/csgo/addons/counterstrikesharp' => ['api', 'bin', 'plugins', 'gamedata', 'configs', 'CounterStrikeSharp.API.dll'],
+            '/game/csgo/addons/CounterStrikeSharp' => ['api', 'bin', 'plugins', 'gamedata', 'configs', 'CounterStrikeSharp.API.dll'],
             '/game/csgo/addons/metamod' => ['counterstrikesharp.vdf'],
+            '/game/csgo/addons/MetaMod' => ['counterstrikesharp.vdf'],
         ],
         'metamod' => [
             '/game/csgo/addons/metamod' => ['bin', 'metaplugins.ini', 'plugins'],
+            '/game/csgo/addons/MetaMod' => ['bin', 'metaplugins.ini', 'plugins'],
             '/game/csgo/addons' => ['metamod.vdf'],
         ],
     ];
@@ -271,7 +273,7 @@ class FrameworkInstaller
     {
         try {
             return $this->fileRepository->getDirectory(self::ADDONS_DIR);
-        } catch (DaemonConnectionException) {
+        } catch (\Throwable) {
             return [];
         }
     }
@@ -317,6 +319,33 @@ class FrameworkInstaller
     {
         try {
             return $this->fileRepository->getDirectory($path);
+        } catch (\Throwable) {
+            return $this->listDirectoryByCaseInsensitiveBasename($path);
+        }
+    }
+
+    private function listDirectoryByCaseInsensitiveBasename(string $path): ?array
+    {
+        $parent = dirname($path);
+        $basename = basename($path);
+
+        if ($parent === '.' || $parent === '/' || $basename === '') {
+            return null;
+        }
+
+        try {
+            $parentListing = $this->fileRepository->getDirectory($parent);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $actualName = $this->findDirectoryInList($parentListing, [$basename]);
+        if ($actualName === null) {
+            return null;
+        }
+
+        try {
+            return $this->fileRepository->getDirectory(rtrim($parent, '/') . '/' . $actualName);
         } catch (\Throwable) {
             return null;
         }

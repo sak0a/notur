@@ -13,7 +13,8 @@ class RouteDefinitionTest extends TestCase
         $routes = file_get_contents(__DIR__ . '/../../../extensions/cs2-modframework/src/routes/api-client.php');
 
         $this->assertIsString($routes);
-        $this->assertStringContainsString("->middleware(['notur.namespace', 'notur.server-access'])", $routes);
+        $this->assertStringContainsString("Route::prefix('servers/{serverUuid}')", $routes);
+        $this->assertStringContainsString("->middleware(['notur.namespace', 'notur.server-access:serverUuid'])", $routes);
         $this->assertSame(2, substr_count($routes, "->middleware('notur.permission:cs2-modframework.manage')"));
     }
 }

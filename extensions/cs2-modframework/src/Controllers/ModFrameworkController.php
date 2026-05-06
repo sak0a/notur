@@ -51,7 +51,7 @@ class ModFrameworkController extends Controller
         return $server;
     }
 
-    public function status(Request $request, string $server): JsonResponse
+    public function status(Request $request, string $serverUuid): JsonResponse
     {
         try {
             $serverModel = $this->resolveServer($request);
@@ -68,7 +68,7 @@ class ModFrameworkController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::error("[Notur cs2-modframework] status error: {$e->getMessage()}", [
-                'server' => $server,
+                'server' => $serverUuid,
                 'exception' => $e,
             ]);
 
@@ -78,7 +78,7 @@ class ModFrameworkController extends Controller
         }
     }
 
-    public function versions(Request $request, string $server): JsonResponse
+    public function versions(Request $request, string $serverUuid): JsonResponse
     {
         try {
             return response()->json([
@@ -95,7 +95,7 @@ class ModFrameworkController extends Controller
         }
     }
 
-    public function install(Request $request, string $server): JsonResponse
+    public function install(Request $request, string $serverUuid): JsonResponse
     {
         $request->validate([
             'framework' => 'required|string|in:swiftly,counterstrikesharp,metamod',
@@ -119,7 +119,7 @@ class ModFrameworkController extends Controller
             return response()->json(['data' => $result]);
         } catch (\Throwable $e) {
             Log::error("[Notur cs2-modframework] install error: {$e->getMessage()}", [
-                'server' => $server,
+                'server' => $serverUuid,
                 'framework' => $request->input('framework'),
                 'exception' => $e,
             ]);
@@ -130,7 +130,7 @@ class ModFrameworkController extends Controller
         }
     }
 
-    public function uninstall(Request $request, string $server): JsonResponse
+    public function uninstall(Request $request, string $serverUuid): JsonResponse
     {
         $request->validate([
             'framework' => 'required|string|in:swiftly,counterstrikesharp,metamod',
@@ -152,7 +152,7 @@ class ModFrameworkController extends Controller
             return response()->json(['data' => $result]);
         } catch (\Throwable $e) {
             Log::error("[Notur cs2-modframework] uninstall error: {$e->getMessage()}", [
-                'server' => $server,
+                'server' => $serverUuid,
                 'framework' => $request->input('framework'),
                 'exception' => $e,
             ]);

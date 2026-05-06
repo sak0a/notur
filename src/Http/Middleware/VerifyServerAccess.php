@@ -26,8 +26,9 @@ class VerifyServerAccess
 {
     public function handle(Request $request, Closure $next, string $parameterName = 'server'): Response
     {
-        $serverIdentifier = $request->route($parameterName);
-        $serverLabel = $this->serverLabel($serverIdentifier);
+        $rawServerIdentifier = $request->route($parameterName);
+        $serverIdentifier = $this->normalizeServerIdentifier($rawServerIdentifier);
+        $serverLabel = $this->serverLabel($serverIdentifier ?? $rawServerIdentifier);
 
         if ($serverIdentifier === null || $serverIdentifier === '') {
             return $this->errorResponse($request, 404, 'Server identifier required.');
@@ -93,12 +94,10 @@ class VerifyServerAccess
      */
     private function findServer(string $identifier): ?object
     {
-        $query = \Pterodactyl\Models\Server::query()
-            ->where(fn ($q) => $q->where('uuid', $identifier)->orWhere('uuidShort', $identifier));
-
-        $this->applyNotSuspendedFilter($query);
-
-        return $query->first();
+        return $this->firstServerQuery(function () use ($identifier) {
+            return \Pterodactyl\Models\Server::query()
+                ->where(fn ($q) => $q->where('uuid', $identifier)->orWhere('uuidShort', $identifier));
+        });
     }
 
     /**
@@ -107,16 +106,75 @@ class VerifyServerAccess
      */
     private function findAccessibleServer(string $identifier, mixed $user): ?object
     {
-        $query = \Pterodactyl\Models\Server::query()
-            ->where(fn ($q) => $q->where('uuid', $identifier)->orWhere('uuidShort', $identifier))
-            ->where(fn ($q) => $q
-                ->where('owner_id', $user->id)
-                ->orWhereHas('subusers', fn ($sq) => $sq->where('user_id', $user->id))
-            );
+        return $this->firstServerQuery(function () use ($identifier, $user) {
+            return \Pterodactyl\Models\Server::query()
+                ->where(fn ($q) => $q->where('uuid', $identifier)->orWhere('uuidShort', $identifier))
+                ->where(fn ($q) => $q
+                    ->where('owner_id', $user->id)
+                    ->orWhereHas('subusers', fn ($sq) => $sq->where('user_id', $user->id))
+                );
+        });
+    }
 
+    private function firstServerQuery(callable $buildQuery): ?object
+    {
+        $query = $buildQuery();
         $this->applyNotSuspendedFilter($query);
 
-        return $query->first();
+        try {
+            return $query->first();
+        } catch (\Throwable $e) {
+            if (!$this->isMissingSuspendedColumnError($e)) {
+                throw $e;
+            }
+        }
+
+        return $buildQuery()->first();
+    }
+
+    /**
+     * Convert route-bound server payloads into a model or scalar lookup key.
+     */
+    private function normalizeServerIdentifier(mixed $serverIdentifier): mixed
+    {
+        if ($serverIdentifier === null || is_scalar($serverIdentifier)) {
+            return $serverIdentifier;
+        }
+
+        if ($this->isServerModel($serverIdentifier)) {
+            return $serverIdentifier;
+        }
+
+        if (is_array($serverIdentifier)) {
+            foreach (['uuid', 'uuidShort', 'id'] as $key) {
+                $value = $serverIdentifier[$key] ?? null;
+                if (is_scalar($value) && (string) $value !== '') {
+                    return (string) $value;
+                }
+            }
+
+            return null;
+        }
+
+        if (is_object($serverIdentifier)) {
+            foreach (['uuid', 'uuidShort', 'id'] as $attribute) {
+                $value = $serverIdentifier->{$attribute} ?? null;
+                if (is_scalar($value) && (string) $value !== '') {
+                    return (string) $value;
+                }
+            }
+
+            if (method_exists($serverIdentifier, 'getAttribute')) {
+                foreach (['uuid', 'uuidShort', 'id'] as $attribute) {
+                    $value = $serverIdentifier->getAttribute($attribute);
+                    if (is_scalar($value) && (string) $value !== '') {
+                        return (string) $value;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     private function resolveServer(mixed $serverIdentifier): ?object
@@ -170,6 +228,14 @@ class VerifyServerAccess
         } catch (\Throwable) {
             // Some panel/test schemas do not expose the suspended column.
         }
+    }
+
+    private function isMissingSuspendedColumnError(\Throwable $e): bool
+    {
+        $message = $e->getMessage();
+
+        return str_contains($message, 'suspended')
+            && (str_contains($message, 'Unknown column') || str_contains($message, 'no such column'));
     }
 
     private function isSuspended(object $server): bool

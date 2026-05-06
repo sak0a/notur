@@ -6,7 +6,9 @@ All notable changes to the Notur Extension Library will be documented in this fi
 
 ### Changed
 
-- Bumped `notur/cs2-modframework` extension metadata to v1.1.0.
+- Bumped `notur/cs2-modframework` extension metadata to v1.1.1.
+- Hardened `notur.server-access` server route parameter handling for Pterodactyl route-bound server payloads and panel schemas without `servers.suspended`.
+- Fixed `cs2-modframework` server route binding and improved Metamod/CounterStrikeSharp install detection for case-variant and marker-only layouts.
 
 ## [1.4.2] - 2026-05-05
 
