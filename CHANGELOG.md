@@ -2,7 +2,7 @@
 
 All notable changes to the Notur Extension Library will be documented in this file.
 
-## [Unreleased]
+## [1.4.3] - 2026-05-06
 
 ### Changed
 
