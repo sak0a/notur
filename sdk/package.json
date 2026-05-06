@@ -1,6 +1,6 @@
 {
   "name": "@notur/sdk",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "Notur Extension Developer SDK",
   "main": "dist/index.js",
   "module": "dist/index.js",

@@ -22,7 +22,7 @@ set -euo pipefail
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
-NOTUR_VERSION="1.4.2"
+NOTUR_VERSION="1.4.6"
 MIN_NODE_MAJOR="${MIN_NODE_MAJOR:-22}"
 
 RED='\033[0;31m'
