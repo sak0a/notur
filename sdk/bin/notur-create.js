@@ -281,11 +281,19 @@ function ensureTarget(target, force) {
     }
 }
 
-function manifestTemplate({ id, vendor, name, className, namespace, frontend, apiRoutes, display, description }) {
+function manifestTemplate({ id, className, namespace, frontend, apiRoutes, display, description, phpEntrypoint }) {
     const frontendSection = frontend
         ? `
 frontend:
   bundle: "resources/frontend/dist/extension.js"
+`
+        : '';
+    const phpSection = phpEntrypoint
+        ? `
+entrypoint: "${namespace.replace(/\\/g, '\\\\')}\\\\${className}"
+autoload:
+  psr-4:
+    "${namespace.replace(/\\/g, '\\\\')}\\\\": "src/"
 `
         : '';
     const backendSection = apiRoutes
@@ -302,16 +310,7 @@ name: "${yamlString(display)}"
 version: "1.0.0"
 description: "${yamlString(description)}"
 license: "MIT"
-
-requires:
-  notur: "^1.0"
-  pterodactyl: "^1.12"
-  php: "^8.2"
-
-entrypoint: "${namespace.replace(/\\/g, '\\\\')}\\\\${className}"
-autoload:
-  psr-4:
-    "${namespace.replace(/\\/g, '\\\\')}\\\\": "src/"
+${phpSection}
 ${backendSection}
 ${frontendSection}`;
 }
@@ -390,13 +389,16 @@ function packageTemplate(id) {
             dev: 'webpack-cli --mode development --watch --config webpack.config.js',
             pack: 'notur-pack',
             push: 'notur-push',
+            sync: 'notur-sync',
+            validate: 'notur-validate',
+            doctor: 'notur-doctor',
         },
         peerDependencies: {
             react: '^16.14.0',
             'react-dom': '^16.14.0',
         },
         devDependencies: {
-            '@notur/sdk': '^1.4.5',
+            '@notur/sdk': '^1.4.7',
             '@types/react': '^16.14.0',
             '@types/react-dom': '^16.9.0',
             react: '^16.14.0',
@@ -507,6 +509,7 @@ async function main() {
     const namespace = `${studly(vendor)}\\${studly(name)}`;
     const className = `${studly(name)}Extension`;
     const target = path.resolve(options.path, name);
+    const needsPhpEntrypoint = options.withApiRoutes;
 
     ensureTarget(target, options.force);
 
@@ -522,8 +525,11 @@ async function main() {
         apiRoutes: options.withApiRoutes,
         display: options.displayName || displayName(name),
         description: options.description || 'A Notur extension',
+        phpEntrypoint: needsPhpEntrypoint,
     }));
-    writeFile(path.join(target, 'src', `${className}.php`), phpTemplate({ namespace, className }));
+    if (needsPhpEntrypoint) {
+        writeFile(path.join(target, 'src', `${className}.php`), phpTemplate({ namespace, className }));
+    }
     if (options.withApiRoutes) {
         writeFile(path.join(target, 'src/routes/api-client.php'), apiRouteTemplate());
     }

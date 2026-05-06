@@ -40,7 +40,7 @@ class MinimalManifestBootTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_minimal_manifest_boots_extension(): void
+    public function test_minimal_manifest_without_php_entrypoint_boots_extension(): void
     {
         $manager = new ExtensionManager(
             $this->app,
@@ -86,51 +86,6 @@ version: "1.0.0"
 YAML;
 
         file_put_contents($this->extensionPath . '/extension.yaml', $manifest);
-
-        $entrypoint = <<<PHP
-<?php
-
-declare(strict_types=1);
-
-namespace Acme\\Minimal;
-
-use Notur\\Contracts\\ExtensionInterface;
-
-class MinimalExtension implements ExtensionInterface
-{
-    public function getId(): string
-    {
-        return "{$this->extensionId}";
-    }
-
-    public function getName(): string
-    {
-        return "Minimal Extension";
-    }
-
-    public function getVersion(): string
-    {
-        return "1.0.0";
-    }
-
-    public function register(): void
-    {
-        // no-op
-    }
-
-    public function boot(): void
-    {
-        // no-op
-    }
-
-    public function getBasePath(): string
-    {
-        return __DIR__ . '/..';
-    }
-}
-PHP;
-
-        file_put_contents($this->extensionPath . '/src/MinimalExtension.php', $entrypoint . "\n");
 
         $routes = <<<PHP
 <?php

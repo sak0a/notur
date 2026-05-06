@@ -1,0 +1,107 @@
+# Notur
+
+Notur is an extension framework for Pterodactyl Panel v1. It lets trusted extensions add backend Laravel behavior and frontend React UI without forking the panel for every extension.
+
+## Core Model
+
+- `extension.yaml` is the source of truth for extension id, name, version, assets, backend routes, settings, migrations, and compatibility metadata.
+- PHP runtime (`src/`) installs, enables, boots, validates, and exposes extension assets/config.
+- Bridge runtime (`bridge/`) runs in the browser, creates `window.__NOTUR__`, owns the plugin registry, and renders React components into patched panel slots.
+- SDK (`sdk/`) is used by extension authors. It exposes `createExtension()`, hooks, types, CLIs, packaging, and remote push.
+- Extension frontend bundles are prebuilt JavaScript files loaded after `/notur/bridge.js`.
+- Extensions are trusted code. Notur is not a sandbox.
+
+## Extension Shapes
+
+Frontend-only extension:
+
+```text
+extension.yaml
+package.json
+webpack.config.js
+tsconfig.json
+resources/frontend/src/index.tsx
+resources/frontend/dist/extension.js
+```
+
+No PHP entrypoint is required for frontend-only extensions. Notur boots them through `ManifestOnlyExtension`.
+
+Backend/full extension:
+
+```text
+extension.yaml
+src/*Extension.php
+src/routes/api-client.php
+resources/frontend/src/index.tsx
+```
+
+Use PHP only when the extension needs backend routes, migrations, events, commands, admin views, or custom boot logic.
+
+## Common Commands
+
+```bash
+npx notur-create
+npx notur-create acme/red-button --preset frontend --slot server.header
+npx notur-sync
+npx notur-validate
+npx notur-doctor
+npx notur-pack
+npx notur-push --host https://panel.example.com --key notur_xxx
+php artisan notur:remote-key
+php artisan notur:add /path/to/extension.notur
+php artisan notur:dev /path/to/extension --watch
+```
+
+## Frontend Registration
+
+```tsx
+import * as React from 'react';
+import { createExtension } from '@notur/sdk';
+
+const Button = () => <button>Red Button</button>;
+
+createExtension({
+  id: 'acme/red-button',
+  slots: [{ slot: 'server.header', component: Button }],
+});
+```
+
+The `id` must match `extension.yaml`.
+
+## Runtime Flow
+
+```text
+Laravel boots NoturServiceProvider
+ExtensionManager reads enabled extension manifests
+ExtensionManager boots PHP entrypoint or ManifestOnlyExtension
+notur::scripts injects window.__NOTUR__ and extension asset URLs
+bridge.js initializes PluginRegistry and SlotRenderers
+extension.js calls createExtension()
+bridge renders components into notur-slot-* containers
+```
+
+## Important Files
+
+- `src/ExtensionManager.php`: PHP extension boot lifecycle.
+- `src/Support/ManifestOnlyExtension.php`: no-PHP-entrypoint extension fallback.
+- `src/Support/EntrypointResolver.php`: resolves PHP entrypoints.
+- `resources/views/scripts.blade.php`: injects bridge and extension assets.
+- `bridge/src/index.ts`: browser bridge initialization.
+- `bridge/src/PluginRegistry.ts`: slot, route, theme, event registry.
+- `bridge/src/SlotRenderer.tsx`: renders registered slot components.
+- `bridge/src/slots/slot-definitions.json`: canonical slot list.
+- `sdk/src/createExtension.ts`: frontend registration API.
+- `sdk/src/types.ts`: public SDK types and hover docs.
+- `sdk/bin/notur-create.js`: local scaffold wizard.
+- `sdk/bin/notur-sync.js`: sync local files from `extension.yaml`.
+- `sdk/bin/notur-validate.js`: local extension validation.
+- `sdk/bin/notur-doctor.js`: local/remote diagnostics.
+
+## Rules For AI Agents
+
+- Prefer manifest-only frontend extensions unless backend PHP is needed.
+- Do not invent slot IDs. Use `bridge/src/slots/slot-definitions.json` or the SDK `SlotId` union.
+- Keep `extension.yaml` as source of truth. Use `npx notur-sync` after metadata changes.
+- Use `createExtension({ id, slots, routes })`; do not call the registry directly unless building tooling.
+- For remote testing use packaged push, not direct file sync: `npx notur-push`.
+- Never treat third-party Notur extensions as sandboxed.

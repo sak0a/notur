@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 /**
- * Fetch public extension settings exposed via admin.settings.*.public.
+ * Fetch public extension settings exposed by `admin.settings` fields marked `public: true`.
+ *
+ * @example
+ * ```tsx
+ * const { config, loading, error, refresh } = useExtensionConfig('acme/red-button', {
+ *   initial: { enabled: true },
+ * });
+ * ```
  */
 export function useExtensionConfig(extensionId, options = {}) {
     const { baseUrl, initial, pollInterval } = options;

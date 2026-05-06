@@ -1,0 +1,162 @@
+# Notur Full AI Context
+
+This file gives AI assistants enough context to answer Notur extension authoring and maintenance questions without scanning the full repository first.
+
+## What Notur Is
+
+Notur is a Laravel/PHP package plus browser bridge plus TypeScript SDK for Pterodactyl Panel v1. It enables trusted extensions to add PHP backend behavior and React frontend UI. It is designed to avoid per-extension panel forks. Notur itself patches the panel once, injects frontend slots, and loads extension bundles at runtime.
+
+## Architecture
+
+```text
+Pterodactyl/Laravel request
+  -> NoturServiceProvider
+  -> ExtensionManager
+  -> extension.yaml manifests
+  -> PHP entrypoint or ManifestOnlyExtension
+  -> routes/migrations/settings/assets
+  -> notur::scripts
+  -> window.__NOTUR__ config
+  -> /notur/bridge.js
+  -> PluginRegistry + SlotRenderer
+  -> extension bundles
+  -> createExtension()
+  -> React components render into slots
+```
+
+## PHP Runtime
+
+- `NoturServiceProvider` registers commands, routes, middleware, views, config, and boots `ExtensionManager`.
+- `ExtensionManager` reads `notur/extensions.json`, loads enabled manifests, resolves dependencies, registers autoloading, and boots each extension.
+- If a PHP entrypoint exists, it must implement `ExtensionInterface`.
+- If no entrypoint exists, `ManifestOnlyExtension` is used. This is intended for frontend-only extensions.
+- Backend route files are registered by `RoutesFeature`.
+- Frontend asset URLs are shared through the `notur::scripts` view composer.
+
+## Browser Runtime
+
+- `resources/views/scripts.blade.php` writes `window.__NOTUR__` config and loads `/notur/bridge.js`, Notur CSS, extension styles, and extension bundles.
+- `bridge/src/index.ts` creates a `PluginRegistry`, exposes API on `window.__NOTUR__`, mounts theme sync, and mounts renderers for all known slots.
+- `bridge/src/SlotRenderer.tsx` renders registered components into DOM containers with ids like `notur-slot-server.header`.
+- `bridge/src/PluginRegistry.ts` stores extensions, slots, routes, themes, lifecycle callbacks, and event listeners.
+
+## SDK Runtime
+
+- Extension authors import `createExtension` from `@notur/sdk`.
+- `createExtension()` validates basic config, resolves name/version from injected manifest metadata, resolves CSS isolation, and registers slots/routes with the bridge registry.
+- SDK hooks include:
+  - `useServerContext()`
+  - `useUserContext()`
+  - `usePermission(permission)`
+  - `useExtensionConfig(extensionId, options)`
+  - `useNoturEvent(event, handler)`
+  - `useEmitEvent()`
+  - `useNavigate({ extensionId })`
+
+## Extension Manifest
+
+Minimal frontend-only manifest:
+
+```yaml
+notur: "1.0"
+id: "acme/red-button"
+name: "Red Button"
+version: "1.0.0"
+description: "Adds a red button"
+license: "MIT"
+
+frontend:
+  bundle: "resources/frontend/dist/extension.js"
+```
+
+Backend route manifest:
+
+```yaml
+notur: "1.0"
+id: "acme/tools"
+name: "Tools"
+version: "1.0.0"
+
+entrypoint: "Acme\\Tools\\ToolsExtension"
+autoload:
+  psr-4:
+    "Acme\\Tools\\": "src/"
+
+backend:
+  routes:
+    api-client: "src/routes/api-client.php"
+```
+
+## Frontend Example
+
+```tsx
+import * as React from 'react';
+import { createExtension } from '@notur/sdk';
+
+const RedButton: React.FC = () => (
+  <button onClick={() => alert('Hello from Notur')}>Red Button</button>
+);
+
+createExtension({
+  id: 'acme/red-button',
+  slots: [
+    {
+      slot: 'server.header',
+      component: RedButton,
+      order: 10,
+      when: { server: true },
+    },
+  ],
+});
+```
+
+## Extension Author Commands
+
+```bash
+npx notur-create
+npx notur-create acme/red-button --preset frontend --slot server.header
+npx notur-sync
+npx notur-validate
+npx notur-doctor
+npm run build
+npx notur-pack
+npx notur-push
+```
+
+## Remote Push
+
+Remote panel:
+
+```bash
+php artisan notur:remote-key
+```
+
+Panel `.env`:
+
+```env
+NOTUR_REMOTE_PUSH_ENABLED=true
+NOTUR_REMOTE_PUSH_KEYS=notur_xxx
+```
+
+Local extension `.env`:
+
+```env
+NOTUR_HOST=https://panel.example.com
+NOTUR_PUSH_KEY=notur_xxx
+```
+
+Push:
+
+```bash
+npm run push
+```
+
+## Development Guidelines
+
+- Frontend-only extension is the default for UI-only changes.
+- Add PHP only for backend routes, migrations, commands, events, middleware, admin pages, or custom boot logic.
+- `extension.yaml` is the source of truth.
+- Run `npx notur-sync` after changing id/name/version/bundle metadata.
+- Run `npx notur-validate` before packaging.
+- Run `npx notur-doctor` when remote push or local build behavior is confusing.
+- Do not invent slot names. Use slot reference docs or `bridge/src/slots/slot-definitions.json`.

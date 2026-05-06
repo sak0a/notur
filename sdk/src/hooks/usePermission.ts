@@ -2,7 +2,16 @@ import { useState, useEffect } from 'react';
 import { useServerContext } from './useServerContext';
 
 /**
- * Hook to check if the current user has a specific extension permission.
+ * Check whether the current server user has a permission.
+ *
+ * This hook reads server context permissions when available. It returns `false`
+ * outside server pages, while context is unavailable, or when the permission is
+ * missing. Server owners are treated as allowed.
+ *
+ * @example
+ * ```tsx
+ * const canInstall = usePermission('notur.acme/tools.install');
+ * ```
  */
 export function usePermission(permission: string): boolean {
     const serverContext = useServerContext();

@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
 /**
  * Hook to access the current server context from the Pterodactyl panel.
- * Only available within server-scoped pages.
+ *
+ * Returns `null` outside server-scoped pages or while context is unavailable.
+ *
+ * @example
+ * ```tsx
+ * const server = useServerContext();
+ * return <span>{server?.uuid}</span>;
+ * ```
  */
 export function useServerContext() {
     const [context, setContext] = useState(null);

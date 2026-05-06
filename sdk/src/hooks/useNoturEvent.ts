@@ -3,7 +3,13 @@ import { getNoturApi } from '../types';
 
 /**
  * Subscribe to an inter-extension event.
+ *
  * Automatically unsubscribes on unmount.
+ *
+ * @example
+ * ```tsx
+ * useNoturEvent('acme:refresh', data => console.log(data));
+ * ```
  */
 export function useNoturEvent(event: string, handler: (data?: unknown) => void): void {
     useEffect(() => {
@@ -15,6 +21,12 @@ export function useNoturEvent(event: string, handler: (data?: unknown) => void):
 
 /**
  * Returns a function to emit events on the inter-extension event bus.
+ *
+ * @example
+ * ```tsx
+ * const emit = useEmitEvent();
+ * emit('acme:refresh', { source: 'button' });
+ * ```
  */
 export function useEmitEvent(): (event: string, data?: unknown) => void {
     return useCallback((event: string, data?: unknown) => {

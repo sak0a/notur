@@ -145,6 +145,50 @@ Options:
 - `--with-api-routes` — include a client API route stub.
 - `--force` — allow writing into an existing empty directory.
 
+Frontend-only extensions are manifest-only by default. They do not need a PHP entrypoint unless you choose backend features such as API routes.
+
+### `notur-sync` — Sync generated metadata
+
+Reads `extension.yaml` and updates derived local development files.
+
+```bash
+npx notur-sync
+npx @notur/sdk sync
+```
+
+It keeps `package.json` name/version/scripts aligned, creates `.env.example` if missing, and creates `webpack.config.js` for frontend extensions that do not already have one.
+
+Options:
+- `--force-webpack` — regenerate `webpack.config.js` from `extension.yaml`.
+
+### `notur-validate` — Validate extension structure
+
+Runs local checks before packaging or pushing:
+
+```bash
+npx notur-validate
+npx @notur/sdk validate
+```
+
+Checks include manifest shape, id format, route file paths, bundle path, package metadata drift, missing scripts, `createExtension()` usage, and unknown slot IDs.
+
+Options:
+- `--strict` — treat warnings as errors.
+
+### `notur-doctor` — Diagnose local and remote setup
+
+Summarizes whether the local extension is buildable and ready to push:
+
+```bash
+npx notur-doctor
+npx @notur/sdk doctor
+```
+
+It checks manifest/package/build files, runs `notur-validate`, and verifies local `.env` or shell variables for remote push.
+
+Options:
+- `--no-remote` — skip remote host/key checks.
+
 ### `notur-pack` — Package extensions
 
 Creates a `.notur` archive (tar.gz) from your extension directory, ready to upload to the Pterodactyl admin panel.

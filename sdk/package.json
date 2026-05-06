@@ -1,6 +1,6 @@
 {
   "name": "@notur/sdk",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "description": "Notur Extension Developer SDK",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -20,7 +20,10 @@
     "notur-create": "./bin/notur-create.js",
     "notur-pack": "./bin/notur-pack.js",
     "notur-keygen": "./bin/notur-keygen.js",
-    "notur-push": "./bin/notur-push.js"
+    "notur-push": "./bin/notur-push.js",
+    "notur-sync": "./bin/notur-sync.js",
+    "notur-validate": "./bin/notur-validate.js",
+    "notur-doctor": "./bin/notur-doctor.js"
   },
   "keywords": [
     "notur",

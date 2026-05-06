@@ -57,6 +57,36 @@ tests/                Unit, integration, and frontend tests
 docs/                 Documentation
 ```
 
+## Extension Author DX
+
+Frontend-only extensions can be manifest-only. They do not need a PHP entrypoint unless they need backend routes, migrations, commands, events, admin views, or custom boot logic.
+
+```bash
+npx notur-create acme/red-button --preset frontend --slot server.header
+cd red-button
+npm install
+npm run build
+npx notur-validate
+npx notur-pack
+```
+
+Useful SDK commands:
+
+```bash
+npx notur-sync      # Sync package/build metadata from extension.yaml
+npx notur-validate  # Validate manifest, package drift, bundle paths, and slots
+npx notur-doctor    # Diagnose local/remote development setup
+npx notur-push      # Package and upload to a remote Notur panel
+```
+
+Remote push setup on a panel:
+
+```bash
+php artisan notur:remote-key
+```
+
+Then add the printed `NOTUR_REMOTE_PUSH_ENABLED` and `NOTUR_REMOTE_PUSH_KEYS` values to the panel `.env`.
+
 ## Building
 
 ::: code-group
@@ -173,7 +203,8 @@ bun run test:frontend
    - Loads each enabled extension's `extension.yaml` manifest
    - Resolves load order via `DependencyResolver` (topological sort)
    - Registers PSR-4 autoloading for each extension
-   - Boots each extension (routes, middleware, events, views, commands)
+   - Boots each extension through a PHP entrypoint or manifest-only fallback
+   - Registers routes, middleware, events, views, commands, and frontend assets
 5. A view composer injects frontend data into the `notur::scripts` Blade view
 
 ### Frontend Side

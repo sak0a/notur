@@ -1,17 +1,22 @@
 {
-    "name": "{{id}}",
+    "name": "{{packageName}}",
     "version": "1.0.0",
     "private": true,
     "scripts": {
         "build": "webpack-cli --mode production --config webpack.config.js",
-        "dev": "webpack-cli --mode development --watch --config webpack.config.js"
+        "dev": "webpack-cli --mode development --watch --config webpack.config.js",
+        "pack": "notur-pack",
+        "push": "notur-push",
+        "sync": "notur-sync",
+        "validate": "notur-validate",
+        "doctor": "notur-doctor"
     },
     "peerDependencies": {
         "react": "^16.14.0",
         "react-dom": "^16.14.0"
     },
     "devDependencies": {
-        "@notur/sdk": "^1.2.0",
+        "@notur/sdk": "^1.4.7",
         "@types/react": "^16.14.0",
         "@types/react-dom": "^16.9.0",
         "css-loader": "^7.1.2",

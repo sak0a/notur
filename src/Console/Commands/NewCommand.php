@@ -63,6 +63,7 @@ class NewCommand extends Command
 
         $context = [
             'id' => $id,
+            'packageName' => str_replace('/', '-', $id),
             'vendor' => $vendor,
             'name' => $name,
             'displayName' => $metadata['displayName'],

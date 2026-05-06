@@ -1,7 +1,16 @@
 import { useCallback } from 'react';
 /**
- * Returns a navigate function scoped to the extension's route namespace.
- * Navigates to `/notur/{extensionId}/{path}` using pushState.
+ * Returns a navigate function scoped to the extension route namespace.
+ *
+ * Navigates to `/notur/{extensionId}/{path}` using the browser History API and
+ * dispatches `popstate` so Notur route renderers update immediately.
+ *
+ * @example
+ * ```tsx
+ * const navigate = useNavigate({ extensionId: 'acme/tools' });
+ * navigate('/settings');
+ * navigate('/overview', { replace: true });
+ * ```
  */
 export function useNavigate({ extensionId }) {
     return useCallback((path, options) => {

@@ -23,6 +23,7 @@ use Notur\Models\InstalledExtension;
 use Notur\Support\EntrypointResolver;
 use Notur\Support\ExtensionPath;
 use Notur\Support\HealthCheckNormalizer;
+use Notur\Support\ManifestOnlyExtension;
 use Notur\Support\ThemeCompiler;
 use Notur\Exceptions\ExtensionBootException;
 use Notur\Exceptions\ExtensionNotFoundException;
@@ -165,16 +166,15 @@ class ExtensionManager
     {
         $entrypoint = $this->entrypointResolver->resolve($manifest, $extPath, $psr4);
         if (!$entrypoint) {
-            Log::warning("[Notur] No entrypoint found for extension '{$id}', skipping");
-            return;
-        }
+            $extension = new ManifestOnlyExtension($manifest, $extPath);
+        } else {
+            if (!class_exists($entrypoint)) {
+                return;
+            }
 
-        if (!class_exists($entrypoint)) {
-            return;
+            /** @var ExtensionInterface $extension */
+            $extension = $this->app->make($entrypoint);
         }
-
-        /** @var ExtensionInterface $extension */
-        $extension = $this->app->make($entrypoint);
 
         if (!$extension instanceof ExtensionInterface) {
             throw new ExtensionBootException(

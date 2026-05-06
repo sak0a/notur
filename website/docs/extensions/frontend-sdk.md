@@ -45,6 +45,57 @@ flowchart TD
 
 The SDK includes command-line tools for extension development.
 
+### `notur-create`
+
+Scaffold a local extension without requiring a panel checkout.
+
+```bash
+npx notur-create
+npx notur-create acme/red-button --preset frontend --slot server.header
+```
+
+Frontend-only extensions are manifest-only by default. No PHP class is generated unless backend features are selected.
+
+### `notur-sync`
+
+Sync generated local metadata from `extension.yaml`.
+
+```bash
+npx notur-sync
+```
+
+This updates `package.json`, creates `.env.example` if missing, and creates `webpack.config.js` for frontend extensions that do not already have one.
+
+### `notur-validate`
+
+Validate an extension before packaging or pushing.
+
+```bash
+npx notur-validate
+npx notur-validate --strict
+```
+
+Checks include manifest shape, id format, route files, bundle path, package metadata drift, scripts, `createExtension()` usage, and unknown slot ids.
+
+### `notur-doctor`
+
+Diagnose local build and remote push setup.
+
+```bash
+npx notur-doctor
+npx notur-doctor --no-remote
+```
+
+### `notur-push`
+
+Package and upload to a Notur-enabled panel configured with a remote push key.
+
+```bash
+npx notur-push --host https://panel.example.com --key notur_xxx
+```
+
+The CLI also reads `NOTUR_HOST` and `NOTUR_PUSH_KEY` from a local `.env` file.
+
 ### `notur-pack`
 
 Package your extension into a `.notur` archive for distribution. This can be run directly on your development machine without needing access to a Pterodactyl server.

@@ -17,7 +17,9 @@ class ScaffoldGenerator
         $this->createDirectories();
 
         $this->writeManifest();
-        $this->writePhpClass();
+        if ($this->needsPhpClass()) {
+            $this->writePhpClass();
+        }
 
         if ($this->context['includeApiRoutes']) {
             $this->writeApiRoute();
@@ -58,8 +60,11 @@ class ScaffoldGenerator
     {
         $directories = [
             $this->basePath,
-            $this->basePath . '/src',
         ];
+
+        if ($this->needsPhpClass()) {
+            $directories[] = $this->basePath . '/src';
+        }
 
         if ($this->context['includeApiRoutes'] || $this->context['includeAdminRoutes']) {
             $directories[] = $this->basePath . '/src/routes';
@@ -109,11 +114,32 @@ class ScaffoldGenerator
         }
 
         $lines[] = 'license: ' . $this->yamlString($this->context['license']);
-        $lines[] = '';
-        $lines[] = 'requires:';
-        $lines[] = '  notur: "^1.0"';
-        $lines[] = '  pterodactyl: "^1.11"';
-        $lines[] = '  php: "^8.2"';
+
+        if ($this->needsPhpClass()) {
+            $lines[] = '';
+            $lines[] = 'entrypoint: ' . $this->yamlString($this->context['namespace'] . '\\' . $this->context['className']);
+            $lines[] = 'autoload:';
+            $lines[] = '  psr-4:';
+            $lines[] = '    ' . $this->yamlString($this->context['namespace'] . '\\') . ': "src/"';
+        }
+
+        if ($this->context['includeApiRoutes'] || $this->context['includeAdminRoutes']) {
+            $lines[] = '';
+            $lines[] = 'backend:';
+            $lines[] = '  routes:';
+            if ($this->context['includeApiRoutes']) {
+                $lines[] = '    api-client: "src/routes/api-client.php"';
+            }
+            if ($this->context['includeAdminRoutes']) {
+                $lines[] = '    admin: "src/routes/admin.php"';
+            }
+        }
+
+        if ($this->context['includeFrontend']) {
+            $lines[] = '';
+            $lines[] = 'frontend:';
+            $lines[] = '  bundle: "resources/frontend/dist/extension.js"';
+        }
 
         file_put_contents($this->basePath . '/extension.yaml', implode("\n", $lines) . "\n");
     }
@@ -374,6 +400,7 @@ TSX;
     {
         $stubContent = $this->renderStub('frontend-package.json.stub', [
             'id' => $this->context['id'],
+            'packageName' => $this->context['packageName'] ?? str_replace('/', '-', $this->context['id']),
         ]);
         if ($stubContent !== null) {
             file_put_contents($this->basePath . '/package.json', $stubContent . "\n");
@@ -387,13 +414,16 @@ TSX;
             'scripts' => [
                 'build' => 'webpack-cli --mode production --config webpack.config.js',
                 'dev' => 'webpack-cli --mode development --watch --config webpack.config.js',
+                'pack' => 'notur-pack',
+                'push' => 'notur-push',
+                'sync' => 'notur-sync',
             ],
             'peerDependencies' => [
                 'react' => '^16.14.0',
                 'react-dom' => '^16.14.0',
             ],
             'devDependencies' => [
-                '@notur/sdk' => '^1.2.0',
+                '@notur/sdk' => '^1.4.7',
                 '@types/react' => '^16.14.0',
                 '@types/react-dom' => '^16.9.0',
                 'css-loader' => '^7.1.2',
@@ -647,7 +677,9 @@ PHP;
         $lines[] = '## Structure';
         $lines[] = '';
         $lines[] = '- `extension.yaml` - Extension manifest';
-        $lines[] = '- `src/` - PHP backend code';
+        if ($this->needsPhpClass()) {
+            $lines[] = '- `src/` - PHP backend code';
+        }
 
         if ($this->context['includeFrontend']) {
             $lines[] = '- `resources/frontend/` - Frontend source and bundle';
@@ -684,6 +716,15 @@ TXT;
     {
         $escaped = str_replace(['\\', '"'], ['\\\\', '\\"'], $value);
         return '"' . $escaped . '"';
+    }
+
+    private function needsPhpClass(): bool
+    {
+        return $this->context['includeApiRoutes']
+            || $this->context['includeAdminRoutes']
+            || $this->context['includeAdmin']
+            || $this->context['includeMigrations']
+            || $this->context['includeTests'];
     }
 
     public static function toClassName(string $name): string

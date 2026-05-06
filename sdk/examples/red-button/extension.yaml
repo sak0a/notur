@@ -5,15 +5,5 @@ version: "1.0.0"
 description: "Adds a red button to the server header"
 license: "MIT"
 
-requires:
-  notur: "^1.0"
-  pterodactyl: "^1.12"
-  php: "^8.2"
-
-entrypoint: "Acme\\RedButton\\RedButtonExtension"
-autoload:
-  psr-4:
-    "Acme\\RedButton\\": "src/"
-
 frontend:
   bundle: "resources/frontend/dist/extension.js"

@@ -1,1 +1,1 @@
-{"version":3,"file":"usePermission.d.ts","sourceRoot":"","sources":["../../src/hooks/usePermission.ts"],"names":[],"mappings":"AAGA;;GAEG;AACH,wBAAgB,aAAa,CAAC,UAAU,EAAE,MAAM,GAAG,OAAO,CAwBzD"}
+{"version":3,"file":"usePermission.d.ts","sourceRoot":"","sources":["../../src/hooks/usePermission.ts"],"names":[],"mappings":"AAGA;;;;;;;;;;;GAWG;AACH,wBAAgB,aAAa,CAAC,UAAU,EAAE,MAAM,GAAG,OAAO,CAwBzD"}

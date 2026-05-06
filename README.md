@@ -4,7 +4,7 @@
 
 # Notur Extension Library
 
-![Version](https://img.shields.io/badge/version-1.4.5-blue)
+![Version](https://img.shields.io/badge/version-1.4.7-blue)
 ![Status](https://img.shields.io/badge/status-stable-brightgreen)
 
 A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/) v1. Enables community-built extensions (plugins, themes, tools) that modify panel functionality without forking the source.
@@ -17,6 +17,9 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 - **Full lifecycle management** — install, enable, disable, update, remove via artisan
 - **Interactive CLI** — beautiful terminal UI with search, wizards, and status dashboard
 - **Frontend slot system** — React portal-based rendering into predefined panel locations
+- **Manifest-only frontend extensions** — UI-only extensions do not need a PHP entrypoint
+- **Developer SDK CLI** — scaffold, sync, validate, doctor, package, and push extensions locally
+- **Remote packaged push** — push trusted local builds to a Notur-enabled panel using API keys
 - **Scoped namespacing** — routes, permissions, migrations, and config are all extension-scoped
 - **Registry support** — GitHub-backed extension registry with optional Ed25519 signatures
 
@@ -171,7 +174,18 @@ php artisan notur:status                           # System status dashboard
 
 See the [Extension Development Guide](https://docs.notur.site/extensions/guide) for the full guide.
 
-Quick start:
+Frontend-only quick start:
+
+```bash
+npx notur-create acme/red-button --preset frontend --slot server.header
+cd red-button
+npm install
+npm run build
+npx notur-validate
+npx notur-pack
+```
+
+Panel-side scaffold is also available:
 
 ```bash
 php artisan notur:new acme/server-analytics
@@ -184,11 +198,16 @@ php artisan notur:new acme/server-analytics
 - `full`: frontend + API routes + admin UI + migrations + tests
 - `minimal`: backend-only scaffolding with no routes or frontend
 
-Manual steps:
-1. Create an `extension.yaml` manifest
-2. Extend `NoturExtension` base class in PHP
-3. Build a frontend bundle using `@notur/sdk`
-4. Export with `php artisan notur:export`
+Frontend-only extensions are manifest-only by default. Add a PHP entrypoint only when the extension needs backend routes, migrations, commands, events, admin views, or custom boot logic.
+
+Useful local SDK commands:
+
+```bash
+npx notur-sync      # Sync package/build metadata from extension.yaml
+npx notur-validate  # Validate manifest, package drift, bundle paths, and slots
+npx notur-doctor    # Diagnose local and remote push setup
+npx notur-push      # Package and upload to a remote Notur panel
+```
 
 ## License
 

@@ -257,13 +257,19 @@ async function pack(sourceDir, outputPath, options = {}) {
     ];
 
     if (options.dryRun) {
-        console.log('\nDry run mode (no archive written).');
-        console.log(`Would create: ${outputFullPath}`);
-        console.log(`Would include: ${archiveEntries.length} files`);
-        if (deterministicArgs.length > 0) {
-            console.log('Deterministic archive mode: enabled (GNU tar flags).');
-        } else {
-            console.log('Deterministic archive mode: not available (GNU tar not detected).');
+        try {
+            console.log('\nDry run mode (no archive written).');
+            console.log(`Would create: ${outputFullPath}`);
+            console.log(`Would include: ${archiveEntries.length} files`);
+            if (deterministicArgs.length > 0) {
+                console.log('Deterministic archive mode: enabled (GNU tar flags).');
+            } else {
+                console.log('Deterministic archive mode: not available (GNU tar not detected).');
+            }
+        } finally {
+            if (!checksumsExisted && fs.existsSync(checksumsPath)) {
+                fs.unlinkSync(checksumsPath);
+            }
         }
         return;
     }

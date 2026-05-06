@@ -70,6 +70,33 @@ class NewCommandTest extends TestCase
 
         $packageJsonPath = $this->workspace . '/minimal-ext/package.json';
         $this->assertFileDoesNotExist($packageJsonPath);
+        $this->assertFileDoesNotExist($this->workspace . '/minimal-ext/src/MinimalExtExtension.php');
+    }
+
+    public function test_frontend_only_scaffold_is_manifest_only(): void
+    {
+        $this->artisan('notur:new', [
+            'id' => 'acme/frontend-only',
+            '--path' => $this->workspace,
+            '--preset' => 'minimal',
+            '--with-frontend' => true,
+            '--no-interaction' => true,
+        ])->assertExitCode(0);
+
+        $basePath = $this->workspace . '/frontend-only';
+
+        $this->assertFileExists($basePath . '/extension.yaml');
+        $this->assertFileExists($basePath . '/package.json');
+        $this->assertFileDoesNotExist($basePath . '/src/FrontendOnlyExtension.php');
+
+        $manifest = (string) file_get_contents($basePath . '/extension.yaml');
+        $this->assertStringNotContainsString('entrypoint:', $manifest);
+        $this->assertStringNotContainsString('autoload:', $manifest);
+        $this->assertStringContainsString('frontend:', $manifest);
+
+        $package = json_decode((string) file_get_contents($basePath . '/package.json'), true);
+        $this->assertSame('acme-frontend-only', $package['name'] ?? null);
+        $this->assertSame('notur-sync', $package['scripts']['sync'] ?? null);
     }
 
     private function deleteDir(string $path): void

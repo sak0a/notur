@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 /**
  * Hook to access the current user context from the Pterodactyl panel.
+ *
+ * Returns `null` while loading or when the user cannot be resolved.
  */
 export function useUserContext() {
     const [user, setUser] = useState(null);

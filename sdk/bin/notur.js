@@ -8,6 +8,9 @@ const commands = {
     pack: 'notur-pack.js',
     keygen: 'notur-keygen.js',
     push: 'notur-push.js',
+    sync: 'notur-sync.js',
+    validate: 'notur-validate.js',
+    doctor: 'notur-doctor.js',
 };
 
 const [command, ...args] = process.argv.slice(2);
@@ -19,10 +22,13 @@ Usage:
   notur create <vendor/name> [options]
   notur pack [path] [options]
   notur push [path] --host <url> --key <token>
+  notur sync [path]
+  notur validate [path]
+  notur doctor [path]
   notur keygen
 
 Standalone bins are also available:
-  notur-create, notur-pack, notur-push, notur-keygen`);
+  notur-create, notur-pack, notur-push, notur-sync, notur-validate, notur-doctor, notur-keygen`);
     process.exit(command ? 0 : 1);
 }
 
