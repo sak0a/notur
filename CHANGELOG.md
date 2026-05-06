@@ -2,6 +2,12 @@
 
 All notable changes to the Notur Extension Library will be documented in this file.
 
+## [1.4.4] - 2026-05-06
+
+### Added
+
+- Added admin UI controls to force-refresh the extension registry, show available extension updates, update individual extensions, and update all outdated extensions.
+
 ## [1.4.3] - 2026-05-06
 
 ### Added

@@ -118,6 +118,83 @@ class ExtensionAdminControllerTest extends TestCase
         ]], $fakeArtisan->calls);
     }
 
+    public function test_run_registry_sync_command_forces_refresh(): void
+    {
+        $manager = Mockery::mock(ExtensionManager::class);
+        $fakeArtisan = new class {
+            public array $calls = [];
+
+            public function call(string $command, array $parameters = []): int
+            {
+                $this->calls[] = [$command, $parameters];
+
+                return 0;
+            }
+
+            public function output(): string
+            {
+                return 'Registry synced.';
+            }
+        };
+
+        Artisan::swap($fakeArtisan);
+
+        $controller = new class($manager) extends ExtensionAdminController {
+            public function invokeRunRegistrySyncCommand(): array
+            {
+                return $this->runRegistrySyncCommand();
+            }
+        };
+
+        $result = $controller->invokeRunRegistrySyncCommand();
+
+        $this->assertSame(['exitCode' => 0, 'output' => 'Registry synced.'], $result);
+        $this->assertSame([[
+            'notur:registry:sync',
+            ['--force' => true],
+        ]], $fakeArtisan->calls);
+    }
+
+    public function test_run_update_command_reinstalls_extension_with_force(): void
+    {
+        $manager = Mockery::mock(ExtensionManager::class);
+        $fakeArtisan = new class {
+            public array $calls = [];
+
+            public function call(string $command, array $parameters = []): int
+            {
+                $this->calls[] = [$command, $parameters];
+
+                return 0;
+            }
+
+            public function output(): string
+            {
+                return 'Extension updated.';
+            }
+        };
+
+        Artisan::swap($fakeArtisan);
+
+        $controller = new class($manager) extends ExtensionAdminController {
+            public function invokeRunUpdateCommand(string $extensionId): array
+            {
+                return $this->runUpdateCommand($extensionId);
+            }
+        };
+
+        $result = $controller->invokeRunUpdateCommand('notur/cs2-modframework');
+
+        $this->assertSame(['exitCode' => 0, 'output' => 'Extension updated.'], $result);
+        $this->assertSame([[
+            'notur:add',
+            [
+                'extension' => 'notur/cs2-modframework',
+                '--force' => true,
+            ],
+        ]], $fakeArtisan->calls);
+    }
+
     private function assertRemovalRedirect(RedirectResponse $response): void
     {
         $this->assertSame(route('admin.notur.extensions'), $response->getTargetUrl());

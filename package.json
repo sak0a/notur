@@ -1,6 +1,6 @@
 {
   "name": "notur",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Notur Extension Library - Bridge Runtime & SDK",
   "private": true,
   "workspaces": [

@@ -94,6 +94,12 @@
                 <div class="box-header with-border">
                     <h3 class="box-title"><i class="fa fa-search" style="margin-right: 8px; opacity: 0.5;"></i>Search Registry</h3>
                     <div class="box-tools pull-right">
+                        <form action="{{ route('admin.notur.extensions.registry.sync') }}" method="POST" class="inline">
+                            @csrf
+                            <button type="submit" class="btn btn-xs btn-default" title="Force refresh registry cache">
+                                <i class="fa fa-refresh"></i> Refresh Registry
+                            </button>
+                        </form>
                         <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
                     </div>
                 </div>
@@ -125,6 +131,12 @@
                     @if(!empty($registryError))
                         <div class="alert alert-danger mt-[15px]">
                             Registry search failed: {{ $registryError }}
+                        </div>
+                    @endif
+
+                    @if(!empty($updateError))
+                        <div class="alert alert-warning mt-[15px]">
+                            Update checks failed: {{ $updateError }}
                         </div>
                     @endif
 
@@ -201,6 +213,12 @@
                 <div class="box-header with-border">
                     <h3 class="box-title"><i class="fa fa-puzzle-piece" style="margin-right: 8px; opacity: 0.5;"></i>Installed Extensions</h3>
                     <div class="box-tools pull-right">
+                        <form action="{{ route('admin.notur.extensions.update-all') }}" method="POST" class="inline" onsubmit="return confirm('Update all extensions with available registry updates?');">
+                            @csrf
+                            <button type="submit" class="btn btn-xs btn-success">
+                                <i class="fa fa-cloud-download"></i> Update All
+                            </button>
+                        </form>
                         <a href="{{ route('admin.notur.slots') }}" class="btn btn-xs btn-default">
                             <i class="fa fa-th"></i> Slots
                         </a>
@@ -232,6 +250,9 @@
                                         $manifest = $extension->manifest ?? [];
                                         $description = $manifest['description'] ?? '';
                                         $dependencies = $manifest['dependencies'] ?? [];
+                                        $updateInfo = $extensionUpdates[$extension->extension_id] ?? null;
+                                        $latestVersion = $updateInfo['latest'] ?? null;
+                                        $updateAvailable = (bool) ($updateInfo['available'] ?? false);
                                     @endphp
                                     <tr data-testid="extension-row" data-extension-id="{{ $extension->extension_id }}">
                                         <td>
@@ -240,7 +261,16 @@
                                             </a>
                                         </td>
                                         <td><code>{{ $extension->extension_id }}</code></td>
-                                        <td style="font-family: var(--nb-mono, monospace); font-size: 12px;">{{ $extension->version }}</td>
+                                        <td style="font-family: var(--nb-mono, monospace); font-size: 12px;">
+                                            {{ $extension->version }}
+                                            @if($updateAvailable && $latestVersion)
+                                                <br>
+                                                <span class="label label-warning">Update {{ $latestVersion }}</span>
+                                            @elseif($latestVersion)
+                                                <br>
+                                                <span class="label label-info">Latest</span>
+                                            @endif
+                                        </td>
                                         <td>
                                             @if($description)
                                                 <small>{{ \Illuminate\Support\Str::limit($description, 60) }}</small>
@@ -271,6 +301,14 @@
                                             <a href="{{ route('admin.notur.extensions.show', $extension->extension_id) }}" class="btn btn-xs btn-primary" title="Details" aria-label="View details for {{ $extension->extension_id }}">
                                                 <i class="fa fa-eye"></i>
                                             </a>
+                                            @if($updateAvailable)
+                                                <form action="{{ route('admin.notur.extensions.update', $extension->extension_id) }}" method="POST" class="inline" onsubmit="return confirm('Update {{ $extension->extension_id }} to {{ $latestVersion }}?');">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-xs btn-success" title="Update" aria-label="Update {{ $extension->extension_id }}">
+                                                        <i class="fa fa-cloud-download"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
                                             @if($extension->enabled)
                                                 <form action="{{ route('admin.notur.extensions.disable', $extension->extension_id) }}" method="POST" class="inline">
                                                     @csrf

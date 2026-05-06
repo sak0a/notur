@@ -37,6 +37,16 @@ Route::prefix('admin/notur')
         Route::post('/extensions/install', [ExtensionAdminController::class, 'install'])
             ->name('admin.notur.extensions.install');
 
+        Route::post('/extensions/registry/sync', [ExtensionAdminController::class, 'syncRegistry'])
+            ->name('admin.notur.extensions.registry.sync');
+
+        Route::post('/extensions/update-all', [ExtensionAdminController::class, 'updateAll'])
+            ->name('admin.notur.extensions.update-all');
+
+        Route::post('/extensions/{extensionId}/update', [ExtensionAdminController::class, 'update'])
+            ->name('admin.notur.extensions.update')
+            ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');
+
         Route::post('/extensions/{extensionId}/enable', [ExtensionAdminController::class, 'enable'])
             ->name('admin.notur.extensions.enable')
             ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');

@@ -35,6 +35,8 @@ class ExtensionAdminController extends Controller
         $query = trim((string) $request->query('q', ''));
         $registryResults = [];
         $registryError = null;
+        $extensionUpdates = [];
+        $updateError = null;
 
         if ($query !== '') {
             try {
@@ -44,12 +46,20 @@ class ExtensionAdminController extends Controller
             }
         }
 
+        try {
+            $extensionUpdates = $this->resolveExtensionUpdates($extensions, $registry);
+        } catch (\Throwable $e) {
+            $updateError = $e->getMessage();
+        }
+
         return view('notur::admin.extensions', [
             'extensions' => $extensions,
             'installedIds' => $installedIds,
             'registryQuery' => $query,
             'registryResults' => $registryResults,
             'registryError' => $registryError,
+            'extensionUpdates' => $extensionUpdates,
+            'updateError' => $updateError,
         ]);
     }
 
@@ -507,6 +517,94 @@ class ExtensionAdminController extends Controller
     }
 
     /**
+     * Force-refresh the registry cache from the admin UI.
+     */
+    public function syncRegistry(): RedirectResponse
+    {
+        try {
+            ['exitCode' => $exitCode, 'output' => $output] = $this->runRegistrySyncCommand();
+
+            if ($exitCode !== 0) {
+                return redirect()
+                    ->route('admin.notur.extensions')
+                    ->with('error', 'Registry refresh failed: ' . ($output !== '' ? $output : 'Unknown error.'));
+            }
+
+            return redirect()
+                ->route('admin.notur.extensions')
+                ->with('success', 'Registry refreshed. ' . $output);
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('admin.notur.extensions')
+                ->with('error', 'Registry refresh failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update a single extension from the registry.
+     */
+    public function update(string $extensionId): RedirectResponse
+    {
+        try {
+            ['exitCode' => $exitCode, 'output' => $output] = $this->runUpdateCommand($extensionId);
+
+            if ($exitCode !== 0) {
+                return redirect()
+                    ->route('admin.notur.extensions')
+                    ->with('error', "Update failed for '{$extensionId}': " . ($output !== '' ? $output : 'Unknown error.'));
+            }
+
+            return redirect()
+                ->route('admin.notur.extensions')
+                ->with('success', "Extension '{$extensionId}' updated. " . $output);
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('admin.notur.extensions')
+                ->with('error', "Update failed for '{$extensionId}': " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update all installed extensions that have a newer registry version.
+     */
+    public function updateAll(RegistryClient $registry): RedirectResponse
+    {
+        try {
+            $updates = $this->resolveExtensionUpdates(InstalledExtension::all(), $registry);
+            $updated = 0;
+            $failures = [];
+
+            foreach ($updates as $extensionId => $info) {
+                if (empty($info['available'])) {
+                    continue;
+                }
+
+                ['exitCode' => $exitCode, 'output' => $output] = $this->runUpdateCommand($extensionId);
+                if ($exitCode !== 0) {
+                    $failures[] = "{$extensionId}: " . ($output !== '' ? $output : 'Unknown error');
+                    continue;
+                }
+
+                $updated++;
+            }
+
+            if ($failures !== []) {
+                return redirect()
+                    ->route('admin.notur.extensions')
+                    ->with('error', 'Some updates failed: ' . implode(' | ', $failures));
+            }
+
+            return redirect()
+                ->route('admin.notur.extensions')
+                ->with('success', $updated > 0 ? "Updated {$updated} extension(s)." : 'All extensions are already up to date.');
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('admin.notur.extensions')
+                ->with('error', 'Update all failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Remove an extension.
      */
     public function remove(string $extensionId): RedirectResponse
@@ -546,6 +644,64 @@ class ExtensionAdminController extends Controller
             'exitCode' => $exitCode,
             'output' => trim(Artisan::output()),
         ];
+    }
+
+    protected function runRegistrySyncCommand(): array
+    {
+        $exitCode = Artisan::call('notur:registry:sync', [
+            '--force' => true,
+        ]);
+
+        return [
+            'exitCode' => $exitCode,
+            'output' => trim(Artisan::output()),
+        ];
+    }
+
+    protected function runUpdateCommand(string $extensionId): array
+    {
+        $exitCode = Artisan::call('notur:add', [
+            'extension' => $extensionId,
+            '--force' => true,
+        ]);
+
+        return [
+            'exitCode' => $exitCode,
+            'output' => trim(Artisan::output()),
+        ];
+    }
+
+    /**
+     * @param iterable<int, InstalledExtension> $extensions
+     * @return array<string, array{current: string, latest: string|null, available: bool}>
+     */
+    private function resolveExtensionUpdates(iterable $extensions, RegistryClient $registry): array
+    {
+        $updates = [];
+
+        foreach ($extensions as $extension) {
+            $extensionId = $extension->extension_id;
+            $currentVersion = (string) $extension->version;
+            $latestVersion = null;
+            $available = false;
+
+            $registryInfo = $registry->getExtension($extensionId);
+            if (is_array($registryInfo)) {
+                $candidate = $registryInfo['latest_version'] ?? $registryInfo['version'] ?? null;
+                if (is_string($candidate) && $candidate !== '') {
+                    $latestVersion = $candidate;
+                    $available = version_compare($currentVersion, $latestVersion, '<');
+                }
+            }
+
+            $updates[$extensionId] = [
+                'current' => $currentVersion,
+                'latest' => $latestVersion,
+                'available' => $available,
+            ];
+        }
+
+        return $updates;
     }
 
     /**
