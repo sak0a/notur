@@ -35,6 +35,8 @@ class RemotePushAdminControllerTest extends TestCase
     {
         parent::setUp();
         $this->loadMigrationsFrom(__DIR__ . '/../../../../database/migrations');
+        // Stub the Pterodactyl-provided `layouts.admin` view.
+        $this->app['view']->addLocation(__DIR__ . '/../../../fixtures/views');
         // CSRF is included in the `web` group; disable for these tests.
         $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
     }
