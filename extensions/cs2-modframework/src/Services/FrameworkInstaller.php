@@ -11,6 +11,7 @@ class FrameworkInstaller
 {
     private const ADDONS_DIR = '/game/csgo/addons';
     private const CSGO_DIR = '/game/csgo';
+    private const VERSION_STATE_PATH = '/game/csgo/addons/.notur-framework-versions.json';
 
     private const FRAMEWORK_DIRS = [
         'swiftly' => 'swiftlys2',
@@ -65,14 +66,17 @@ class FrameworkInstaller
     {
         $addons = $this->listAddons();
         $gameinfoContent = $this->readGameInfoSafe();
+        $versions = $this->readVersionState();
 
         $status = [];
         foreach (self::FRAMEWORK_DIRS as $framework => $dir) {
             $detectedDirectory = $this->detectFrameworkDirectory($framework, $addons, $gameinfoContent);
             $installed = $detectedDirectory !== null;
+            $installedVersion = $installed ? ($versions[$framework]['version'] ?? null) : null;
             $status[$framework] = [
                 'installed' => $installed,
                 'directory' => $detectedDirectory !== null ? "game/csgo/addons/{$detectedDirectory}" : null,
+                'installed_version' => is_string($installedVersion) && $installedVersion !== '' ? $installedVersion : null,
                 'restart_required' => $installed,
             ];
         }
@@ -162,6 +166,7 @@ class FrameworkInstaller
             if ($framework === 'counterstrikesharp') {
                 $this->cleanupCssMetamodFiles();
             }
+            $this->removeInstalledVersion($framework);
 
             return [
                 'success' => true,
@@ -225,6 +230,7 @@ class FrameworkInstaller
             if ($entry !== null) {
                 $this->gameInfoModifier->addEntry($entry);
             }
+            $this->recordInstalledVersion($framework, $version);
 
             return [
                 'success' => true,
@@ -405,5 +411,52 @@ class FrameworkInstaller
     private function isEligible(): bool
     {
         return (bool) ($this->serverEligibility['supported'] ?? false);
+    }
+
+    /**
+     * @return array<string, array{version?: string, updated_at?: string}>
+     */
+    private function readVersionState(): array
+    {
+        try {
+            $decoded = json_decode($this->fileRepository->getContent(self::VERSION_STATE_PATH), true);
+
+            return is_array($decoded) ? $decoded : [];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    private function writeVersionState(array $state): void
+    {
+        try {
+            $this->fileRepository->putContent(
+                self::VERSION_STATE_PATH,
+                json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n",
+            );
+        } catch (\Throwable $e) {
+            Log::warning('CS2 ModFramework: Failed to write version state', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function recordInstalledVersion(string $framework, string $version): void
+    {
+        $state = $this->readVersionState();
+        $state[$framework] = [
+            'version' => $version,
+            'updated_at' => gmdate('c'),
+        ];
+
+        $this->writeVersionState($state);
+    }
+
+    private function removeInstalledVersion(string $framework): void
+    {
+        $state = $this->readVersionState();
+        unset($state[$framework]);
+
+        $this->writeVersionState($state);
     }
 }

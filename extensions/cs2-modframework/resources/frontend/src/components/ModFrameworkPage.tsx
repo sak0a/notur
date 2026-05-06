@@ -8,7 +8,7 @@ const { useState, useCallback } = React;
 
 interface ModalState {
     open: boolean;
-    action: 'install' | 'uninstall';
+    action: 'install' | 'upgrade' | 'uninstall';
     framework: FrameworkName;
 }
 
@@ -164,7 +164,7 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
     const serverSupported = status?.server?.supported ?? true;
     const unsupportedReason = status?.server?.reason ?? 'This server is not eligible for CS2 mod framework management.';
 
-    const openModal = useCallback((action: 'install' | 'uninstall', framework: FrameworkName) => {
+    const openModal = useCallback((action: 'install' | 'upgrade' | 'uninstall', framework: FrameworkName) => {
         setSuccessMsg(null);
         setModal({ open: true, action, framework });
     }, []);
@@ -175,7 +175,7 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
         if (!modal) return;
 
         let result: InstallResult;
-        if (modal.action === 'install') {
+        if (modal.action === 'install' || modal.action === 'upgrade') {
             result = await installFramework(modal.framework, selectedVersions[modal.framework]);
         } else {
             result = await uninstallFramework(modal.framework);
@@ -191,6 +191,10 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
         if (!modal) return '';
         const fw = FRAMEWORKS.find(f => f.key === modal.framework);
         const label = fw?.label || modal.framework;
+        if (modal.action === 'upgrade') {
+            return `Upgrade ${label}`;
+        }
+
         return modal.action === 'install' ? `Install ${label}` : `Uninstall ${label}`;
     };
 
@@ -198,6 +202,10 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
         if (!modal) return '';
         const fw = FRAMEWORKS.find(f => f.key === modal.framework);
         const label = fw?.label || modal.framework;
+
+        if (modal.action === 'upgrade') {
+            return `This will install the selected version of ${label} over the current files. Stop your server before upgrading.`;
+        }
 
         if (modal.action === 'install') {
             return `This will download and install the latest version of ${label} on your server. The server should be stopped before installing.`;
@@ -208,7 +216,7 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
     const getModalWarning = (): string | undefined => {
         if (!modal) return undefined;
 
-        if (modal.action === 'install' && modal.framework === 'counterstrikesharp') {
+        if ((modal.action === 'install' || modal.action === 'upgrade') && modal.framework === 'counterstrikesharp') {
             const metamodInstalled = status?.metamod?.installed ?? false;
             if (!metamodInstalled) {
                 return 'Metamod:Source is not installed and will be automatically installed first, as CounterStrikeSharp requires it.';
@@ -268,7 +276,7 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
         React.createElement('div', { style: gridStyle },
             FRAMEWORKS.map(fw => {
                 const fwStatus = status ? status[fw.key] : null;
-                const fwVersion = versions ? versions[fw.key] : null;
+                const fwCatalog = versions ? versions[fw.key] : null;
                 const depInstalled = fw.dependency ? (status?.[fw.dependency]?.installed ?? false) : undefined;
                 const gameInfoOk = fw.key === 'counterstrikesharp' ? undefined
                     : status?.gameinfo_entries?.[fw.key];
@@ -280,8 +288,8 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
                     description: fw.description,
                     icon: fw.icon,
                     status: fwStatus,
-                    version: fwVersion,
-                    selectedVersion: selectedVersions[fw.key] ?? fwVersion?.version,
+                    catalog: fwCatalog,
+                    selectedVersion: selectedVersions[fw.key] ?? fwCatalog?.latest?.version,
                     gameInfoOk,
                     dependency: fw.dependency ? (FRAMEWORKS.find(f => f.key === fw.dependency)?.label) : undefined,
                     dependencyInstalled: depInstalled,
@@ -289,6 +297,7 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
                     disabledReason: serverSupported ? undefined : unsupportedReason,
                     onVersionChange: (version) => setSelectedVersions(current => ({ ...current, [fw.key]: version })),
                     onInstall: () => openModal('install', fw.key),
+                    onUpgrade: () => openModal('upgrade', fw.key),
                     onUninstall: () => openModal('uninstall', fw.key),
                 });
             }),
@@ -300,8 +309,8 @@ const ModFrameworkPageInner: React.FC<{ serverUuid: string }> = ({ serverUuid })
             title: getModalTitle(),
             message: getModalMessage(),
             warning: getModalWarning(),
-            confirmLabel: modal?.action === 'install' ? 'Install' : 'Uninstall',
-            confirmColor: modal?.action === 'install' ? '#22c55e' : '#ef4444',
+            confirmLabel: modal?.action === 'upgrade' ? 'Upgrade' : modal?.action === 'install' ? 'Install' : 'Uninstall',
+            confirmColor: modal?.action === 'uninstall' ? '#ef4444' : '#22c55e',
             loading: actionLoading !== null,
             onConfirm: handleConfirm,
             onCancel: closeModal,

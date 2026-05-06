@@ -4,6 +4,10 @@ All notable changes to the Notur Extension Library will be documented in this fi
 
 ## [1.4.3] - 2026-05-06
 
+### Added
+
+- Added `cs2-modframework` installable version lists, installed-version tracking, update badges, upgrade actions, and project links.
+
 ### Changed
 
 - Bumped `notur/cs2-modframework` extension metadata to v1.1.1.

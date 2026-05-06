@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FrameworkStatus, VersionInfo, FrameworkName } from '../api/useModFramework';
+import { FrameworkStatus, VersionInfo, FrameworkName, FrameworkVersionCatalog } from '../api/useModFramework';
 
 interface FrameworkCardProps {
     framework: FrameworkName;
@@ -7,7 +7,7 @@ interface FrameworkCardProps {
     description: string;
     icon: string;
     status: FrameworkStatus | null;
-    version: VersionInfo | null;
+    catalog: FrameworkVersionCatalog | null;
     selectedVersion?: string;
     gameInfoOk?: boolean;
     dependency?: string;
@@ -16,6 +16,7 @@ interface FrameworkCardProps {
     disabledReason?: string;
     onVersionChange?: (version: string) => void;
     onInstall: () => void;
+    onUpgrade: () => void;
     onUninstall: () => void;
 }
 
@@ -27,7 +28,6 @@ const cardStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
     gap: '1rem',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
 };
 
 const headerStyle: React.CSSProperties = {
@@ -98,13 +98,27 @@ const depBadge: React.CSSProperties = {
     border: '1px solid rgba(99, 102, 241, 0.2)',
 };
 
+const updateBadge: React.CSSProperties = {
+    ...baseBadgeStyle,
+    background: 'rgba(245, 158, 11, 0.12)',
+    color: '#f59e0b',
+    border: '1px solid rgba(245, 158, 11, 0.2)',
+};
+
+const currentBadge: React.CSSProperties = {
+    ...baseBadgeStyle,
+    background: 'rgba(14, 165, 233, 0.1)',
+    color: '#38bdf8',
+    border: '1px solid rgba(14, 165, 233, 0.2)',
+};
+
 const versionTextStyle: React.CSSProperties = {
     color: 'var(--notur-text-secondary, #a0a8b4)',
     fontSize: '0.78rem',
 };
 
-const versionInputStyle: React.CSSProperties = {
-    width: '120px',
+const versionSelectStyle: React.CSSProperties = {
+    width: '150px',
     padding: '0.4rem 0.55rem',
     borderRadius: '6px',
     border: '1px solid var(--notur-border, rgba(255, 255, 255, 0.12))',
@@ -113,10 +127,18 @@ const versionInputStyle: React.CSSProperties = {
     fontSize: '0.78rem',
 };
 
+const linkStyle: React.CSSProperties = {
+    color: '#38bdf8',
+    fontSize: '0.76rem',
+    fontWeight: 600,
+    textDecoration: 'none',
+};
+
 const footerStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: '1rem',
     marginTop: 'auto',
 };
 
@@ -129,10 +151,14 @@ const installBtnStyle: React.CSSProperties = {
     cursor: 'pointer',
     fontSize: '0.85rem',
     fontWeight: 600,
-    transition: 'opacity 0.15s',
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
+};
+
+const upgradeBtnStyle: React.CSSProperties = {
+    ...installBtnStyle,
+    background: '#f59e0b',
 };
 
 const uninstallBtnStyle: React.CSSProperties = {
@@ -168,7 +194,7 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
     description,
     icon,
     status,
-    version,
+    catalog,
     selectedVersion,
     gameInfoOk,
     dependency,
@@ -177,10 +203,19 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
     disabledReason,
     onVersionChange,
     onInstall,
+    onUpgrade,
     onUninstall,
 }) => {
     const installed = status?.installed ?? false;
     const disabled = Boolean(disabledReason);
+    const latest = catalog?.latest ?? null;
+    const versions = catalog?.versions && catalog.versions.length > 0
+        ? catalog.versions
+        : (latest ? [latest] : []);
+    const installedVersion = status?.installed_version ?? null;
+    const selected = selectedVersion ?? latest?.version ?? versions[0]?.version ?? '';
+    const updateAvailable = Boolean(installed && installedVersion && latest && installedVersion !== latest.version);
+    const selectedDiffersFromInstalled = Boolean(installed && installedVersion && selected && installedVersion !== selected);
 
     const iconStyle: React.CSSProperties = {
         ...iconContainerStyle,
@@ -191,7 +226,6 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
     const needsDep = dependency && !dependencyInstalled && !installed;
 
     return React.createElement('div', { style: cardStyle },
-        // Header: icon + title
         React.createElement('div', { style: headerStyle },
             React.createElement('div', { style: iconStyle }, icon),
             React.createElement('div', null,
@@ -200,11 +234,18 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
             ),
         ),
 
-        // Badges
         React.createElement('div', { style: badgeRowStyle },
             installed
                 ? React.createElement('span', { style: installedBadge }, '\u2713 Installed')
                 : React.createElement('span', { style: notInstalledBadge }, 'Not Installed'),
+            installed && installedVersion
+                ? React.createElement('span', { style: updateAvailable ? updateBadge : currentBadge },
+                    updateAvailable ? `Update: v${latest?.version}` : 'Up to date',
+                )
+                : null,
+            installed && !installedVersion
+                ? React.createElement('span', { style: updateBadge }, 'Version unknown')
+                : null,
             dependency
                 ? React.createElement('span', { style: depBadge },
                     dependencyInstalled ? '\u2713 ' : '',
@@ -212,59 +253,48 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
                 )
                 : null,
             installed && gameInfoOk === false
-                ? React.createElement('span', {
-                    style: {
-                        ...baseBadgeStyle,
-                        background: 'rgba(245, 158, 11, 0.1)',
-                        color: '#f59e0b',
-                        border: '1px solid rgba(245, 158, 11, 0.2)',
-                    },
-                }, 'gameinfo.gi entry missing')
+                ? React.createElement('span', { style: updateBadge }, 'gameinfo.gi entry missing')
                 : null,
             installed && status?.restart_required
-                ? React.createElement('span', {
-                    style: {
-                        ...baseBadgeStyle,
-                        background: 'rgba(14, 165, 233, 0.1)',
-                        color: '#38bdf8',
-                        border: '1px solid rgba(14, 165, 233, 0.2)',
-                    },
-                }, 'Restart required')
+                ? React.createElement('span', { style: currentBadge }, 'Restart required')
                 : null,
         ),
 
-        // Footer: version + action button
         React.createElement('div', { style: footerStyle },
             React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '0.35rem' } },
                 React.createElement('span', { style: versionTextStyle },
-                    version ? `Latest: v${version.version}` : 'Latest unavailable',
+                    installedVersion
+                        ? `Installed: v${installedVersion}`
+                        : installed
+                            ? 'Installed: unknown'
+                            : latest
+                                ? `Latest: v${latest.version}`
+                                : 'Latest unavailable',
                 ),
-                !installed && version
-                    ? React.createElement('input', {
-                        style: versionInputStyle,
-                        value: selectedVersion ?? version.version,
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => onVersionChange?.(e.target.value),
+                versions.length > 0
+                    ? React.createElement('select', {
+                        style: versionSelectStyle,
+                        value: selected,
+                        onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onVersionChange?.(e.target.value),
                         disabled: isLoading || disabled,
-                        title: 'Version to install',
-                        'aria-label': `${label} version to install`,
-                    })
+                        title: installed ? 'Version to install or upgrade to' : 'Version to install',
+                        'aria-label': `${label} version`,
+                    }, versions.map((item: VersionInfo) => React.createElement('option', {
+                        key: item.version,
+                        value: item.version,
+                    }, item.version === latest?.version ? `${item.version} (latest)` : item.version)))
+                    : null,
+                catalog?.project_url
+                    ? React.createElement('a', {
+                        style: linkStyle,
+                        href: catalog.project_url,
+                        target: '_blank',
+                        rel: 'noreferrer',
+                    }, 'Project link')
                     : null,
             ),
             isLoading
-                ? React.createElement('button', { style: disabledBtnStyle, disabled: true },
-                    React.createElement('span', {
-                        style: {
-                            display: 'inline-block',
-                            width: '14px',
-                            height: '14px',
-                            border: '2px solid rgba(148, 163, 184, 0.3)',
-                            borderTopColor: '#94a3b8',
-                            borderRadius: '50%',
-                            animation: 'notur-spin 0.6s linear infinite',
-                        },
-                    }),
-                    'Working...',
-                )
+                ? React.createElement('button', { style: disabledBtnStyle, disabled: true }, 'Working...')
                 : disabled
                     ? React.createElement('button', {
                         style: disabledBtnStyle,
@@ -272,10 +302,19 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
                         title: disabledReason,
                     }, installed ? 'Unavailable' : 'Install')
                 : installed
-                    ? React.createElement('button', {
-                        style: uninstallBtnStyle,
-                        onClick: onUninstall,
-                    }, 'Uninstall')
+                    ? React.createElement('div', { style: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' } },
+                        updateAvailable || selectedDiffersFromInstalled || !installedVersion
+                            ? React.createElement('button', {
+                                style: upgradeBtnStyle,
+                                onClick: onUpgrade,
+                                disabled: !selected,
+                            }, installedVersion ? 'Upgrade' : 'Install version')
+                            : null,
+                        React.createElement('button', {
+                            style: uninstallBtnStyle,
+                            onClick: onUninstall,
+                        }, 'Uninstall'),
+                    )
                     : React.createElement('button', {
                         style: installBtnStyle,
                         onClick: onInstall,

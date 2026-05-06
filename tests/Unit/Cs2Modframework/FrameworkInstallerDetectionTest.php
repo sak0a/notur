@@ -135,6 +135,25 @@ class FrameworkInstallerDetectionTest extends TestCase
         $this->assertTrue($status['gameinfo_entries']['swiftly']);
     }
 
+    public function test_status_includes_recorded_installed_version(): void
+    {
+        $installer = $this->makeInstaller(new FakeDaemonFileRepository([
+            '/game/csgo/addons' => [
+                ['name' => 'swiftlys2', 'is_file' => false],
+            ],
+        ], null, [
+            '/game/csgo/addons/.notur-framework-versions.json' => json_encode([
+                'swiftly' => ['version' => '1.3.2'],
+            ]),
+        ]));
+
+        $status = $installer->getStatus();
+
+        $this->assertTrue($status['swiftly']['installed']);
+        $this->assertSame('1.3.2', $status['swiftly']['installed_version']);
+        $this->assertNull($status['metamod']['installed_version']);
+    }
+
     private function makeInstaller(FakeDaemonFileRepository $repository): FrameworkInstaller
     {
         $releaseResolver = $this->createMock(GitHubReleaseResolver::class);
@@ -152,6 +171,7 @@ class FakeDaemonFileRepository extends DaemonFileRepository
     public function __construct(
         private readonly array $directories,
         private readonly ?string $gameinfo = null,
+        private array $files = [],
     ) {
     }
 
@@ -166,11 +186,20 @@ class FakeDaemonFileRepository extends DaemonFileRepository
 
     public function getContent(string $path): string
     {
+        if (array_key_exists($path, $this->files)) {
+            return $this->files[$path];
+        }
+
         if ($path !== '/game/csgo/gameinfo.gi' || $this->gameinfo === null) {
             throw new \RuntimeException("Missing file {$path}");
         }
 
         return $this->gameinfo;
+    }
+
+    public function putContent(string $path, string $content): void
+    {
+        $this->files[$path] = $content;
     }
 }
 }

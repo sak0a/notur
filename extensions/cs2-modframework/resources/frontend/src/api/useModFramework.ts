@@ -6,6 +6,7 @@ const EXTENSION_ID = 'notur/cs2-modframework';
 export interface FrameworkStatus {
     installed: boolean;
     directory: string | null;
+    installed_version: string | null;
     restart_required?: boolean;
 }
 
@@ -26,10 +27,16 @@ export interface VersionInfo {
     filename: string;
 }
 
+export interface FrameworkVersionCatalog {
+    latest: VersionInfo | null;
+    versions: VersionInfo[];
+    project_url: string;
+}
+
 export interface VersionsResponse {
-    swiftly: VersionInfo | null;
-    counterstrikesharp: VersionInfo | null;
-    metamod: VersionInfo | null;
+    swiftly: FrameworkVersionCatalog;
+    counterstrikesharp: FrameworkVersionCatalog;
+    metamod: FrameworkVersionCatalog;
 }
 
 export interface InstallResult {
