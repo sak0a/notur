@@ -10,6 +10,9 @@
         <a href="{{ route('admin.notur.health') }}" class="btn btn-default btn-sm">
             <i class="fa fa-heartbeat"></i> Health
         </a>
+        <a href="{{ route('admin.notur.dev-push') }}" class="btn btn-default btn-sm">
+            <i class="fa fa-upload"></i> Developer Push
+        </a>
         <a href="{{ route('admin.notur.diagnostics') }}" class="btn btn-default btn-sm">
             <i class="fa fa-stethoscope"></i> Diagnostics
         </a>
