@@ -1,7 +1,7 @@
 notur: "1.0"
 id: "notur/cs2-modframework"
 name: "CS2 Mod Frameworks"
-version: "1.1.2"
+version: "1.1.3"
 description: "One-click install of SwiftlyS2, CounterStrikeSharp & Metamod for CS2 servers"
 authors:
   - name: "Notur Team"
@@ -24,3 +24,26 @@ backend:
 
 frontend:
   bundle: "resources/frontend/dist/cs2-modframework.js"
+
+health:
+  checks:
+    - id: "frontend_bundle"
+      label: "Frontend bundle"
+      description: "Verifies the compiled CS2 Mod Frameworks frontend bundle exists and is readable."
+      severity: "critical"
+    - id: "api_routes"
+      label: "API routes"
+      description: "Verifies the extension API route file is present."
+      severity: "critical"
+    - id: "pterodactyl_runtime"
+      label: "Pterodactyl runtime"
+      description: "Verifies required Pterodactyl server and Wings repository classes are available."
+      severity: "critical"
+    - id: "cache_store"
+      label: "Cache store"
+      description: "Verifies Laravel cache is available for framework version lookups."
+      severity: "warning"
+    - id: "manifest_contract"
+      label: "Manifest contract"
+      description: "Verifies required permission, route, and frontend declarations are present."
+      severity: "warning"
