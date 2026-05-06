@@ -94,7 +94,56 @@ import type {
 
 ## CLI Tools
 
-The SDK ships two CLI tools, available via `npx`, `yarn dlx`, `pnpm dlx`, or `bunx`.
+The SDK ships local development CLI tools, available via `npx`, `yarn dlx`, `pnpm dlx`, or `bunx`.
+
+You can use the dispatcher:
+
+```bash
+npx @notur/sdk create acme/red-button
+npx @notur/sdk pack
+npx @notur/sdk push --host https://panel.example.com --key notur_xxx
+```
+
+Or the standalone bins:
+
+```bash
+npx notur-create acme/red-button
+npx notur-pack
+npx notur-push --host https://panel.example.com --key notur_xxx
+```
+
+### `notur-create` — Scaffold extensions locally
+
+Creates a Notur extension folder without requiring Pterodactyl, Laravel, or `php artisan`.
+
+Run without arguments to start the interactive wizard:
+
+```bash
+npx notur-create
+```
+
+Scripted usage stays non-interactive:
+
+```bash
+npx notur-create acme/red-button --slot server.header
+cd red-button
+npm install
+npm run build
+npx notur-pack
+```
+
+Options:
+- `--path <dir>` — parent directory for the generated extension.
+- `--preset <name>` — `frontend`, `backend`, `full`, or `minimal`.
+- `--name <name>` — display name for `extension.yaml`.
+- `--description <text>` — description for `extension.yaml`.
+- `--slot <slot>` — initial frontend slot, default `dashboard.widgets`.
+- `--package-manager <name>` — `npm`, `pnpm`, `yarn`, or `bun`.
+- `--install` / `--no-install` — install frontend dependencies after scaffolding.
+- `--env` / `--no-env` — create `.env` from `.env.example`.
+- `--no-frontend` — generate only `extension.yaml` and the PHP entrypoint.
+- `--with-api-routes` — include a client API route stub.
+- `--force` — allow writing into an existing empty directory.
 
 ### `notur-pack` — Package extensions
 
@@ -136,6 +185,48 @@ This additionally produces:
 - `vendor-name-1.0.0.notur.sig` — Ed25519 signature (hex-encoded)
 
 The `.sig` format is compatible with PHP's `SignatureVerifier::verify()`.
+
+### `notur-push` — Push to a remote Notur panel
+
+Packages the local extension and uploads it to a Notur-enabled Pterodactyl panel using a remote push key.
+
+```bash
+npx notur-push --host https://panel.example.com --key notur_xxx
+```
+
+Equivalent values can be provided by the shell or by a local `.env` file in the extension directory:
+
+```dotenv
+NOTUR_HOST=https://panel.example.com
+NOTUR_PUSH_KEY=notur_xxx
+```
+
+Then run:
+
+```bash
+npm run push
+```
+
+or:
+
+```bash
+npx notur-push
+```
+
+Remote setup on the panel:
+
+```bash
+php artisan notur:remote-key
+```
+
+Add the printed `NOTUR_REMOTE_PUSH_ENABLED=true` and `NOTUR_REMOTE_PUSH_KEYS=...` values to the panel `.env`.
+
+Options:
+- `--archive <file>` — upload an existing `.notur` archive instead of packing.
+- `--env-file <file>` — load host/key values from a custom env file.
+- `--no-build` — skip running the local `build` script before packing.
+- `--no-force` — do not overwrite an already installed extension.
+- `--keep-archive` — keep the temporary archive generated for the push.
 
 ### `notur-keygen` — Generate signing keypair
 

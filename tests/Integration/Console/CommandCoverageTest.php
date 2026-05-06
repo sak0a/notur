@@ -94,6 +94,15 @@ class CommandCoverageTest extends TestCase
             ->assertExitCode(0);
     }
 
+    public function test_remote_key_command_outputs_env_configuration(): void
+    {
+        $this->artisan('notur:remote-key')
+            ->expectsOutputToContain('Generated Notur remote push key:')
+            ->expectsOutputToContain('NOTUR_REMOTE_PUSH_ENABLED=true')
+            ->expectsOutputToContain('NOTUR_REMOTE_PUSH_KEYS=notur_')
+            ->assertExitCode(0);
+    }
+
     public function test_registry_status_fails_when_cache_path_not_configured(): void
     {
         config(['notur.registry_cache_path' => '']);

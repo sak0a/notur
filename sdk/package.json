@@ -15,8 +15,12 @@
     "access": "public"
   },
   "bin": {
+    "sdk": "./bin/notur.js",
+    "notur": "./bin/notur.js",
+    "notur-create": "./bin/notur-create.js",
     "notur-pack": "./bin/notur-pack.js",
-    "notur-keygen": "./bin/notur-keygen.js"
+    "notur-keygen": "./bin/notur-keygen.js",
+    "notur-push": "./bin/notur-push.js"
   },
   "keywords": [
     "notur",
@@ -29,7 +33,8 @@
     "dist/",
     "bin/",
     "webpack.extension.config.js",
-    "templates/"
+    "templates/",
+    "examples/"
   ],
   "scripts": {
     "build": "tsc",

@@ -1,0 +1,7 @@
+node_modules/
+vendor/
+resources/frontend/dist/
+.env
+*.notur
+*.notur.sha256
+*.notur.sig

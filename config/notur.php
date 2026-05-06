@@ -79,4 +79,22 @@ return [
     */
     'public_key' => env('NOTUR_PUBLIC_KEY', ''),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Remote Development Push
+    |--------------------------------------------------------------------------
+    |
+    | Enables authenticated package uploads from the SDK CLI. Keep disabled in
+    | production unless you explicitly trust the holder of each configured key.
+    |
+    */
+    'remote_push' => [
+        'enabled' => env('NOTUR_REMOTE_PUSH_ENABLED', false),
+        'keys' => array_values(array_filter(array_map(
+            static fn ($key) => trim((string) $key),
+            explode(',', (string) env('NOTUR_REMOTE_PUSH_KEYS', '')),
+        ))),
+        'max_upload_mb' => (int) env('NOTUR_REMOTE_PUSH_MAX_UPLOAD_MB', 50),
+    ],
+
 ];

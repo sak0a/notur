@@ -20,6 +20,7 @@ use Notur\Console\Commands\ListCommand;
 use Notur\Console\Commands\NewCommand;
 use Notur\Console\Commands\RegistryStatusCommand;
 use Notur\Console\Commands\RegistrySyncCommand;
+use Notur\Console\Commands\RemoteKeyCommand;
 use Notur\Console\Commands\RemoveCommand;
 use Notur\Console\Commands\StatusCommand;
 use Notur\Console\Commands\FrameworkUninstallCommand;
@@ -103,6 +104,7 @@ class NoturServiceProvider extends ServiceProvider
             KeygenCommand::class,
             RegistrySyncCommand::class,
             RegistryStatusCommand::class,
+            RemoteKeyCommand::class,
             NewCommand::class,
             ValidateCommand::class,
             FrameworkUninstallCommand::class,
@@ -130,6 +132,7 @@ class NoturServiceProvider extends ServiceProvider
         $router->aliasMiddleware('notur.server-access', \Notur\Http\Middleware\VerifyServerAccess::class);
         $router->aliasMiddleware('notur.namespace', \Notur\Http\Middleware\ExtensionNamespace::class);
         $router->aliasMiddleware('notur.permission', \Notur\Http\Middleware\ExtensionPermission::class);
+        $router->aliasMiddleware('notur.remote-push', \Notur\Http\Middleware\VerifyRemotePushKey::class);
 
         // Boot extension manager
         $this->app->make(ExtensionManager::class)->boot();
