@@ -36,6 +36,7 @@ class RemotePushAdminController extends Controller
             'keys' => $keys,
             'pushedExtensions' => $pushedExtensions,
             'newlyCreatedKey' => $newlyCreatedKey,
+            'pushEnabled' => (bool) config('notur.remote_push.enabled', false),
         ]);
     }
 

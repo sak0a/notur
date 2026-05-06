@@ -24,6 +24,14 @@
         @if (session('error'))
             <div class="alert alert-danger">{{ session('error') }}</div>
         @endif
+        @if (empty($pushEnabled))
+            <div class="alert alert-warning" style="border:2px solid #f39c12;">
+                <h4 style="margin-top:0;">Remote push endpoint is disabled</h4>
+                <p style="margin-bottom:6px;">You can manage keys here, but pushes will fail with 404 until you enable the endpoint on the panel:</p>
+                <pre style="background:#0a0a0b;color:#eaeaea;padding:8px;margin:0;">NOTUR_REMOTE_PUSH_ENABLED=true</pre>
+                <p style="margin-top:6px;margin-bottom:0;">Then run <code>php artisan config:clear</code>.</p>
+            </div>
+        @endif
         @if ($errors->any())
             <div class="alert alert-danger">
                 <ul style="margin:0;padding-left:18px;">

@@ -4,6 +4,24 @@ Notur supports pushing locally-built extensions to a running panel for live test
 
 ## For panel admins
 
+### Setup (one-time)
+
+The push endpoint is **disabled by default**. To turn it on, set this in the panel `.env`:
+
+```
+NOTUR_REMOTE_PUSH_ENABLED=true
+```
+
+Then clear the cached config:
+
+```bash
+php artisan config:clear
+```
+
+Without this, `/api/notur/dev/push` returns 404 and `npm run push` fails. The admin **Developer Push** page is always reachable, but pushes won't go through until the env flag is set.
+
+### Managing keys
+
 1. Go to **Admin → Notur → Developer Push** (`/admin/notur/dev-push`).
 2. Click **Create key**, give it a recognisable name (e.g. the developer or device using it), and save.
 3. Copy the full key from the one-time alert. The panel hashes it and never displays the full value again.
