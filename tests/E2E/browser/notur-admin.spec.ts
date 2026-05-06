@@ -596,22 +596,22 @@ test.describe.serial('Notur admin browser E2E', () => {
         ).toBe(404);
     });
 
-    test('failed removal surfaces an error notification instead of false success', async () => {
+    test('remove database-only orphan extension via admin UI', async () => {
         const page = adminPage;
         const row = extensionRow(page, BROKEN_EXTENSION_ID);
 
         page.once('dialog', (dialog) => dialog.accept());
         await row.getByRole('button', { name: `Remove ${BROKEN_EXTENSION_ID}` }).click();
 
-        await expect(page.locator('[data-testid="notur-flash-error"]')).toContainText('Removal failed:');
+        await expectFlashSuccess(page, `Extension '${BROKEN_EXTENSION_ID}' has been removed.`);
         await page.reload();
 
-        await expect(extensionRow(page, BROKEN_EXTENSION_ID)).toBeVisible();
+        await expect(extensionRow(page, BROKEN_EXTENSION_ID)).toHaveCount(0);
         await expect.poll(() =>
             mysqlScalar(
                 `SELECT COUNT(*) FROM notur_extensions WHERE extension_id='${escapeSql(BROKEN_EXTENSION_ID)}';`,
             ),
-        ).toBe('1');
+        ).toBe('0');
     });
 
     test('remove extension via admin UI', async () => {

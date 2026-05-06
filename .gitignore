@@ -54,5 +54,6 @@ clover.xml
 /test-results/
 
 # Optional: local panel checkout for development (uncomment if needed)
-/pterodactyl-panel-v1.11.11/
 /pterodactyl-panel-v1.12/
+
+.prompt.md
