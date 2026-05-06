@@ -6,7 +6,6 @@
       "Bash(git ls-tree:*)",
       "Bash(git commit -m 'feat: add bounded diagnostics utility:*)",
       "Bash(git reset:*)",
-      "Bash(git -C /Users/laurinfrank/Library/CloudStorage/Dropbox/Code/PHP/NoturExtensionLib status --short)",
       "Bash(npm run:*)",
       "Bash(*)",
       "WebSearch"
