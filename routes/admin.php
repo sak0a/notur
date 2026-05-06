@@ -61,4 +61,22 @@ Route::prefix('admin/notur')
         Route::post('/extensions/{extensionId}/remove', [ExtensionAdminController::class, 'remove'])
             ->name('admin.notur.extensions.remove')
             ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');
+
+        Route::get('/dev-push', [\Notur\Http\Controllers\RemotePushAdminController::class, 'index'])
+            ->name('admin.notur.dev-push');
+
+        Route::post('/dev-push/keys', [\Notur\Http\Controllers\RemotePushAdminController::class, 'createKey'])
+            ->name('admin.notur.dev-push.keys.create');
+
+        Route::post('/dev-push/keys/{id}/revoke', [\Notur\Http\Controllers\RemotePushAdminController::class, 'revokeKey'])
+            ->name('admin.notur.dev-push.keys.revoke')
+            ->where('id', '[0-9]+');
+
+        Route::post('/dev-push/keys/{id}/regenerate', [\Notur\Http\Controllers\RemotePushAdminController::class, 'regenerateKey'])
+            ->name('admin.notur.dev-push.keys.regenerate')
+            ->where('id', '[0-9]+');
+
+        Route::get('/dev-push/extensions/{extensionId}/manifest', [\Notur\Http\Controllers\RemotePushAdminController::class, 'showManifest'])
+            ->name('admin.notur.dev-push.manifest')
+            ->where('extensionId', '[a-z0-9\-]+/[a-z0-9\-]+');
     });
