@@ -146,6 +146,10 @@ Panel Response (HTML)
             └─> Bridge renders via React portals into <div id="notur-slot-*">
 ```
 
+## Remote development push
+
+Panel admins manage remote-push API keys at **Admin → Notur → Developer Push**. Developers use those keys with `npm run push` to install extensions on a running panel without going through the registry. See [`docs/remote-push.md`](docs/remote-push.md) for the full workflow.
+
 ## Extension Lifecycle
 
 ```bash
