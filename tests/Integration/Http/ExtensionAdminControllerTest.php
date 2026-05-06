@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Notur\Tests\Integration\Http;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\RedirectResponse;
 use Mockery;
 use Notur\ExtensionManager;
 use Notur\Http\Controllers\ExtensionAdminController;
 use Notur\NoturServiceProvider;
+use Notur\Support\SystemDiagnostics;
 use Orchestra\Testbench\TestCase;
 
 class ExtensionAdminControllerTest extends TestCase
@@ -27,6 +29,7 @@ class ExtensionAdminControllerTest extends TestCase
             'database' => ':memory:',
             'prefix' => '',
         ]);
+        $app['config']->set('cache.default', 'array');
     }
 
     protected function tearDown(): void
@@ -193,6 +196,59 @@ class ExtensionAdminControllerTest extends TestCase
                 '--force' => true,
             ],
         ]], $fakeArtisan->calls);
+    }
+
+    public function test_update_notur_runs_self_update_when_packagist_reports_newer_version(): void
+    {
+        Http::fake([
+            'repo.packagist.org/*' => Http::response([
+                'packages' => [
+                    'notur/notur' => [
+                        ['version' => '99.0.0', 'version_normalized' => '99.0.0.0'],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $manager = Mockery::mock(ExtensionManager::class);
+        $fakeArtisan = new class {
+            public array $calls = [];
+
+            public function call(string $command, array $parameters = []): int
+            {
+                $this->calls[] = [$command, $parameters];
+
+                return 0;
+            }
+
+            public function output(): string
+            {
+                return 'Caches cleared.';
+            }
+        };
+
+        Artisan::swap($fakeArtisan);
+
+        $controller = new class($manager) extends ExtensionAdminController {
+            public ?string $requestedVersion = null;
+
+            protected function runNoturSelfUpdateCommand(string $latestVersion): array
+            {
+                $this->requestedVersion = $latestVersion;
+
+                return [
+                    'exitCode' => 0,
+                    'output' => 'Composer updated Notur.',
+                ];
+            }
+        };
+
+        $response = $controller->updateNotur($this->app->make(SystemDiagnostics::class));
+
+        $this->assertSame(route('admin.notur.diagnostics'), $response->getTargetUrl());
+        $this->assertSame('99.0.0', $controller->requestedVersion);
+        $this->assertStringContainsString('Notur updated to v99.0.0', (string) $response->getSession()->get('success'));
+        $this->assertSame([['optimize:clear', []]], $fakeArtisan->calls);
     }
 
     private function assertRemovalRedirect(RedirectResponse $response): void

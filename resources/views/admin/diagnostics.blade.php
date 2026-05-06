@@ -30,6 +30,20 @@
 
     <div class="row">
         <div class="col-md-12">
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div class="box box-default">
                 <div class="box-header with-border">
                     <h3 class="box-title"><i class="fa fa-info-circle" style="margin-right: 8px; opacity: 0.5;"></i>General System Info</h3>
@@ -93,6 +107,33 @@
                                 <tr>
                                     <th>Latest</th>
                                     <td>{{ $noturUpdate['latest_version'] ?? 'unknown' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Action</th>
+                                    <td>
+                                        @if(($noturUpdate['update_available'] ?? null) === true && !empty($noturUpdate['latest_version']))
+                                            <form
+                                                action="{{ route('admin.notur.diagnostics.update-notur') }}"
+                                                method="POST"
+                                                onsubmit="return confirm('Update Notur to v{{ $noturUpdate['latest_version'] }}? This runs Composer from the web process and may take a few minutes.');"
+                                            >
+                                                @csrf
+                                                <button type="submit" class="btn btn-xs btn-warning">
+                                                    <i class="fa fa-cloud-download"></i> Update Notur
+                                                </button>
+                                            </form>
+                                            <p class="help-block" style="margin: 6px 0 0;">
+                                                Fallback CLI: <code>composer require notur/notur:^{{ $noturUpdate['latest_version'] }}</code>
+                                            </p>
+                                        @elseif(($noturUpdate['update_available'] ?? null) === false)
+                                            <span class="text-muted">No update available.</span>
+                                        @else
+                                            <span class="text-muted">Update status unavailable.</span>
+                                            <p class="help-block" style="margin: 6px 0 0;">
+                                                Check manually with <code>composer outdated notur/notur</code>.
+                                            </p>
+                                        @endif
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>

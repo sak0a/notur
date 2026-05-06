@@ -19,6 +19,9 @@ Route::prefix('admin/notur')
         Route::get('/diagnostics', [ExtensionAdminController::class, 'diagnostics'])
             ->name('admin.notur.diagnostics');
 
+        Route::post('/diagnostics/notur/update', [ExtensionAdminController::class, 'updateNotur'])
+            ->name('admin.notur.diagnostics.update-notur');
+
         Route::get('/health', [ExtensionAdminController::class, 'health'])
             ->name('admin.notur.health');
 

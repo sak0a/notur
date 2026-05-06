@@ -267,6 +267,43 @@ class ExtensionAdminController extends Controller
     }
 
     /**
+     * Update the Notur framework package itself through Composer.
+     */
+    public function updateNotur(SystemDiagnostics $diagnostics): RedirectResponse
+    {
+        $summary = $diagnostics->summary();
+        $updateInfo = $summary['updates']['notur'] ?? [];
+        $latestVersion = $updateInfo['latest_version'] ?? null;
+        $updateAvailable = $updateInfo['update_available'] ?? null;
+
+        if (!is_string($latestVersion) || $latestVersion === '' || $updateAvailable !== true) {
+            return redirect()
+                ->route('admin.notur.diagnostics')
+                ->with('error', 'No Notur update is currently available.');
+        }
+
+        try {
+            ['exitCode' => $exitCode, 'output' => $output] = $this->runNoturSelfUpdateCommand($latestVersion);
+
+            if ($exitCode !== 0) {
+                return redirect()
+                    ->route('admin.notur.diagnostics')
+                    ->with('error', 'Notur update failed: ' . ($output !== '' ? $output : 'Unknown Composer error.'));
+            }
+
+            Artisan::call('optimize:clear');
+
+            return redirect()
+                ->route('admin.notur.diagnostics')
+                ->with('success', "Notur updated to v{$latestVersion}. " . trim(Artisan::output()));
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('admin.notur.diagnostics')
+                ->with('error', 'Notur update failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Show the extension health overview page.
      */
     public function health(): View
@@ -668,6 +705,97 @@ class ExtensionAdminController extends Controller
         return [
             'exitCode' => $exitCode,
             'output' => trim(Artisan::output()),
+        ];
+    }
+
+    protected function runNoturSelfUpdateCommand(string $latestVersion): array
+    {
+        return $this->runProcess([
+            'composer',
+            'require',
+            "notur/notur:^{$latestVersion}",
+            '--with-all-dependencies',
+            '--no-interaction',
+            '--no-ansi',
+        ], base_path(), 300);
+    }
+
+    /**
+     * @param array<int, string> $command
+     * @return array{exitCode: int, output: string}
+     */
+    private function runProcess(array $command, string $cwd, int $timeoutSeconds): array
+    {
+        if (!function_exists('proc_open')) {
+            return [
+                'exitCode' => 1,
+                'output' => 'proc_open is disabled. Run the Composer update command from the CLI.',
+            ];
+        }
+
+        $descriptorSpec = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+
+        $env = array_merge($_ENV, [
+            'COMPOSER_ALLOW_SUPERUSER' => '1',
+        ]);
+
+        $process = @proc_open($command, $descriptorSpec, $pipes, $cwd, $env);
+        if (!is_resource($process)) {
+            return [
+                'exitCode' => 1,
+                'output' => 'Failed to start Composer. Ensure composer is available to the web server user.',
+            ];
+        }
+
+        fclose($pipes[0]);
+        stream_set_blocking($pipes[1], false);
+        stream_set_blocking($pipes[2], false);
+
+        $startedAt = time();
+        $output = '';
+        $exitCode = null;
+
+        try {
+            while (true) {
+                $output .= stream_get_contents($pipes[1]) ?: '';
+                $output .= stream_get_contents($pipes[2]) ?: '';
+
+                $status = proc_get_status($process);
+                if (!$status['running']) {
+                    $exitCode = is_int($status['exitcode'] ?? null) ? $status['exitcode'] : null;
+                    break;
+                }
+
+                if ((time() - $startedAt) > $timeoutSeconds) {
+                    proc_terminate($process);
+                    return [
+                        'exitCode' => 1,
+                        'output' => "Composer update timed out after {$timeoutSeconds} seconds.",
+                    ];
+                }
+
+                usleep(100000);
+            }
+        } finally {
+            foreach ([1, 2] as $pipe) {
+                if (isset($pipes[$pipe]) && is_resource($pipes[$pipe])) {
+                    fclose($pipes[$pipe]);
+                }
+            }
+        }
+
+        $closeCode = proc_close($process);
+        if ($exitCode === null || $exitCode === -1) {
+            $exitCode = $closeCode;
+        }
+
+        return [
+            'exitCode' => $exitCode,
+            'output' => trim($output),
         ];
     }
 

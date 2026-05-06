@@ -2,6 +2,13 @@
 
 All notable changes to the Notur Extension Library will be documented in this file.
 
+## [1.4.5] - 2026-05-06
+
+### Added
+
+- Added a guarded Diagnostics UI action that updates Notur itself through Composer and clears Laravel caches after a successful update.
+- Diagnostics now falls back to the configured Notur version when Composer reports a non-release development version.
+
 ## [1.4.4] - 2026-05-06
 
 ### Added

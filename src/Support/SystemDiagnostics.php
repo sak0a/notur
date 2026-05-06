@@ -61,7 +61,7 @@ final class SystemDiagnostics
     {
         if (class_exists(InstalledVersions::class)) {
             $version = InstalledVersions::getPrettyVersion('notur/notur');
-            if (is_string($version) && $version !== '') {
+            if (is_string($version) && $version !== '' && $this->normalizeVersionForCompare($version) !== null) {
                 return $version;
             }
         }
@@ -69,6 +69,11 @@ final class SystemDiagnostics
         $lockVersion = $this->getComposerPackageVersion('notur/notur');
         if ($lockVersion !== null) {
             return $lockVersion;
+        }
+
+        $configVersion = config('notur.version');
+        if (is_string($configVersion) && $configVersion !== '') {
+            return $configVersion;
         }
 
         return '1.x';
