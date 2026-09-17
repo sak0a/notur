@@ -6,6 +6,7 @@ namespace Notur\Console\Commands;
 
 use Illuminate\Console\Command;
 use Notur\Events\ExtensionEnabled;
+use Notur\Exceptions\DependencyResolutionException;
 use Notur\ExtensionManager;
 use Notur\Models\InstalledExtension;
 
@@ -29,7 +30,12 @@ class EnableCommand extends Command
             return 0;
         }
 
-        $manager->enable($extensionId);
+        try {
+            $manager->enable($extensionId);
+        } catch (DependencyResolutionException $e) {
+            $this->error($e->getMessage());
+            return 1;
+        }
         ExtensionEnabled::dispatch($extensionId);
 
         $this->call('cache:clear');

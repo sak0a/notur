@@ -78,7 +78,7 @@ class DependencyResolverTest extends TestCase
     public function test_detects_circular_dependency(): void
     {
         $this->expectException(DependencyResolutionException::class);
-        $this->expectExceptionMessage('Circular dependency');
+        $this->expectExceptionMessage('acme/a -> acme/b -> acme/a');
 
         $this->resolver->resolve([
             'acme/a' => ['acme/b'],
@@ -95,14 +95,14 @@ class DependencyResolverTest extends TestCase
         ]);
     }
 
-    public function test_ignores_missing_dependencies(): void
+    public function test_rejects_missing_dependencies(): void
     {
-        // Dependencies not in the graph are skipped
-        $result = $this->resolver->resolve([
+        $this->expectException(DependencyResolutionException::class);
+        $this->expectExceptionMessage("Extension 'acme/foo' requires missing extension(s): acme/not-installed");
+
+        $this->resolver->resolve([
             'acme/foo' => ['acme/not-installed'],
         ]);
-
-        $this->assertSame(['acme/foo'], $result);
     }
 
     public function test_find_missing_dependencies(): void

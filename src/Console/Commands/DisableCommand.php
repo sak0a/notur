@@ -6,6 +6,7 @@ namespace Notur\Console\Commands;
 
 use Illuminate\Console\Command;
 use Notur\Events\ExtensionDisabled;
+use Notur\Exceptions\DependencyResolutionException;
 use Notur\ExtensionManager;
 use Notur\Models\InstalledExtension;
 
@@ -29,7 +30,12 @@ class DisableCommand extends Command
             return 0;
         }
 
-        $manager->disable($extensionId);
+        try {
+            $manager->disable($extensionId);
+        } catch (DependencyResolutionException $e) {
+            $this->error($e->getMessage());
+            return 1;
+        }
         ExtensionDisabled::dispatch($extensionId);
 
         $this->call('cache:clear');

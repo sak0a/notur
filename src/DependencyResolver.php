@@ -18,6 +18,12 @@ class DependencyResolver
      */
     public function resolve(array $graph): array
     {
+        foreach ($this->findMissing($graph) as $extensionId => $dependencies) {
+            throw new DependencyResolutionException(
+                "Extension '{$extensionId}' requires missing extension(s): " . implode(', ', $dependencies) . '. Install and enable them first.'
+            );
+        }
+
         $sorted = [];
         $visited = [];
         $visiting = [];
@@ -39,8 +45,11 @@ class DependencyResolver
         array &$sorted,
     ): void {
         if (isset($visiting[$node])) {
+            $path = array_keys($visiting);
+            $cycle = array_slice($path, array_search($node, $path, true));
+            $cycle[] = $node;
             throw new DependencyResolutionException(
-                "Circular dependency detected involving extension: {$node}"
+                'Circular dependency detected: ' . implode(' -> ', $cycle) . '. Remove one dependency in this cycle.'
             );
         }
 
@@ -51,10 +60,7 @@ class DependencyResolver
         $visiting[$node] = true;
 
         foreach ($graph[$node] ?? [] as $dependency) {
-            // Only visit dependencies that are in the graph (installed)
-            if (isset($graph[$dependency])) {
-                $this->visit($dependency, $graph, $visited, $visiting, $sorted);
-            }
+            $this->visit($dependency, $graph, $visited, $visiting, $sorted);
         }
 
         unset($visiting[$node]);

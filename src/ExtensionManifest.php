@@ -80,6 +80,20 @@ class ExtensionManifest
                 "Invalid extension ID '{$this->data['id']}': must be 'vendor/name' with lowercase alphanumeric characters and hyphens"
             );
         }
+
+        if (isset($this->data['dependencies'])) {
+            if (!is_array($this->data['dependencies'])) {
+                throw new ManifestException("Extension manifest at '{$this->path}' must declare dependencies as an ID-to-version map.");
+            }
+            foreach ($this->data['dependencies'] as $id => $constraint) {
+                if (!is_string($id) || !preg_match('#^[a-z0-9\-]+/[a-z0-9\-]+$#', $id)
+                    || !is_string($constraint) || trim($constraint) === '') {
+                    throw new ManifestException(
+                        "Extension manifest at '{$this->path}' has an invalid dependency '{$id}'; use an extension ID and a non-empty version constraint."
+                    );
+                }
+            }
+        }
     }
 
     public function getId(): string

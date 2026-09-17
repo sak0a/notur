@@ -152,6 +152,15 @@ Panel admins manage remote-push API keys at **Admin → Notur → Developer Push
 
 ## Extension Lifecycle
 
+Extensions declare required extension versions in `extension.yaml` using Composer version constraints:
+
+```yaml
+dependencies:
+  acme/core: "^1.2 || ^2.0"
+```
+
+Install and enable compatible dependencies before installing or enabling a dependent extension. Notur checks the proposed enabled set before installs, updates, and enables. Disabling or removing an extension checks its active dependents, so an unrelated broken extension does not block recovery. An active dependent prevents an update to an incompatible version or removal of its dependency; disable the dependent first. Updating a disabled extension leaves it disabled, even if the new version's dependencies are absent. At boot, missing, disabled, incompatible, and cyclic dependencies raise a dependency error before extensions are registered. The installed extension manifest supplies the version used for checks.
+
 ```bash
 php artisan notur:add acme/server-analytics   # Install from registry
 php artisan notur:enable acme/server-analytics     # Enable

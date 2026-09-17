@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Notur\ExtensionManager;
+use Notur\Exceptions\DependencyResolutionException;
 use Notur\Models\ExtensionActivity;
 use Notur\Models\ExtensionSetting;
 use Notur\Models\InstalledExtension;
@@ -837,7 +838,11 @@ class ExtensionAdminController extends Controller
      */
     public function enable(string $extensionId): RedirectResponse
     {
-        $this->manager->enable($extensionId);
+        try {
+            $this->manager->enable($extensionId);
+        } catch (DependencyResolutionException $e) {
+            return redirect()->route('admin.notur.extensions')->with('error', $e->getMessage());
+        }
 
         return redirect()
             ->route('admin.notur.extensions')
@@ -849,7 +854,11 @@ class ExtensionAdminController extends Controller
      */
     public function disable(string $extensionId): RedirectResponse
     {
-        $this->manager->disable($extensionId);
+        try {
+            $this->manager->disable($extensionId);
+        } catch (DependencyResolutionException $e) {
+            return redirect()->route('admin.notur.extensions')->with('error', $e->getMessage());
+        }
 
         return redirect()
             ->route('admin.notur.extensions')

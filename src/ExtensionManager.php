@@ -29,7 +29,9 @@ use Notur\Support\HealthCheckNormalizer;
 use Notur\Support\ManifestOnlyExtension;
 use Notur\Support\ThemeCompiler;
 use Notur\Exceptions\ExtensionBootException;
+use Notur\Exceptions\DependencyResolutionException;
 use Notur\Exceptions\ExtensionNotFoundException;
+use Notur\Exceptions\ManifestException;
 
 class ExtensionManager
 {
@@ -102,7 +104,8 @@ class ExtensionManager
             return;
         }
 
-        // Build dependency graph for enabled extensions
+        // Read manifests before registering anything so dependency failures cannot
+        // leave a partially booted extension set.
         $graph = [];
         $enabledExtensions = [];
 
@@ -501,6 +504,11 @@ class ExtensionManager
                 throw new ExtensionNotFoundException($id, "Extension '{$id}' is not installed.");
             }
             $state['extensions'][$id]['enabled'] = $enabled;
+            if ($enabled) {
+                $this->validateProposedState($state['extensions']);
+            } else {
+                $this->assertNoActiveDependents($id, $state['extensions']);
+            }
             return $state;
         }, fn (array $state) => $this->projectState($state));
 
@@ -512,12 +520,22 @@ class ExtensionManager
      */
     public function registerExtension(string $id, string $version, ?ExtensionManifest $extensionManifest = null, bool $enabled = true): void
     {
-        $this->stateStore()->update(function (array $state) use ($id, $version, $enabled): array {
+        $this->stateStore()->update(function (array $state) use ($id, $version, $extensionManifest, $enabled): array {
+            if ($extensionManifest !== null && ($extensionManifest->getId() !== $id || $extensionManifest->getVersion() !== $version)) {
+                throw new DependencyResolutionException(
+                    "Extension '{$id}' manifest does not match the ID and version being registered."
+                );
+            }
+
+            $existing = $state['extensions'][$id] ?? null;
             $state['extensions'][$id] = [
                 'version' => $version,
                 'enabled' => $enabled,
-                'installed_at' => now()->toIso8601String(),
+                'installed_at' => $existing['installed_at'] ?? now()->toIso8601String(),
             ];
+            if ($extensionManifest !== null) {
+                $this->validateProposedState($state['extensions'], [$id => $extensionManifest]);
+            }
             return $state;
         }, fn (array $state) => $this->projectState($state, $id, $extensionManifest));
     }
@@ -528,6 +546,7 @@ class ExtensionManager
     public function unregisterExtension(string $id): void
     {
         $this->stateStore()->update(function (array $state) use ($id): array {
+            $this->assertNoActiveDependents($id, $state['extensions']);
             unset($state['extensions'][$id]);
             return $state;
         }, fn (array $state) => $this->projectState($state));
@@ -617,6 +636,106 @@ class ExtensionManager
                 $stale->delete();
             }
         });
+    }
+
+    /** Check a candidate before replacing files or applying migrations. */
+    public function assertCanInstall(ExtensionManifest $candidate): void
+    {
+        $id = $candidate->getId();
+        $entries = $this->readMasterManifest()['extensions'];
+        $entries[$id] = [
+            'version' => $candidate->getVersion(),
+            'enabled' => $entries[$id]['enabled'] ?? true,
+        ];
+        $this->validateProposedState($entries, [$id => $candidate]);
+    }
+
+    /** Check removal before any files, migrations, or records are changed. */
+    public function assertCanRemove(string $id): void
+    {
+        $entries = $this->readMasterManifest()['extensions'];
+        $this->assertNoActiveDependents($id, $entries);
+    }
+
+    /** The master manifest is authoritative for the state used at boot. */
+    public function isConfiguredEnabled(string $id): bool
+    {
+        return (bool) ($this->readMasterManifest()['extensions'][$id]['enabled'] ?? false);
+    }
+
+    /**
+     * Only a dependent of the target can be broken by disabling or removing it.
+     * Ignore other invalid entries so administrators can repair them one at a time.
+     *
+     * @param array<string, array<string, mixed>> $entries
+     */
+    private function assertNoActiveDependents(string $id, array $entries): void
+    {
+        foreach ($entries as $dependentId => $entry) {
+            if ($dependentId === $id || !($entry['enabled'] ?? false)) {
+                continue;
+            }
+
+            try {
+                $manifest = ExtensionManifest::load(
+                    $this->getExtensionsPath() . '/' . str_replace('/', DIRECTORY_SEPARATOR, $dependentId)
+                );
+            } catch (ManifestException | \Symfony\Component\Yaml\Exception\ParseException) {
+                // An unreadable extension cannot declare a known reverse dependency.
+                continue;
+            }
+
+            if ($manifest->getId() !== $dependentId) {
+                continue;
+            }
+
+            if (array_key_exists($id, $manifest->getDependencies())) {
+                throw new DependencyResolutionException(
+                    "Extension '{$dependentId}' requires '{$id}'. Disable or remove '{$dependentId}' first."
+                );
+            }
+        }
+    }
+
+    /** @return array{extensions: array<string, array<string, mixed>>} */
+    private function readMasterManifest(): array
+    {
+        $path = $this->getManifestPath();
+        $manifest = file_exists($path) ? json_decode((string) file_get_contents($path), true) : null;
+        return is_array($manifest) && is_array($manifest['extensions'] ?? null)
+            ? $manifest
+            : ['extensions' => []];
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $entries
+     * @param array<string, ExtensionManifest> $overrides
+     */
+    private function validateProposedState(array $entries, array $overrides = []): void
+    {
+        $manifests = $overrides;
+        foreach ($entries as $id => $entry) {
+            if (!($entry['enabled'] ?? false) || isset($manifests[$id])) {
+                continue;
+            }
+
+            try {
+                $manifests[$id] = ExtensionManifest::load(
+                    $this->getExtensionsPath() . '/' . str_replace('/', DIRECTORY_SEPARATOR, $id)
+                );
+            } catch (ManifestException $e) {
+                throw new DependencyResolutionException(
+                    "Enabled extension '{$id}' has no readable manifest. Restore its files or disable it. {$e->getMessage()}"
+                );
+            }
+        }
+
+        $this->dependencyValidator()->validate($entries, $manifests);
+    }
+
+    private function dependencyValidator(): ExtensionDependencyValidator
+    {
+        return new ExtensionDependencyValidator($this->resolver);
     }
 
     /**
