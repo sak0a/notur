@@ -173,6 +173,8 @@ class StatusDashboard
             $this->command->line('  ' . NoturTheme::muted('Run: php artisan notur:add <extension-id>'));
             $this->command->newLine();
 
+            $this->renderBootDiagnostics();
+
             return;
         }
 
@@ -193,6 +195,35 @@ class StatusDashboard
             $disabled > 0 ? NoturTheme::warning((string) $disabled) : NoturTheme::muted('0')
         ));
 
+        $this->command->newLine();
+        $this->renderBootDiagnostics();
+    }
+
+    private function renderBootDiagnostics(): void
+    {
+        if ($this->manager->isSafeMode()) {
+            $this->command->warn('Notur safe mode is active: all extension booting is skipped.');
+        }
+
+        $failures = $this->manager->getBootFailures();
+        if ($failures === []) {
+            return;
+        }
+
+        $this->renderSectionHeader('Extension Boot Diagnostics');
+        foreach ($failures as $id => $failure) {
+            $this->command->line(sprintf(
+                '  %s: %s during %s — %s',
+                $id,
+                $failure['status'],
+                $failure['stage'],
+                $failure['message'],
+            ));
+        }
+        $this->command->line('  Recovery: NOTUR_SAFE_MODE=1 php artisan notur:disable <extension-id>');
+        if (isset($failures['@manifest'])) {
+            $this->command->line('  Repair the master extensions.json before running extension commands.');
+        }
         $this->command->newLine();
     }
 
@@ -284,6 +315,8 @@ class StatusDashboard
             'extensions' => $extensions,
             'extensions_total' => count($extensions),
             'extensions_enabled' => $installedExtensions->where('enabled', true)->count(),
+            'safe_mode' => $this->manager->isSafeMode(),
+            'boot_failures' => $this->manager->getBootFailures(),
         ];
     }
 }

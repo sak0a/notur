@@ -23,6 +23,11 @@ class PermissionBroker
         $this->permissions[$extensionId] = $permissions;
     }
 
+    public function unregister(string $extensionId): void
+    {
+        unset($this->permissions[$extensionId]);
+    }
+
     /**
      * Check if an extension has declared a specific permission.
      */

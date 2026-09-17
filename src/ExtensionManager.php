@@ -27,7 +27,6 @@ use Notur\Support\ManifestOnlyExtension;
 use Notur\Support\ThemeCompiler;
 use Notur\Exceptions\ExtensionBootException;
 use Notur\Exceptions\ExtensionNotFoundException;
-use Notur\Exceptions\ManifestException;
 
 class ExtensionManager
 {
@@ -45,6 +44,9 @@ class ExtensionManager
 
     /** @var array<string, HasHealthChecks> */
     private array $healthCheckProviders = [];
+
+    /** @var array<string, array{status: string, stage: string, message: string, exception: ?string, dependency: ?string}> */
+    private array $bootFailures = [];
 
     private bool $booted = false;
     private FeatureRegistry $featureRegistry;
@@ -69,15 +71,32 @@ class ExtensionManager
             return;
         }
 
-        $extensionsPath = $this->getExtensionsPath();
-        $manifestFile = $this->getManifestPath();
-
-        if (!file_exists($manifestFile)) {
+        // The process environment is checked as well as config so an emergency shell
+        // override still works when Laravel's configuration has been cached.
+        if ($this->isSafeMode()) {
             $this->booted = true;
+            Log::warning('[Notur] Safe mode active; extension discovery and boot skipped.');
             return;
         }
 
-        $manifest = json_decode(file_get_contents($manifestFile), true);
+        try {
+            $extensionsPath = $this->getExtensionsPath();
+            $manifestFile = $this->getManifestPath();
+
+            if (!file_exists($manifestFile)) {
+                $this->booted = true;
+                return;
+            }
+
+            $manifest = json_decode((string) file_get_contents($manifestFile), true, flags: JSON_THROW_ON_ERROR);
+            if (!is_array($manifest) || !is_array($manifest['extensions'] ?? [])) {
+                throw new \UnexpectedValueException('Master extensions manifest must contain an extensions map.');
+            }
+        } catch (\Throwable $e) {
+            $this->recordBootFailure('@manifest', 'discovery', $e);
+            $this->booted = true;
+            return;
+        }
 
         if (empty($manifest['extensions'])) {
             $this->booted = true;
@@ -89,6 +108,14 @@ class ExtensionManager
         $enabledExtensions = [];
 
         foreach ($manifest['extensions'] as $id => $entry) {
+            if (!is_string($id)) {
+                $this->recordBootFailure((string) $id, 'manifest', new \UnexpectedValueException('Master manifest extension ID must be a string.'));
+                continue;
+            }
+            if (!is_array($entry)) {
+                $this->recordBootFailure($id, 'manifest', new \UnexpectedValueException('Master manifest extension entry must be an object.'));
+                continue;
+            }
             if (!($entry['enabled'] ?? false)) {
                 continue;
             }
@@ -97,18 +124,28 @@ class ExtensionManager
 
             try {
                 $extManifest = ExtensionManifest::load($extPath);
-            } catch (ManifestException $e) {
-                Log::warning("[Notur] Failed to load manifest for extension '{$id}': {$e->getMessage()}");
+            } catch (\Throwable $e) {
+                $this->recordBootFailure($id, 'manifest', $e);
+                continue;
+            }
+
+            try {
+                $dependencies = $extManifest->getDependencies();
+                if (!is_array($dependencies)) {
+                    throw new \UnexpectedValueException('Manifest dependencies must be a map.');
+                }
+                $graph[$id] = array_keys($dependencies);
+            } catch (\Throwable $e) {
+                $this->recordBootFailure($id, 'dependency discovery', $e);
                 continue;
             }
 
             $this->manifests[$id] = $extManifest;
-            $graph[$id] = array_keys($extManifest->getDependencies());
             $enabledExtensions[$id] = $extPath;
         }
 
         // Resolve load order
-        $loadOrder = $this->resolver->resolve($graph);
+        $loadOrder = $this->resolveLoadOrder($graph);
 
         // Register autoloading and boot each extension
         foreach ($loadOrder as $id) {
@@ -119,9 +156,32 @@ class ExtensionManager
             $extPath = $enabledExtensions[$id];
             $extManifest = $this->manifests[$id];
 
-            $psr4 = $this->resolveAutoloadPsr4($extManifest, $extPath);
-            $this->registerAutoloading($psr4, $extPath);
-            $this->bootExtension($id, $extManifest, $extPath, $psr4);
+            // A dependent must not run against a dependency that failed in this boot.
+            // Missing/disabled dependencies retain their existing resolver behavior.
+            $failedDependency = null;
+            foreach ($graph[$id] as $dependency) {
+                if (isset($this->bootFailures[$dependency])) {
+                    $failedDependency = $dependency;
+                    break;
+                }
+            }
+            if ($failedDependency !== null) {
+                $this->recordSkippedDependency($id, $failedDependency);
+                continue;
+            }
+
+            $stage = 'autoload';
+            try {
+                $psr4 = $this->resolveAutoloadPsr4($extManifest, $extPath);
+                $this->registerAutoloading($psr4, $extPath);
+                $this->bootExtension($id, $extManifest, $extPath, $psr4, $stage);
+            } catch (\Throwable $e) {
+                // These are local registries only. Laravel/container callbacks, routes,
+                // listeners and arbitrary extension side effects cannot be rolled back.
+                unset($this->frontendSlots[$id], $this->healthCheckProviders[$id]);
+                $this->permissionBroker->unregister($id);
+                $this->recordBootFailure($id, $stage, $e);
+            }
         }
 
         $this->booted = true;
@@ -129,6 +189,82 @@ class ExtensionManager
         if ($this->extensions !== []) {
             Log::info('[Notur] Booted ' . count($this->extensions) . ' extension(s)');
         }
+    }
+
+    /**
+     * @return array<string, array{status: string, stage: string, message: string, exception: ?string, dependency: ?string}>
+     */
+    public function getBootFailures(): array
+    {
+        return $this->bootFailures;
+    }
+
+    public function isSafeMode(): bool
+    {
+        $override = getenv('NOTUR_SAFE_MODE');
+        return filter_var($override !== false ? $override : config('notur.safe_mode', false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /** @param array<string, array<string>> $graph
+     *  @return array<string>
+     */
+    private function resolveLoadOrder(array $graph): array
+    {
+        try {
+            return $this->resolver->resolve($graph);
+        } catch (\Throwable) {
+            // A cycle (or another resolver failure) should not prevent unrelated
+            // extensions or the panel itself from starting.
+            $order = [];
+            foreach (array_keys($graph) as $id) {
+                $reachable = [$id => true];
+                $pending = [$id];
+                while ($pending !== []) {
+                    $node = array_pop($pending);
+                    foreach ($graph[$node] ?? [] as $dependency) {
+                        if (isset($graph[$dependency]) && !isset($reachable[$dependency])) {
+                            $reachable[$dependency] = true;
+                            $pending[] = $dependency;
+                        }
+                    }
+                }
+
+                try {
+                    foreach ($this->resolver->resolve(array_intersect_key($graph, $reachable)) as $node) {
+                        $order[$node] = true;
+                    }
+                } catch (\Throwable $dependencyError) {
+                    $this->recordBootFailure($id, 'dependency resolution', $dependencyError);
+                }
+            }
+
+            return array_keys($order);
+        }
+    }
+
+    private function recordBootFailure(string $id, string $stage, \Throwable $e): void
+    {
+        $this->bootFailures[$id] = [
+            'status' => 'failed',
+            'stage' => $stage,
+            'message' => $e->getMessage(),
+            'exception' => $e::class,
+            'dependency' => null,
+        ];
+        Log::error("[Notur] Extension '{$id}' failed during {$stage}: {$e->getMessage()}", ['exception' => $e]);
+    }
+
+    private function recordSkippedDependency(string $id, string $dependency): void
+    {
+        $message = "Required extension '{$dependency}' failed to boot.";
+        $this->bootFailures[$id] = [
+            'status' => 'skipped',
+            'stage' => 'dependency',
+            'message' => $message,
+            'exception' => null,
+            'dependency' => $dependency,
+        ];
+        Log::warning("[Notur] Skipping extension '{$id}': {$message}");
     }
 
     private function registerAutoloading(array $psr4, string $extPath): void
@@ -162,14 +298,15 @@ class ExtensionManager
         }
     }
 
-    private function bootExtension(string $id, ExtensionManifest $manifest, string $extPath, array $psr4): void
+    private function bootExtension(string $id, ExtensionManifest $manifest, string $extPath, array $psr4, string &$stage): void
     {
+        $stage = 'entrypoint';
         $entrypoint = $this->entrypointResolver->resolve($manifest, $extPath, $psr4);
         if (!$entrypoint) {
             $extension = new ManifestOnlyExtension($manifest, $extPath);
         } else {
             if (!class_exists($entrypoint)) {
-                return;
+                throw new ExtensionBootException("Extension '{$id}' entrypoint '{$entrypoint}' was not found.");
             }
 
             /** @var ExtensionInterface $extension */
@@ -192,12 +329,15 @@ class ExtensionManager
         );
 
         // Register phase
+        $stage = 'register';
         $extension->register();
 
         // Feature registration (post-register, pre-boot)
+        $stage = 'feature registration';
         $this->featureRegistry->register($context);
 
         // Register commands
+        $stage = 'service registration';
         if ($extension instanceof HasCommands && $this->app->runningInConsole()) {
             $this->app->make('Illuminate\Contracts\Console\Kernel');
             \Illuminate\Support\Facades\Artisan::starting(function ($artisan) use ($extension) {
@@ -261,9 +401,11 @@ class ExtensionManager
         }
 
         // Boot phase
+        $stage = 'boot';
         $extension->boot();
 
         // Feature boot (post-extension boot)
+        $stage = 'feature boot';
         $this->featureRegistry->boot($context);
 
         $this->extensions[$id] = $extension;
