@@ -6,6 +6,7 @@ namespace Notur\Console\Commands;
 
 use Notur\Events\ExtensionInstalled;
 use Notur\Events\ExtensionUpdated;
+use Notur\Exceptions\DependencyResolutionException;
 use Notur\ExtensionManager;
 use Notur\ExtensionManifest;
 use Notur\MigrationManager;
@@ -180,6 +181,14 @@ class AddCommand extends ExtensionLifecycleCommand
         // Keep the database fallback for legacy entries not yet present in JSON.
         $previousVersion = $installedState['version'] ?? $existing?->version;
         $wasEnabled = $installedState['enabled'] ?? $existing?->enabled ?? true;
+
+        try {
+            $manager->assertCanInstall($manifest);
+        } catch (DependencyResolutionException $e) {
+            $this->error($e->getMessage());
+            return 1;
+        }
+
         $targetPath = ExtensionPath::base($extensionId);
         $publicPath = ExtensionPath::public($extensionId);
         $suffix = bin2hex(random_bytes(8));

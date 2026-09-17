@@ -152,6 +152,15 @@ Panel admins manage remote-push API keys at **Admin → Notur → Developer Push
 
 ## Extension Lifecycle
 
+Extensions declare required extension versions in `extension.yaml` using Composer version constraints:
+
+```yaml
+dependencies:
+  acme/core: "^1.2 || ^2.0"
+```
+
+Install and enable compatible dependencies before installing or enabling a dependent extension. Notur checks the proposed enabled set before installs, updates, and enables. Disabling or removing an extension checks its active dependents, so an unrelated broken extension does not block recovery. An active dependent prevents an update to an incompatible version or removal of its dependency; disable the dependent first. Updating a disabled extension leaves it disabled, even if the new version's dependencies are absent. At boot, extensions with missing, disabled, incompatible, or cyclic dependencies are reported and skipped, along with their dependents; unrelated extensions still start. The installed extension manifest supplies the version used for checks.
+
 ```bash
 php artisan notur:add acme/server-analytics   # Install from registry
 php artisan notur:enable acme/server-analytics     # Enable
@@ -164,7 +173,7 @@ php artisan notur:status                           # System status dashboard
 
 ### Emergency extension recovery
 
-Notur isolates extension manifest, entrypoint, registration and boot failures so an
+Notur isolates extension manifest, dependency, entrypoint, registration and boot failures so an
 unrelated extension and the panel can continue starting. Dependents of a failed
 extension are skipped for that process. `php artisan notur:status` (or
 `notur:status --json`) reports the extension ID, failure stage, exception and
@@ -187,6 +196,13 @@ booting; it does not change the saved enabled flags. It does not undo hooks,
 services, routes or arbitrary PHP effects already registered in a running
 process—restart workers for a clean recovery. Failed extensions are not marked
 disabled automatically, so operators can inspect and repair them.
+With an explicit `NOTUR_SAFE_MODE=1` environment override, disable and remove
+can bypass active dependent protection to break a dependency cycle. Notur logs
+the affected dependent. On the next normal boot, that dependent is reported as
+failed and its dependents are skipped until the missing or disabled requirement
+is repaired. A config-only safe mode setting does not bypass this guard.
+The enable and disable commands read `notur/extensions.json` first, so they
+still work when its database projection is stale or missing during recovery.
 If the master `notur/extensions.json` is corrupt or unreadable, fix that file
 before using `notur:disable`; its discovery error is reported as `@manifest`.
 

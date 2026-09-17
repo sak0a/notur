@@ -147,7 +147,7 @@ class ExtensionStatePersistenceTest extends TestCase
         $trackingColumns = ['source', 'pushed_via_key_id', 'last_pushed_at', 'last_push_error', 'package_checksum', 'package_size'];
         $tracking = array_intersect_key($record->getRawOriginal(), array_flip($trackingColumns));
 
-        file_put_contents($extensionPath . '/extension.yaml', "id: acme/one\nname: Upgraded\nversion: 2.0.0\ndependencies:\n  acme/helper: '^1.0'\n");
+        file_put_contents($extensionPath . '/extension.yaml', "id: acme/one\nname: Upgraded\nversion: 2.0.0\ndependencies: {}\n");
         $upgrade = ExtensionManifest::load($extensionPath);
         DB::statement("CREATE TRIGGER reject_upgrade BEFORE UPDATE ON notur_extensions BEGIN SELECT RAISE(FAIL, 'simulated failure'); END");
 

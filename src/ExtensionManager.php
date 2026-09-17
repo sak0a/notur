@@ -29,7 +29,9 @@ use Notur\Support\HealthCheckNormalizer;
 use Notur\Support\ManifestOnlyExtension;
 use Notur\Support\ThemeCompiler;
 use Notur\Exceptions\ExtensionBootException;
+use Notur\Exceptions\DependencyResolutionException;
 use Notur\Exceptions\ExtensionNotFoundException;
+use Notur\Exceptions\ManifestException;
 
 class ExtensionManager
 {
@@ -102,7 +104,8 @@ class ExtensionManager
             return;
         }
 
-        // Build dependency graph for enabled extensions
+        // Read manifests before registering anything so dependency failures cannot
+        // leave a partially booted extension set.
         $graph = [];
         $enabledExtensions = [];
 
@@ -156,7 +159,6 @@ class ExtensionManager
             $extManifest = $this->manifests[$id];
 
             // A dependent must not run against a dependency that failed in this boot.
-            // Missing/disabled dependencies retain their existing resolver behavior.
             $failedDependency = null;
             foreach ($graph[$id] as $dependency) {
                 if (isset($this->bootFailures[$dependency])) {
@@ -166,6 +168,13 @@ class ExtensionManager
             }
             if ($failedDependency !== null) {
                 $this->recordSkippedDependency($id, $failedDependency);
+                continue;
+            }
+
+            try {
+                $this->dependencyValidator()->validateRequirements($id, $manifest['extensions'], $this->manifests);
+            } catch (\Throwable $e) {
+                $this->recordBootFailure($id, 'dependency validation', $e);
                 continue;
             }
 
@@ -209,36 +218,70 @@ class ExtensionManager
      */
     private function resolveLoadOrder(array $graph): array
     {
-        try {
-            return $this->resolver->resolve($graph);
-        } catch (\Throwable) {
-            // A cycle (or another resolver failure) should not prevent unrelated
-            // extensions or the panel itself from starting.
-            $order = [];
-            foreach (array_keys($graph) as $id) {
-                $reachable = [$id => true];
-                $pending = [$id];
-                while ($pending !== []) {
-                    $node = array_pop($pending);
-                    foreach ($graph[$node] ?? [] as $dependency) {
-                        if (isset($graph[$dependency]) && !isset($reachable[$dependency])) {
-                            $reachable[$dependency] = true;
-                            $pending[] = $dependency;
-                        }
-                    }
-                }
+        // Missing or unreadable dependencies are checked when each extension is
+        // reached. They must not make sorting fail for an unrelated extension.
+        $availableGraph = [];
+        foreach ($graph as $id => $dependencies) {
+            $availableGraph[$id] = array_values(array_filter(
+                $dependencies,
+                static fn (string $dependency): bool => isset($graph[$dependency]),
+            ));
+        }
 
-                try {
-                    foreach ($this->resolver->resolve(array_intersect_key($graph, $reachable)) as $node) {
-                        $order[$node] = true;
-                    }
-                } catch (\Throwable $dependencyError) {
-                    $this->recordBootFailure($id, 'dependency resolution', $dependencyError);
+        $cycleNodes = [];
+        foreach ($availableGraph as $id => $dependencies) {
+            foreach ($dependencies as $dependency) {
+                if ($this->canReachDependency($dependency, $id, $availableGraph)) {
+                    $cycleNodes[$id] = true;
+                    break;
                 }
             }
-
-            return array_keys($order);
         }
+
+        foreach (array_keys($cycleNodes) as $id) {
+            $this->recordBootFailure(
+                $id,
+                'dependency resolution',
+                new DependencyResolutionException(
+                    "Circular dependency detected involving extension '{$id}'. Remove one dependency in the cycle."
+                ),
+            );
+        }
+
+        $sortableGraph = [];
+        foreach ($availableGraph as $id => $dependencies) {
+            if (isset($cycleNodes[$id])) {
+                continue;
+            }
+            $sortableGraph[$id] = array_values(array_filter(
+                $dependencies,
+                static fn (string $dependency): bool => !isset($cycleNodes[$dependency]),
+            ));
+        }
+
+        return $this->resolver->resolve($sortableGraph);
+    }
+
+    /** @param array<string, array<string>> $graph */
+    private function canReachDependency(string $start, string $target, array $graph): bool
+    {
+        $pending = [$start];
+        $visited = [];
+        while ($pending !== []) {
+            $node = array_pop($pending);
+            if ($node === $target) {
+                return true;
+            }
+            if (isset($visited[$node])) {
+                continue;
+            }
+            $visited[$node] = true;
+            foreach ($graph[$node] ?? [] as $dependency) {
+                $pending[] = $dependency;
+            }
+        }
+
+        return false;
     }
 
     private function recordBootFailure(string $id, string $stage, \Throwable $e): void
@@ -501,6 +544,11 @@ class ExtensionManager
                 throw new ExtensionNotFoundException($id, "Extension '{$id}' is not installed.");
             }
             $state['extensions'][$id]['enabled'] = $enabled;
+            if ($enabled) {
+                $this->validateProposedState($state['extensions']);
+            } else {
+                $this->assertNoActiveDependents($id, $state['extensions']);
+            }
             return $state;
         }, fn (array $state) => $this->projectState($state));
 
@@ -508,16 +556,28 @@ class ExtensionManager
     }
 
     /**
-     * Register an extension in the master manifest.
+     * Register an extension in the master manifest. A supplied manifest is
+     * validated inside the state lock; null supports state-only recovery after
+     * prior files have been restored.
      */
     public function registerExtension(string $id, string $version, ?ExtensionManifest $extensionManifest = null, bool $enabled = true): void
     {
-        $this->stateStore()->update(function (array $state) use ($id, $version, $enabled): array {
+        $this->stateStore()->update(function (array $state) use ($id, $version, $extensionManifest, $enabled): array {
+            if ($extensionManifest !== null && ($extensionManifest->getId() !== $id || $extensionManifest->getVersion() !== $version)) {
+                throw new DependencyResolutionException(
+                    "Extension '{$id}' manifest does not match the ID and version being registered."
+                );
+            }
+
+            $existing = $state['extensions'][$id] ?? null;
             $state['extensions'][$id] = [
                 'version' => $version,
                 'enabled' => $enabled,
-                'installed_at' => now()->toIso8601String(),
+                'installed_at' => $existing['installed_at'] ?? now()->toIso8601String(),
             ];
+            if ($extensionManifest !== null) {
+                $this->validateProposedState($state['extensions'], [$id => $extensionManifest]);
+            }
             return $state;
         }, fn (array $state) => $this->projectState($state, $id, $extensionManifest));
     }
@@ -528,6 +588,7 @@ class ExtensionManager
     public function unregisterExtension(string $id): void
     {
         $this->stateStore()->update(function (array $state) use ($id): array {
+            $this->assertNoActiveDependents($id, $state['extensions']);
             unset($state['extensions'][$id]);
             return $state;
         }, fn (array $state) => $this->projectState($state));
@@ -617,6 +678,113 @@ class ExtensionManager
                 $stale->delete();
             }
         });
+    }
+
+    /** Check a candidate before replacing files or applying migrations. */
+    public function assertCanInstall(ExtensionManifest $candidate): void
+    {
+        $id = $candidate->getId();
+        $entries = $this->readMasterManifest()['extensions'];
+        $entries[$id] = [
+            'version' => $candidate->getVersion(),
+            'enabled' => $entries[$id]['enabled'] ?? true,
+        ];
+        $this->validateProposedState($entries, [$id => $candidate]);
+    }
+
+    /** Check removal before any files, migrations, or records are changed. */
+    public function assertCanRemove(string $id): void
+    {
+        $entries = $this->readMasterManifest()['extensions'];
+        $this->assertNoActiveDependents($id, $entries);
+    }
+
+    /**
+     * Only a dependent of the target can be broken by disabling or removing it.
+     * Ignore other invalid entries so administrators can repair them one at a time.
+     *
+     * @param array<string, array<string, mixed>> $entries
+     */
+    private function assertNoActiveDependents(string $id, array $entries): void
+    {
+        foreach ($entries as $dependentId => $entry) {
+            if ($dependentId === $id || !($entry['enabled'] ?? false)) {
+                continue;
+            }
+
+            try {
+                $manifest = ExtensionManifest::load(
+                    $this->getExtensionsPath() . '/' . str_replace('/', DIRECTORY_SEPARATOR, $dependentId)
+                );
+            } catch (\Throwable) {
+                // An unreadable extension cannot declare a known reverse dependency.
+                continue;
+            }
+
+            if ($manifest->getId() !== $dependentId) {
+                continue;
+            }
+
+            if (array_key_exists($id, $manifest->getDependencies())) {
+                if ($this->isExplicitEmergencySafeMode()) {
+                    Log::warning(
+                        "[Notur] NOTUR_SAFE_MODE bypassed reverse dependency protection: '{$dependentId}' still requires '{$id}'. "
+                        . "Repair or disable '{$dependentId}' before normal boot."
+                    );
+                    continue;
+                }
+                throw new DependencyResolutionException(
+                    "Extension '{$dependentId}' requires '{$id}'. Disable or remove '{$dependentId}' first."
+                );
+            }
+        }
+    }
+
+    private function isExplicitEmergencySafeMode(): bool
+    {
+        $override = getenv('NOTUR_SAFE_MODE');
+        return $override !== false && filter_var($override, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /** @return array{extensions: array<string, array<string, mixed>>} */
+    private function readMasterManifest(): array
+    {
+        $path = $this->getManifestPath();
+        $manifest = file_exists($path) ? json_decode((string) file_get_contents($path), true) : null;
+        return is_array($manifest) && is_array($manifest['extensions'] ?? null)
+            ? $manifest
+            : ['extensions' => []];
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $entries
+     * @param array<string, ExtensionManifest> $overrides
+     */
+    private function validateProposedState(array $entries, array $overrides = []): void
+    {
+        $manifests = $overrides;
+        foreach ($entries as $id => $entry) {
+            if (!($entry['enabled'] ?? false) || isset($manifests[$id])) {
+                continue;
+            }
+
+            try {
+                $manifests[$id] = ExtensionManifest::load(
+                    $this->getExtensionsPath() . '/' . str_replace('/', DIRECTORY_SEPARATOR, $id)
+                );
+            } catch (ManifestException $e) {
+                throw new DependencyResolutionException(
+                    "Enabled extension '{$id}' has no readable manifest. Restore its files or disable it. {$e->getMessage()}"
+                );
+            }
+        }
+
+        $this->dependencyValidator()->validate($entries, $manifests);
+    }
+
+    private function dependencyValidator(): ExtensionDependencyValidator
+    {
+        return new ExtensionDependencyValidator($this->resolver);
     }
 
     /**

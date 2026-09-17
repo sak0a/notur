@@ -6,6 +6,7 @@ namespace Notur\Console\Commands;
 
 use Notur\Events\ExtensionRemoved;
 use Notur\Exceptions\ExtensionNotFoundException;
+use Notur\Exceptions\DependencyResolutionException;
 use Notur\ExtensionManager;
 use Notur\ExtensionManifest;
 use Notur\MigrationManager;
@@ -28,6 +29,13 @@ class RemoveCommand extends ExtensionLifecycleCommand
         $record = InstalledExtension::where('extension_id', $extensionId)->first();
         if (!$record) {
             $this->error("Extension '{$extensionId}' is not installed.");
+            return 1;
+        }
+
+        try {
+            $manager->assertCanRemove($extensionId);
+        } catch (DependencyResolutionException $e) {
+            $this->error($e->getMessage());
             return 1;
         }
 

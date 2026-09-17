@@ -6,6 +6,7 @@ namespace Notur\Console\Commands;
 
 use Illuminate\Console\Command;
 use Notur\ExtensionManifest;
+use Notur\Exceptions\DependencyResolutionException;
 use Notur\Support\ExtensionPath;
 use Notur\Support\PackageManagerResolver;
 
@@ -52,6 +53,13 @@ class DevCommand extends Command
 
         if ($watch && !$useSymlink) {
             $this->error('Watch mode requires symlink mode. Use --link (or omit --copy).');
+            return 1;
+        }
+
+        try {
+            app(\Notur\ExtensionManager::class)->assertCanInstall($manifest);
+        } catch (DependencyResolutionException $e) {
+            $this->error($e->getMessage());
             return 1;
         }
 
