@@ -71,6 +71,47 @@ class ExtensionDependencyLifecycleTest extends TestCase
         $this->manager()->assertCanInstall($this->manifest('acme/core', '2.0.0'));
     }
 
+    public function test_registration_rechecks_dependencies_after_preflight(): void
+    {
+        $this->installFixture('acme/core', '1.0.0');
+        $this->writeMaster(['acme/core' => true]);
+        $manager = $this->manager();
+        $candidate = $this->manifest('acme/app', '1.0.0', ['acme/core' => '^1.0']);
+
+        $manager->assertCanInstall($candidate);
+        $manager->disable('acme/core');
+
+        try {
+            $manager->registerExtension('acme/app', '1.0.0', $candidate);
+            $this->fail('Expected locked registration to reject the stale preflight.');
+        } catch (DependencyResolutionException $e) {
+            $this->assertStringContainsString("'acme/core' (^1.0), which is disabled", $e->getMessage());
+        }
+
+        $this->assertArrayNotHasKey('acme/app', $this->master());
+        $this->assertFalse($this->master()['acme/core']['enabled']);
+    }
+
+    public function test_unregister_rechecks_reverse_dependents_after_preflight(): void
+    {
+        $this->installFixture('acme/core', '1.0.0');
+        $this->installFixture('acme/app', '1.0.0', ['acme/core' => '^1.0']);
+        $this->writeMaster(['acme/core' => true]);
+        $manager = $this->manager();
+
+        $manager->assertCanRemove('acme/core');
+        $manager->registerExtension('acme/app', '1.0.0', ExtensionManifest::load(ExtensionPath::base('acme/app')));
+
+        try {
+            $manager->unregisterExtension('acme/core');
+            $this->fail('Expected locked removal to reject the new dependent.');
+        } catch (DependencyResolutionException $e) {
+            $this->assertStringContainsString("Extension 'acme/app' requires 'acme/core'", $e->getMessage());
+        }
+
+        $this->assertArrayHasKey('acme/core', $this->master());
+    }
+
     public function test_disable_and_remove_cannot_break_an_enabled_reverse_dependent(): void
     {
         $this->installFixture('acme/app', '1.0.0', ['acme/core' => '^1.0']);
@@ -234,7 +275,7 @@ class ExtensionDependencyLifecycleTest extends TestCase
             'extension_id' => 'acme/app',
             'name' => 'App',
             'version' => '1.0.0',
-            'enabled' => false,
+            'enabled' => true, // Deliberately stale; the JSON state is authoritative.
             'manifest' => $this->manifest('acme/app', '1.0.0')->getRaw(),
         ]);
 
@@ -310,7 +351,12 @@ class ExtensionDependencyLifecycleTest extends TestCase
     {
         $entries = [];
         foreach ($enabled as $id => $value) {
-            $entries[$id] = ['enabled' => $value];
+            try {
+                $version = ExtensionManifest::load(ExtensionPath::base($id))->getVersion();
+            } catch (\Throwable) {
+                $version = '1.0.0';
+            }
+            $entries[$id] = ['version' => $version, 'enabled' => $value];
         }
         $path = ExtensionPath::manifest();
         if (!is_dir(dirname($path))) {

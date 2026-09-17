@@ -145,8 +145,7 @@ class ExtensionBootRecoveryTest extends TestCase
             ->expectsOutputToContain('"safe_mode": true')
             ->assertExitCode(0);
 
-        InstalledExtension::create([
-            'extension_id' => 'acme/needs-absent',
+        InstalledExtension::updateOrCreate(['extension_id' => 'acme/needs-absent'], [
             'name' => 'Missing dependency',
             'version' => '1.0.0',
             'enabled' => true,
@@ -157,8 +156,7 @@ class ExtensionBootRecoveryTest extends TestCase
             ->assertExitCode(0);
 
         foreach (['acme/fails', 'acme/dependent', 'acme/transitive'] as $id) {
-            InstalledExtension::create([
-                'extension_id' => $id,
+            InstalledExtension::updateOrCreate(['extension_id' => $id], [
                 'name' => $id,
                 'version' => '1.0.0',
                 'enabled' => true,

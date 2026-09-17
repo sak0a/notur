@@ -556,7 +556,9 @@ class ExtensionManager
     }
 
     /**
-     * Register an extension in the master manifest.
+     * Register an extension in the master manifest. A supplied manifest is
+     * validated inside the state lock; null supports state-only recovery after
+     * prior files have been restored.
      */
     public function registerExtension(string $id, string $version, ?ExtensionManifest $extensionManifest = null, bool $enabled = true): void
     {
@@ -695,12 +697,6 @@ class ExtensionManager
     {
         $entries = $this->readMasterManifest()['extensions'];
         $this->assertNoActiveDependents($id, $entries);
-    }
-
-    /** The master manifest is authoritative for the state used at boot. */
-    public function isConfiguredEnabled(string $id): bool
-    {
-        return (bool) ($this->readMasterManifest()['extensions'][$id]['enabled'] ?? false);
     }
 
     /**
