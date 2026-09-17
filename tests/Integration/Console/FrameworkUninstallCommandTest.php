@@ -39,7 +39,7 @@ class FrameworkUninstallCommandTest extends TestCase
         // Discover the actual migrated schema, so a newly added table cannot be
         // omitted from uninstall while a duplicated hard-coded test list passes.
         $tables = array_values(array_filter(
-            Schema::getTableListing(),
+            array_column(DB::select("SELECT name FROM sqlite_master WHERE type = 'table'"), 'name'),
             static fn (string $table): bool => str_starts_with($table, 'notur_'),
         ));
         $this->assertContains('notur_remote_push_keys', $tables);
