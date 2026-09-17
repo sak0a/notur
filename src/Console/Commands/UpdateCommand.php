@@ -107,11 +107,26 @@ class UpdateCommand extends Command
             return 0;
         }
 
+        $failed = [];
         foreach ($updates as $update) {
-            $this->call('notur:add', [
-                'extension' => $update['id'],
-                '--force' => true,
-            ]);
+            try {
+                $exitCode = $this->call('notur:add', [
+                    'extension' => $update['id'],
+                    '--force' => true,
+                ]);
+            } catch (\Throwable $e) {
+                $this->error("Update failed for '{$update['id']}': {$e->getMessage()}");
+                $failed[] = $update['id'];
+                continue;
+            }
+            if ($exitCode !== 0) {
+                $failed[] = $update['id'];
+            }
+        }
+
+        if ($failed !== []) {
+            $this->error('Failed to update: ' . implode(', ', $failed));
+            return 1;
         }
 
         return 0;

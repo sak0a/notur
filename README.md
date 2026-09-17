@@ -190,6 +190,12 @@ disabled automatically, so operators can inspect and repair them.
 If the master `notur/extensions.json` is corrupt or unreadable, fix that file
 before using `notur:disable`; its discovery error is reported as `@manifest`.
 
+### Recoverable updates
+
+`notur:add --force` and `notur:update` validate a package and stage its extension files and public assets before replacing an installed version. The previous trees are retained until migrations and registration succeed. An upgrade keeps a disabled extension disabled. A failed install restores the previous files and assets, and exits nonzero; `notur:update` continues other pending updates but exits nonzero if any update fails or throws. If a post-install event listener or cache-clear command throws, the extension may already be upgraded despite the nonzero update result; inspect its installed version before retrying.
+
+Migrations are applied one at a time. If a later migration fails, Notur restores the previous files and assets, but completed database migrations and their `notur_migrations` records remain. Inspect and recover those database changes manually before retrying; file recovery does not reverse data changes.
+
 ## Project Structure
 
 | Directory | Contents |
