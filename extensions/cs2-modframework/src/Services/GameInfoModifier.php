@@ -27,12 +27,13 @@ class GameInfoModifier
     {
         $content = $this->readGameInfo();
 
-        if (self::hasEntryInContent($content, $entry)) {
+        $updated = self::addEntryToContent($content, $entry);
+        if ($updated === $content) {
             return;
         }
 
         $this->fileRepository->putContent(self::GAMEINFO_PATH . '.bak', $content);
-        $this->fileRepository->putContent(self::GAMEINFO_PATH, self::addEntryToContent($content, $entry));
+        $this->fileRepository->putContent(self::GAMEINFO_PATH, $updated);
     }
 
     public function removeEntry(string $entry): void
@@ -65,39 +66,72 @@ class GameInfoModifier
 
     public static function addEntryToContent(string $content, string $entry): string
     {
-        if (self::hasEntryInContent($content, $entry)) {
-            return $content;
-        }
-
+        // Normalize both loaders together, including entries left in the wrong order
+        // by older installs. Metamod must precede Swiftly and the base game paths.
+        $loaders = ['Game csgo/addons/metamod', 'Game csgo/addons/swiftlys2'];
+        $managed = in_array(self::canonicalEntry($entry), $loaders, true);
+        $entries = $managed
+            ? array_values(array_filter($loaders, fn (string $loader): bool =>
+                self::hasEntryInContent($content, $loader) || $loader === self::canonicalEntry($entry)))
+            : [self::canonicalEntry($entry)];
         $lines = explode("\n", $content);
-        $insertAt = null;
-
+        $firstGame = null;
         foreach ($lines as $index => $line) {
-            if (self::isCommentLine($line)) {
-                continue;
-            }
-
-            if (preg_match('/^\s*' . preg_quote(self::ANCHOR_LINE, '/') . '\b/', $line) === 1) {
-                $insertAt = $index + 1;
+            if (!self::isCommentLine($line) && preg_match('/^\s*Game\s+\S+/', $line) === 1) {
+                $firstGame = $index;
                 break;
             }
         }
 
-        if ($insertAt === null) {
-            foreach ($lines as $index => $line) {
-                if (!self::isCommentLine($line) && preg_match('/^\s*Game\s+\S+/', $line) === 1) {
-                    $insertAt = $index + 1;
-                    break;
+        // Keep an already-correct block byte-for-byte unchanged.
+        if ($firstGame !== null) {
+            $correct = true;
+            foreach ($entries as $offset => $loader) {
+                $correct = $correct && self::lineMatchesEntry($lines[$firstGame + $offset] ?? '', $loader);
+            }
+            if ($correct) {
+                return $content;
+            }
+        }
+
+        $indent = self::detectIndent($lines[$firstGame ?? 0] ?? '');
+        $lines = array_values(array_filter($lines, function (string $line) use ($entries): bool {
+            foreach ($entries as $loader) {
+                if (self::lineMatchesEntry($line, $loader)) {
+                    return false;
                 }
             }
+            return true;
+        }));
+        $insertAt = null;
+        foreach ($lines as $index => $line) {
+            if (self::isCommentLine($line)) {
+                continue;
+            }
+            if (preg_match('/^\s*Game\s+\S+/', $line) === 1) {
+                $insertAt = $index;
+                $indent = self::detectIndent($line);
+                break;
+            }
+            if (preg_match('/^\s*' . preg_quote(self::ANCHOR_LINE, '/') . '\b/', $line) === 1) {
+                $insertAt = $index + 1;
+                $indent = self::detectIndent($line);
+                break;
+            }
+        }
+
+        if ($insertAt === null && $firstGame !== null) {
+            $insertAt = $firstGame;
         }
 
         if ($insertAt === null) {
             throw new \RuntimeException('Unable to update gameinfo.gi: no safe SearchPaths insertion point was found.');
         }
 
-        $indent = self::detectIndent($lines[$insertAt - 1] ?? '');
-        array_splice($lines, $insertAt, 0, [$indent . self::canonicalEntry($entry)]);
+        array_splice($lines, $insertAt, 0, array_map(
+            fn (string $loader): string => $indent . $loader,
+            $entries,
+        ));
 
         return implode("\n", $lines);
     }
