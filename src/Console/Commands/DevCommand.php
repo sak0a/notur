@@ -115,7 +115,7 @@ class DevCommand extends Command
         }
 
         // Register in manifest
-        app(\Notur\ExtensionManager::class)->registerExtension($extensionId, $manifest->getVersion());
+        app(\Notur\ExtensionManager::class)->registerExtension($extensionId, $manifest->getVersion(), $manifest);
 
         $modeLabel = $useSymlink ? 'symlink' : 'copy';
         $this->info("Extension '{$extensionId}' is now in development mode ({$modeLabel}).");

@@ -9,6 +9,8 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use Notur\Contracts\ExtensionInterface;
 use Notur\Contracts\HasBladeViews;
 use Notur\Contracts\HasCommands;
@@ -22,6 +24,7 @@ use Notur\Features\FeatureRegistry;
 use Notur\Models\InstalledExtension;
 use Notur\Support\EntrypointResolver;
 use Notur\Support\ExtensionPath;
+use Notur\Support\ExtensionStateStore;
 use Notur\Support\HealthCheckNormalizer;
 use Notur\Support\ManifestOnlyExtension;
 use Notur\Support\ThemeCompiler;
@@ -71,8 +74,7 @@ class ExtensionManager
             return;
         }
 
-        // The process environment is checked as well as config so an emergency shell
-        // override still works when Laravel's configuration has been cached.
+        // The process environment still overrides cached Laravel configuration.
         if ($this->isSafeMode()) {
             $this->booted = true;
             Log::warning('[Notur] Safe mode active; extension discovery and boot skipped.');
@@ -81,17 +83,14 @@ class ExtensionManager
 
         try {
             $extensionsPath = $this->getExtensionsPath();
-            $manifestFile = $this->getManifestPath();
-
-            if (!file_exists($manifestFile)) {
-                $this->booted = true;
-                return;
-            }
-
-            $manifest = json_decode((string) file_get_contents($manifestFile), true, flags: JSON_THROW_ON_ERROR);
-            if (!is_array($manifest) || !is_array($manifest['extensions'] ?? [])) {
-                throw new \UnexpectedValueException('Master extensions manifest must contain an extensions map.');
-            }
+            $manifest = $this->stateStore()->reconcile(function (array $state): void {
+                try {
+                    $this->projectState($state);
+                } catch (\Throwable $e) {
+                    // Boot can still use authoritative JSON during a database outage.
+                    Log::warning('[Notur] Extension database reconciliation failed: ' . $e->getMessage());
+                }
+            });
         } catch (\Throwable $e) {
             $this->recordBootFailure('@manifest', 'discovery', $e);
             $this->booted = true;
@@ -497,20 +496,13 @@ class ExtensionManager
 
     private function setExtensionEnabled(string $id, bool $enabled): void
     {
-        $manifestFile = $this->getManifestPath();
-        $manifest = file_exists($manifestFile)
-            ? json_decode(file_get_contents($manifestFile), true)
-            : ['extensions' => []];
-
-        if (!isset($manifest['extensions'][$id])) {
-            throw new ExtensionNotFoundException($id, "Extension '{$id}' is not installed.");
-        }
-
-        $manifest['extensions'][$id]['enabled'] = $enabled;
-
-        file_put_contents($manifestFile, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
-        InstalledExtension::where('extension_id', $id)->update(['enabled' => $enabled]);
+        $this->stateStore()->update(function (array $state) use ($id, $enabled): array {
+            if (!isset($state['extensions'][$id])) {
+                throw new ExtensionNotFoundException($id, "Extension '{$id}' is not installed.");
+            }
+            $state['extensions'][$id]['enabled'] = $enabled;
+            return $state;
+        }, fn (array $state) => $this->projectState($state));
 
         Log::info("[Notur] Extension '{$id}' " . ($enabled ? 'enabled' : 'disabled'));
     }
@@ -518,25 +510,16 @@ class ExtensionManager
     /**
      * Register an extension in the master manifest.
      */
-    public function registerExtension(string $id, string $version): void
+    public function registerExtension(string $id, string $version, ?ExtensionManifest $extensionManifest = null, bool $enabled = true): void
     {
-        $manifestFile = $this->getManifestPath();
-        $manifest = file_exists($manifestFile)
-            ? json_decode(file_get_contents($manifestFile), true)
-            : ['extensions' => []];
-
-        $manifest['extensions'][$id] = [
-            'version' => $version,
-            'enabled' => true,
-            'installed_at' => now()->toIso8601String(),
-        ];
-
-        $dir = dirname($manifestFile);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-
-        file_put_contents($manifestFile, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $this->stateStore()->update(function (array $state) use ($id, $version, $enabled): array {
+            $state['extensions'][$id] = [
+                'version' => $version,
+                'enabled' => $enabled,
+                'installed_at' => now()->toIso8601String(),
+            ];
+            return $state;
+        }, fn (array $state) => $this->projectState($state, $id, $extensionManifest));
     }
 
     /**
@@ -544,16 +527,96 @@ class ExtensionManager
      */
     public function unregisterExtension(string $id): void
     {
-        $manifestFile = $this->getManifestPath();
+        $this->stateStore()->update(function (array $state) use ($id): array {
+            unset($state['extensions'][$id]);
+            return $state;
+        }, fn (array $state) => $this->projectState($state));
+    }
 
-        if (!file_exists($manifestFile)) {
+    /**
+     * Retry the database projection after a process stops between JSON and DB commits.
+     * The boot manifest is the source of truth for membership, version and enabled state.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function reconcileState(): ?array
+    {
+        return $this->stateStore()->reconcile(fn (array $state) => $this->projectState($state));
+    }
+
+    /**
+     * Read the authoritative installed entry without reconciling the database.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getInstalledState(string $id): ?array
+    {
+        return $this->stateStore()->getEntry($id);
+    }
+
+    private function stateStore(): ExtensionStateStore
+    {
+        return new ExtensionStateStore($this->getManifestPath());
+    }
+
+    /** @param array<string, mixed> $state */
+    private function projectState(array $state, ?string $registeredId = null, ?ExtensionManifest $registration = null): void
+    {
+        if (!Schema::hasTable('notur_extensions')) {
             return;
         }
 
-        $manifest = json_decode(file_get_contents($manifestFile), true);
-        unset($manifest['extensions'][$id]);
+        DB::transaction(function () use ($state, $registeredId, $registration): void {
+            foreach ($state['extensions'] as $id => $entry) {
+                $record = InstalledExtension::where('extension_id', $id)->first();
+                $manifest = $id === $registeredId ? $registration : null;
+                if ($manifest === null) {
+                    try {
+                        $path = $this->getExtensionsPath() . '/' . str_replace('/', DIRECTORY_SEPARATOR, $id);
+                        $manifest = ExtensionManifest::load($path);
+                    } catch (\Throwable) {
+                        // Broken or missing YAML must not block disabling an extension.
+                        // Preserve existing metadata until its files can be repaired.
+                    }
+                }
 
-        file_put_contents($manifestFile, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                if ($manifest !== null && ($manifest->getId() !== $id || $manifest->getVersion() !== $entry['version'])) {
+                    // An install can stage live files before committing its state.
+                    // Do not project that uncommitted version's metadata during boot.
+                    Log::warning("[Notur] Skipping metadata projection for '{$id}': files do not match committed extension state.");
+                    $manifest = null;
+                }
+
+                if ($record === null) {
+                    InstalledExtension::create([
+                        'extension_id' => $id,
+                        'name' => $manifest?->getName() ?? $id,
+                        'version' => $entry['version'],
+                        'enabled' => $entry['enabled'],
+                        'manifest' => $manifest?->getRaw(),
+                    ]);
+                } else {
+                    $values = ['version' => $entry['version'], 'enabled' => $entry['enabled']];
+                    if ($manifest !== null) {
+                        $values['name'] = $manifest->getName();
+                        $values['manifest'] = $manifest->getRaw();
+                    }
+                    $record->fill($values);
+                    if ($record->isDirty()) {
+                        $record->save();
+                    }
+                }
+            }
+
+            $ids = array_keys($state['extensions']);
+            $stale = InstalledExtension::query();
+            if ($ids !== []) {
+                $stale->whereNotIn('extension_id', $ids);
+            }
+            if ($stale->exists()) {
+                $stale->delete();
+            }
+        });
     }
 
     /**

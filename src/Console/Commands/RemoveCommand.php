@@ -74,9 +74,6 @@ class RemoveCommand extends ExtensionLifecycleCommand
         // Unregister from manifest
         $manager->unregisterExtension($extensionId);
 
-        // Remove from database
-        $record->delete();
-
         // Fire event
         ExtensionRemoved::dispatch($extensionId);
 

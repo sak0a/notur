@@ -73,6 +73,10 @@ The SDK gives extension authors:
 npx notur-sync
 ```
 
+For installed runtime state, `notur/extensions.json` is authoritative for extension membership, version, and enabled status. `ExtensionStateStore` locks a stable `extensions.json.lock` file around each read/change/write and database projection, then replaces JSON through a temporary file in the same directory. Invalid JSON or a failed file write stops the operation without applying a database change.
+
+The `notur_extensions` table is a projection used by admin screens and commands. When JSON exists, `ExtensionManager` reconciles that table on boot; a later mutation or an explicit `reconcileState()` call also retries reconciliation. If the database update fails after JSON replacement, the operation reports the error and the next reconciliation repairs the table. Reconciliation reloads name and manifest metadata from a readable on-disk `extension.yaml`, including for existing rows after a failed upgrade, while leaving remote-push tracking columns untouched. Unchanged rows are not written again. Boot continues from JSON during a database outage and logs the reconciliation error. If the table has not been migrated yet, projection waits until it exists. Rows absent from JSON are removed during reconciliation. A recovered row without a readable `extension.yaml` uses its extension ID as its display name until a later registration supplies metadata. An initial boot with no JSON manifest does not create a state directory or lock file.
+
 ## Trust Boundary
 
 Notur extensions are trusted code. PHP extensions run inside the panel process, and frontend bundles run in the authenticated panel browser session. Use signatures, registry review, and source review for third-party extensions.
