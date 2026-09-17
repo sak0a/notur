@@ -18,6 +18,12 @@ class ExtensionBootRecoveryTest extends TestCase
     private string $fixturePath;
     private string|false $previousSafeMode;
 
+    // Testbench 8.0 uses this hook when constructing its Laravel application.
+    protected function getBasePath()
+    {
+        return $this->getApplicationBasePath();
+    }
+
     protected function getApplicationBasePath()
     {
         return $this->fixturePath;
@@ -107,6 +113,8 @@ class ExtensionBootRecoveryTest extends TestCase
 
     public function test_provider_startup_isolates_failures_and_skips_dependents(): void
     {
+        // Testbench 8 migrations leave an OutputStyle mock bound in the container.
+        $this->withoutMockingConsoleOutput();
         $manager = $this->app->make(ExtensionManager::class);
         $this->assertSame(1, FailingBootExtension::$bootCount);
         $this->assertSame(1, CountingExtension::$bootCount);
@@ -244,6 +252,8 @@ class ExtensionBootRecoveryTest extends TestCase
 
     public function test_corrupt_master_manifest_does_not_block_startup(): void
     {
+        // Testbench 8 migrations leave an OutputStyle mock bound in the container.
+        $this->withoutMockingConsoleOutput();
         $manager = $this->app->make(ExtensionManager::class);
         $this->assertSame([], $manager->all());
         $this->assertSame('discovery', $manager->getBootFailures()['@manifest']['stage']);

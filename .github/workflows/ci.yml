@@ -11,6 +11,7 @@ on:
       - 'config/**'
       - 'database/**'
       - 'routes/**'
+      - 'resources/**'
       - 'examples/**'
       - 'composer.json'
       - 'composer.lock'
@@ -31,6 +32,7 @@ on:
       - 'config/**'
       - 'database/**'
       - 'routes/**'
+      - 'resources/**'
       - 'examples/**'
       - 'composer.json'
       - 'composer.lock'
@@ -44,12 +46,17 @@ on:
 
 jobs:
   php-unit-tests:
-    name: PHP ${{ matrix.php }} Unit Tests
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }} Unit Tests (${{ matrix.dependencies }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.4']
+        include:
+          - { php: '8.2', laravel: '10', dependencies: 'lowest-laravel10' }
+          - { php: '8.2', laravel: '11', dependencies: 'locked' }
+          - { php: '8.3', laravel: '10', dependencies: 'latest-laravel10' }
+          - { php: '8.3', laravel: '11', dependencies: 'locked' }
+          - { php: '8.4', laravel: '11', dependencies: 'locked' }
 
     steps:
       - uses: actions/checkout@v4
@@ -69,25 +76,25 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-${{ matrix.php }}-
+          key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.dependencies }}-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.dependencies }}-
 
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist
+        run: bash scripts/ci/install-php-dependencies.sh "${{ matrix.dependencies }}"
 
       - name: Run unit tests
         run: ./vendor/bin/phpunit --testsuite Unit
 
   php-integration-tests:
-    name: PHP ${{ matrix.php }} / ${{ matrix.database.type }} Integration
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }} / ${{ matrix.database.type }} Integration (${{ matrix.dependencies }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.4']
-        database:
-          - { type: 'mysql', image: 'mysql:8.0', port: 3306 }
-          - { type: 'mariadb', image: 'mariadb:10.6', port: 3306 }
+        include:
+          - { php: '8.2', laravel: '10', dependencies: 'lowest-laravel10', database: { type: 'mysql', image: 'mysql:8.0' } }
+          - { php: '8.4', laravel: '11', dependencies: 'locked', database: { type: 'mysql', image: 'mysql:8.0' } }
+          - { php: '8.4', laravel: '11', dependencies: 'locked', database: { type: 'mariadb', image: 'mariadb:10.6' } }
 
     services:
       database:
@@ -127,11 +134,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-${{ matrix.php }}-
+          key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.dependencies }}-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.dependencies }}-
 
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist
+        run: bash scripts/ci/install-php-dependencies.sh "${{ matrix.dependencies }}"
 
       - name: Wait for database
         run: |
@@ -151,12 +158,8 @@ jobs:
         run: ./vendor/bin/phpunit --testsuite Integration
 
   frontend-build:
-    name: Frontend Build (Node ${{ matrix.node }})
+    name: Frontend Build (Node 22)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['22']
 
     steps:
       - uses: actions/checkout@v4
@@ -164,25 +167,23 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+          node-version: '22'
+          cache: npm
 
       - name: Install dependencies
-        run: bun install
+        run: npm ci --no-audit --no-fund
 
-      - name: Build bridge
-        run: bun run build:bridge
-
-      - name: Build SDK
-        run: bun run build:sdk
+      - name: Build frontend assets
+        run: npm run build
 
       - name: Build hello-world example
-        run: cd examples/hello-world && bunx webpack --mode production
+        working-directory: examples/hello-world
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
 
       - name: Run frontend tests
-        run: bun run test:frontend
+        run: npm run test:frontend
 
   security-audit:
     name: Security Audit Policies
@@ -212,7 +213,7 @@ jobs:
           php scripts/ci/check-composer-audit.php composer-audit.json .github/security/composer-audit-allowlist.json
 
       - name: Install npm dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Run npm audit and enforce allowlist policy
         run: |

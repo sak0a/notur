@@ -137,8 +137,16 @@ $upsertExtension(
         'id' => 'broken/remove-fail',
         'name' => 'Broken Remove Fixture',
         'version' => '0.0.1',
-        'description' => 'Intentionally inconsistent extension record for negative E2E coverage.',
+        'description' => 'Registered extension with missing files for recovery E2E coverage.',
     ],
+    false,
+);
+
+// This database-only row should be removed by authoritative manifest reconciliation.
+$upsertExtension(
+    'broken/database-orphan',
+    'Database Orphan Fixture',
+    ['id' => 'broken/database-orphan', 'name' => 'Database Orphan Fixture', 'version' => '0.0.1'],
     false,
 );
 
@@ -153,6 +161,11 @@ $extensionsManifest = [
             'enabled' => false,
             'version' => $fullExtension->version,
             'installed_at' => optional($fullExtension->created_at)->toIso8601String() ?? now()->toIso8601String(),
+        ],
+        'broken/remove-fail' => [
+            'enabled' => false,
+            'version' => '0.0.1',
+            'installed_at' => now()->toIso8601String(),
         ],
     ],
 ];

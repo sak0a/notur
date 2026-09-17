@@ -238,7 +238,8 @@ class FrameworkUninstallCommand extends Command
     {
         $this->info('Step 2/6: Rolling back Notur database migrations...');
 
-        $tables = ['notur_activity_logs', 'notur_settings', 'notur_migrations', 'notur_extensions'];
+        // Remove extension records before the remote push keys they reference.
+        $tables = ['notur_activity_logs', 'notur_settings', 'notur_migrations', 'notur_extensions', 'notur_remote_push_keys'];
 
         foreach ($tables as $table) {
             if (Schema::hasTable($table)) {
