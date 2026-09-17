@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Notur\Console\Commands;
 
-use Illuminate\Support\Facades\DB;
 use Notur\Events\ExtensionInstalled;
 use Notur\Events\ExtensionUpdated;
 use Notur\ExtensionManager;
@@ -242,38 +241,11 @@ class AddCommand extends ExtensionLifecycleCommand
                 }
             }
 
-            DB::transaction(function () use ($manager, $manifest, $extensionId, $wasEnabled, &$registrationStarted): void {
-                $registrationStarted = true;
-                $manager->registerExtension($extensionId, $manifest->getVersion());
-                if (!$wasEnabled) {
-                    $manager->disable($extensionId);
-                }
-                InstalledExtension::updateOrCreate(
-                    ['extension_id' => $extensionId],
-                    [
-                        'name' => $manifest->getName(),
-                        'version' => $manifest->getVersion(),
-                        'enabled' => $wasEnabled,
-                        'manifest' => $manifest->getRaw(),
-                    ],
-                );
-            });
+            $registrationStarted = true;
+            // StateStore owns both its file lock and the database transaction.
+            $manager->registerExtension($extensionId, $manifest->getVersion(), $manifest, $wasEnabled);
         } catch (\Throwable $e) {
             $recoveryErrors = [];
-            if ($registrationStarted) {
-                try {
-                    if ($previousVersion === null) {
-                        $manager->unregisterExtension($extensionId);
-                    } else {
-                        $manager->registerExtension($extensionId, $previousVersion);
-                        if (!$wasEnabled) {
-                            $manager->disable($extensionId);
-                        }
-                    }
-                } catch (\Throwable $recoveryError) {
-                    $recoveryErrors[] = 'manifest: ' . $recoveryError->getMessage();
-                }
-            }
             // Restore each prior tree even if restoring the other one fails.
             foreach ([
                 [$publicPath, $backupPublicPath, $oldPublicMoved, $newPublicMoved],
@@ -288,6 +260,18 @@ class AddCommand extends ExtensionLifecycleCommand
                     }
                 } catch (\Throwable $recoveryError) {
                     $recoveryErrors[] = "files at {$backup}: " . $recoveryError->getMessage();
+                }
+            }
+            // Re-project metadata only after the old manifest is back on disk.
+            if ($registrationStarted) {
+                try {
+                    if ($previousVersion === null) {
+                        $manager->unregisterExtension($extensionId);
+                    } else {
+                        $manager->registerExtension($extensionId, $previousVersion, null, $wasEnabled);
+                    }
+                } catch (\Throwable $recoveryError) {
+                    $recoveryErrors[] = 'manifest: ' . $recoveryError->getMessage();
                 }
             }
             $this->error("Installation failed: {$e->getMessage()}");
