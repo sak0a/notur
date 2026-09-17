@@ -7,6 +7,7 @@ namespace Notur\Console\Commands;
 use Illuminate\Console\Command;
 use Notur\Events\ExtensionEnabled;
 use Notur\Exceptions\DependencyResolutionException;
+use Notur\Exceptions\ExtensionNotFoundException;
 use Notur\ExtensionManager;
 use Notur\Models\InstalledExtension;
 
@@ -19,20 +20,26 @@ class EnableCommand extends Command
     {
         $extensionId = $this->argument('extension');
 
-        $record = InstalledExtension::where('extension_id', $extensionId)->first();
-        if (!$record) {
-            $this->error("Extension '{$extensionId}' is not installed.");
-            return 1;
+        $entry = $manager->getInstalledState($extensionId);
+        if ($entry === null) {
+            $record = InstalledExtension::where('extension_id', $extensionId)->first();
+            if (!$record) {
+                $this->error("Extension '{$extensionId}' is not installed.");
+                return 1;
+            }
+            $enabled = (bool) $record->enabled;
+        } else {
+            $enabled = $entry['enabled'];
         }
 
-        if ($record->enabled) {
+        if ($enabled) {
             $this->info("Extension '{$extensionId}' is already enabled.");
             return 0;
         }
 
         try {
             $manager->enable($extensionId);
-        } catch (DependencyResolutionException $e) {
+        } catch (DependencyResolutionException | ExtensionNotFoundException $e) {
             $this->error($e->getMessage());
             return 1;
         }

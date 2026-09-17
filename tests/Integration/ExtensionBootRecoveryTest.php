@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Notur\Tests\Integration;
 
 use Notur\Contracts\ExtensionInterface;
+use Notur\DependencyResolver;
+use Notur\Exceptions\DependencyResolutionException;
 use Notur\ExtensionManager;
 use Notur\Models\InstalledExtension;
 use Notur\NoturServiceProvider;
@@ -49,7 +51,12 @@ class ExtensionBootRecoveryTest extends TestCase
         if ($this->name() === 'test_config_safe_mode_skips_extensions') {
             putenv('NOTUR_SAFE_MODE');
         } else {
-            putenv('NOTUR_SAFE_MODE=' . ($this->name() === 'test_safe_mode_allows_recovery_cli' ? '1' : '0'));
+            $emergencyTests = [
+                'test_safe_mode_allows_recovery_cli',
+                'test_explicit_safe_mode_can_disable_cycle_member',
+                'test_explicit_safe_mode_can_remove_cycle_member',
+            ];
+            putenv('NOTUR_SAFE_MODE=' . (in_array($this->name(), $emergencyTests, true) ? '1' : '0'));
         }
 
         $this->fixture('acme/fails', "entrypoint: '" . FailingBootExtension::class . "'\nbackend:\n  permissions:\n    - acme.fails.read");
@@ -81,12 +88,12 @@ class ExtensionBootRecoveryTest extends TestCase
 
     protected function tearDown(): void
     {
-        parent::tearDown();
         if ($this->previousSafeMode === false) {
             putenv('NOTUR_SAFE_MODE');
         } else {
             putenv('NOTUR_SAFE_MODE=' . $this->previousSafeMode);
         }
+        parent::tearDown();
 
         $files = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($this->fixturePath, \FilesystemIterator::SKIP_DOTS),
@@ -164,9 +171,9 @@ class ExtensionBootRecoveryTest extends TestCase
             ]);
         }
         $this->artisan('notur:disable', ['extension' => 'acme/fails'])
-            ->expectsOutputToContain("Extension 'acme/dependent' requires 'acme/fails'")
-            ->assertExitCode(1);
-        foreach (['acme/transitive', 'acme/dependent', 'acme/fails'] as $id) {
+            ->expectsOutput("Extension 'acme/fails' has been disabled.")
+            ->assertExitCode(0);
+        foreach (['acme/transitive', 'acme/dependent'] as $id) {
             $this->artisan('notur:disable', ['extension' => $id])
                 ->expectsOutput("Extension '{$id}' has been disabled.")
                 ->assertExitCode(0);
@@ -183,6 +190,56 @@ class ExtensionBootRecoveryTest extends TestCase
         $this->assertTrue($manager->isSafeMode());
         $this->assertSame([], $manager->all());
         $this->assertSame(0, FailingBootExtension::$bootCount);
+
+        $this->expectException(DependencyResolutionException::class);
+        $manager->disable('acme/cycle-a');
+    }
+
+    public function test_explicit_safe_mode_can_disable_cycle_member(): void
+    {
+        $manager = $this->app->make(ExtensionManager::class);
+        $this->assertTrue($manager->isSafeMode());
+        $manager->disable('acme/cycle-a');
+
+        putenv('NOTUR_SAFE_MODE=0');
+        $normal = new ExtensionManager($this->app, new DependencyResolver(), new PermissionBroker());
+        $normal->boot();
+
+        $this->assertSame('dependency validation', $normal->getBootFailures()['acme/cycle-b']['stage']);
+        $this->assertStringContainsString('which is disabled', $normal->getBootFailures()['acme/cycle-b']['message']);
+        $this->assertSame('dependency validation', $normal->getBootFailures()['acme/cycle-dependent']['stage']);
+        $this->assertStringContainsString('which is disabled', $normal->getBootFailures()['acme/cycle-dependent']['message']);
+        $this->assertArrayNotHasKey('acme/cycle-dependent', $normal->all());
+        $this->assertTrue($normal->isEnabled('acme/independent'));
+    }
+
+    public function test_explicit_safe_mode_can_remove_cycle_member(): void
+    {
+        InstalledExtension::updateOrCreate(['extension_id' => 'acme/cycle-a'], [
+            'name' => 'Cycle A',
+            'version' => '1.0.0',
+            'enabled' => true,
+            'manifest' => ['id' => 'acme/cycle-a'],
+        ]);
+        $this->artisan('notur:remove', [
+            'extension' => 'acme/cycle-a',
+            '--force' => true,
+            '--keep-data' => true,
+        ])->assertExitCode(0);
+
+        $state = json_decode(file_get_contents($this->fixturePath . '/notur/extensions.json'), true);
+        $this->assertArrayNotHasKey('acme/cycle-a', $state['extensions']);
+
+        putenv('NOTUR_SAFE_MODE=0');
+        $normal = new ExtensionManager($this->app, new DependencyResolver(), new PermissionBroker());
+        $normal->boot();
+
+        $this->assertSame('dependency validation', $normal->getBootFailures()['acme/cycle-b']['stage']);
+        $this->assertStringContainsString('which is not installed', $normal->getBootFailures()['acme/cycle-b']['message']);
+        $this->assertSame('dependency validation', $normal->getBootFailures()['acme/cycle-dependent']['stage']);
+        $this->assertStringContainsString('which is not installed', $normal->getBootFailures()['acme/cycle-dependent']['message']);
+        $this->assertArrayNotHasKey('acme/cycle-dependent', $normal->all());
+        $this->assertTrue($normal->isEnabled('acme/independent'));
     }
 
     public function test_corrupt_master_manifest_does_not_block_startup(): void

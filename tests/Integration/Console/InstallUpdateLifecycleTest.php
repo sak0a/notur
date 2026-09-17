@@ -309,6 +309,52 @@ class InstallUpdateLifecycleTest extends TestCase
         $this->assertDatabaseHas('notur_extensions', ['extension_id' => 'acme/demo', 'enabled' => 0, 'version' => '2.0.0']);
     }
 
+    public function test_safe_mode_disable_uses_json_when_database_is_stale_or_missing(): void
+    {
+        config(['notur.safe_mode' => true]);
+        $this->installed('acme/demo', true);
+        InstalledExtension::where('extension_id', 'acme/demo')->update(['enabled' => false]);
+
+        $this->artisan('notur:disable', ['extension' => 'acme/demo'])
+            ->expectsOutput("Extension 'acme/demo' has been disabled.")
+            ->assertExitCode(0);
+
+        $manager = $this->app->make(ExtensionManager::class);
+        $this->assertFalse($manager->getInstalledState('acme/demo')['enabled']);
+        $this->assertDatabaseHas('notur_extensions', ['extension_id' => 'acme/demo', 'enabled' => 0]);
+
+        $this->installed('acme/no-row', true);
+        InstalledExtension::where('extension_id', 'acme/no-row')->delete();
+        $this->artisan('notur:disable', ['extension' => 'acme/no-row'])
+            ->expectsOutput("Extension 'acme/no-row' has been disabled.")
+            ->assertExitCode(0);
+        $this->assertFalse($manager->getInstalledState('acme/no-row')['enabled']);
+        $this->assertDatabaseHas('notur_extensions', ['extension_id' => 'acme/no-row', 'enabled' => 0]);
+    }
+
+    public function test_safe_mode_enable_uses_json_when_database_is_stale_or_missing(): void
+    {
+        config(['notur.safe_mode' => true]);
+        $this->installed('acme/demo', false);
+        InstalledExtension::where('extension_id', 'acme/demo')->update(['enabled' => true]);
+
+        $this->artisan('notur:enable', ['extension' => 'acme/demo'])
+            ->expectsOutput("Extension 'acme/demo' has been enabled.")
+            ->assertExitCode(0);
+
+        $manager = $this->app->make(ExtensionManager::class);
+        $this->assertTrue($manager->getInstalledState('acme/demo')['enabled']);
+        $this->assertDatabaseHas('notur_extensions', ['extension_id' => 'acme/demo', 'enabled' => 1]);
+
+        $this->installed('acme/no-row', false);
+        InstalledExtension::where('extension_id', 'acme/no-row')->delete();
+        $this->artisan('notur:enable', ['extension' => 'acme/no-row'])
+            ->expectsOutput("Extension 'acme/no-row' has been enabled.")
+            ->assertExitCode(0);
+        $this->assertTrue($manager->getInstalledState('acme/no-row')['enabled']);
+        $this->assertDatabaseHas('notur_extensions', ['extension_id' => 'acme/no-row', 'enabled' => 1]);
+    }
+
     public function test_safe_mode_registration_failure_restores_authoritative_version_and_enabled_state(): void
     {
         config(['notur.safe_mode' => true]);

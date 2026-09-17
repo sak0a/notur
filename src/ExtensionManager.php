@@ -716,7 +716,7 @@ class ExtensionManager
                 $manifest = ExtensionManifest::load(
                     $this->getExtensionsPath() . '/' . str_replace('/', DIRECTORY_SEPARATOR, $dependentId)
                 );
-            } catch (ManifestException | \Symfony\Component\Yaml\Exception\ParseException) {
+            } catch (\Throwable) {
                 // An unreadable extension cannot declare a known reverse dependency.
                 continue;
             }
@@ -726,11 +726,24 @@ class ExtensionManager
             }
 
             if (array_key_exists($id, $manifest->getDependencies())) {
+                if ($this->isExplicitEmergencySafeMode()) {
+                    Log::warning(
+                        "[Notur] NOTUR_SAFE_MODE bypassed reverse dependency protection: '{$dependentId}' still requires '{$id}'. "
+                        . "Repair or disable '{$dependentId}' before normal boot."
+                    );
+                    continue;
+                }
                 throw new DependencyResolutionException(
                     "Extension '{$dependentId}' requires '{$id}'. Disable or remove '{$dependentId}' first."
                 );
             }
         }
+    }
+
+    private function isExplicitEmergencySafeMode(): bool
+    {
+        $override = getenv('NOTUR_SAFE_MODE');
+        return $override !== false && filter_var($override, FILTER_VALIDATE_BOOLEAN);
     }
 
     /** @return array{extensions: array<string, array<string, mixed>>} */

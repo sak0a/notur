@@ -138,12 +138,21 @@ class ExtensionDependencyLifecycleTest extends TestCase
         $this->installFixture('acme/invalid', '1.0.0', ['acme/other' => 'bad-constraint']);
         $this->installFixture('acme/cycle-a', '1.0.0', ['acme/cycle-b' => '^1.0']);
         $this->installFixture('acme/cycle-b', '1.0.0', ['acme/cycle-a' => '^1.0']);
+        $this->installFixture('acme/empty-yaml', '1.0.0');
+        $this->installFixture('acme/scalar-yaml', '1.0.0');
+        $this->installFixture('acme/type-invalid-yaml', '1.0.0');
+        file_put_contents(ExtensionPath::base('acme/empty-yaml') . '/extension.yaml', '');
+        file_put_contents(ExtensionPath::base('acme/scalar-yaml') . '/extension.yaml', 'hello');
+        file_put_contents(ExtensionPath::base('acme/type-invalid-yaml') . '/extension.yaml', 'id: []');
         $this->writeMaster([
             'acme/bad' => true,
             'acme/unreadable' => true,
             'acme/invalid' => true,
             'acme/cycle-a' => true,
             'acme/cycle-b' => true,
+            'acme/empty-yaml' => true,
+            'acme/scalar-yaml' => true,
+            'acme/type-invalid-yaml' => true,
         ]);
 
         $manager = $this->manager();
@@ -156,7 +165,16 @@ class ExtensionDependencyLifecycleTest extends TestCase
     public function test_remove_command_cleans_unreadable_extension_despite_other_broken_extensions(): void
     {
         $this->installFixture('acme/invalid', '1.0.0', ['acme/absent' => 'bad-constraint']);
-        $this->writeMaster(['acme/unreadable' => true, 'acme/invalid' => true]);
+        $this->installFixture('acme/empty-yaml', '1.0.0');
+        $this->installFixture('acme/scalar-yaml', '1.0.0');
+        file_put_contents(ExtensionPath::base('acme/empty-yaml') . '/extension.yaml', '');
+        file_put_contents(ExtensionPath::base('acme/scalar-yaml') . '/extension.yaml', 'hello');
+        $this->writeMaster([
+            'acme/unreadable' => true,
+            'acme/invalid' => true,
+            'acme/empty-yaml' => true,
+            'acme/scalar-yaml' => true,
+        ]);
         InstalledExtension::create([
             'extension_id' => 'acme/unreadable',
             'name' => 'Unreadable',
