@@ -1,0 +1,14 @@
+notur: "1.0"
+id: "notur/obsidian"
+name: "Obsidian"
+version: "0.1.0"
+description: "A glass client-panel theme with sidebar navigation and dark/light appearance."
+authors:
+  - name: "Notur"
+license: "MIT"
+requires:
+  notur: "^1.5.3"
+  pterodactyl: "~1.12.0 || ~1.15.0"
+  php: "^8.2"
+frontend:
+  bundle: "resources/frontend/dist/obsidian.js"

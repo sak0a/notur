@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "target": "ES2019",
+        "module": "ESNext",
+        "lib": ["DOM", "ES2019"],
+        "jsx": "react",
+        "strict": true,
+        "esModuleInterop": true,
+        "moduleResolution": "bundler",
+        "outDir": "./resources/frontend/dist",
+        "rootDir": "./resources/frontend/src",
+        "paths": {
+            "@notur/sdk": ["../../sdk/dist"]
+        },
+        "skipLibCheck": true
+    },
+    "include": ["resources/frontend/src/**/*"]
+}

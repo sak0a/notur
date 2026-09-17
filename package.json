@@ -16,7 +16,9 @@
     "dev:tailwind": "npx @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css --watch",
     "test:frontend": "vitest run --config tests/Frontend/vitest.config.js",
     "test:frontend:coverage": "vitest run --config tests/Frontend/vitest.config.js --coverage",
-    "test:e2e:browser": "npx playwright test --config=playwright.config.ts"
+    "test:e2e:browser": "npx playwright test --config=playwright.config.ts",
+    "build:obsidian": "npm run build --prefix extensions/obsidian",
+    "test:obsidian": "npm run build:obsidian && playwright test --config tests/E2E/obsidian/playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
