@@ -43,11 +43,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Build bridge and SDK
         run: |
-          npm install
+          npm ci --no-audit --no-fund
           npm run build:bridge
           npm run build:sdk
 
@@ -66,6 +66,9 @@ jobs:
       - name: Update version in sdk/package.json
         run: |
           jq --arg v "${{ inputs.version }}" '.version = $v' sdk/package.json > tmp.json && mv tmp.json sdk/package.json
+
+      - name: Sync npm lockfile version
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
       - name: Update version in installer/install.sh
         run: |

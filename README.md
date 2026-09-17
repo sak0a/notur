@@ -66,8 +66,8 @@ php artisan migrate
 # Install PHP dependencies
 composer install
 
-# Install frontend dependencies (using npm, yarn, pnpm, or bun)
-npm install
+# Install the root frontend dependency graph from its lockfile
+npm ci
 
 # Build the bridge runtime
 npm run build:bridge
@@ -81,6 +81,14 @@ npm run build:sdk
 # Run frontend tests
 npm run test:frontend
 ```
+
+The root project uses `package-lock.json` for CI builds, npm audit, and releases.
+The docs site in `website/` has its own `bun.lock`; the hello-world example has
+its own `package-lock.json`. PHP CI uses the committed Laravel 11 lock on PHP
+8.2–8.4, resolves recent Laravel 10/Testbench 8 dependencies on PHP 8.3,
+and tests the oldest stable Laravel 10 dependencies on PHP 8.2. Docker E2E
+continues to cover PHP 8.2 with one panel configuration rather than duplicating
+the PHP matrix.
 
 ## Docker E2E
 

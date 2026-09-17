@@ -1,6 +1,7 @@
 # Dependencies
 /vendor/
 /node_modules/
+/bun.lock
 yarn.lock
 /website/node_modules/
 /website/docs/.vitepress/cache/
