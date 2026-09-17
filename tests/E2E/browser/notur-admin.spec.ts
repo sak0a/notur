@@ -20,6 +20,7 @@ const env = (name: string, fallback: string): string => process.env[name] ?? fal
 const HELLO_WORLD_ID = 'notur/hello-world';
 const FULL_EXTENSION_ID = 'notur/full-extension';
 const BROKEN_EXTENSION_ID = 'broken/remove-fail';
+const ORPHAN_EXTENSION_ID = 'broken/database-orphan';
 const HELLO_WORLD_FIXTURE_PATH = '/opt/notur/examples/hello-world';
 const NON_ADMIN_EMAIL = env('E2E_USER_EMAIL', 'user@example.com');
 const NON_ADMIN_PASSWORD = env('E2E_USER_PASSWORD', 'notur-user-password');
@@ -596,7 +597,16 @@ test.describe.serial('Notur admin browser E2E', () => {
         ).toBe(404);
     });
 
-    test('remove database-only orphan extension via admin UI', async () => {
+    test('database-only orphan is reconciled before admin listing', async () => {
+        await expect(extensionRow(adminPage, ORPHAN_EXTENSION_ID)).toHaveCount(0);
+        await expect.poll(() =>
+            mysqlScalar(
+                `SELECT COUNT(*) FROM notur_extensions WHERE extension_id='${escapeSql(ORPHAN_EXTENSION_ID)}';`,
+            ),
+        ).toBe('0');
+    });
+
+    test('remove registered extension with missing files via admin UI', async () => {
         const page = adminPage;
         const row = extensionRow(page, BROKEN_EXTENSION_ID);
 
