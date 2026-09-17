@@ -1,11 +1,16 @@
 :root[data-obsidian] {
     color-scheme: dark;
-    --ob-base: #0b0b0d;
-    --ob-panel: rgba(31, 31, 35, .72);
-    --ob-elevated: #252529;
-    --ob-panel-hover: rgba(48, 48, 54, .82);
+    --ob-base: #050506;
+    --ob-panel: rgba(16, 16, 18, .84);
+    --ob-elevated: #18181b;
+    --ob-panel-hover: rgba(29, 29, 33, .94);
     --ob-danger: #f4a0a5;
     --ob-terminal: #09090b;
+    --ob-primary-bg: #fafafa;
+    --ob-primary-fg: #09090b;
+    --ob-primary-hover: #dedee3;
+    --ob-destructive-bg: #dc2626;
+    --ob-destructive-hover: #b91c1c;
     --ob-border: rgba(255, 255, 255, .12);
     --ob-accent: #d4d4dc;
     --ob-accent-ink: #141416;
@@ -16,9 +21,9 @@
     --ob-n400: #a0a0ad;
     --ob-n500: #90909e;
     --ob-n600: #494951;
-    --ob-n700: #303036;
-    --ob-n800: #202024;
-    --ob-n900: #151518;
+    --ob-n700: #1b1b1f;
+    --ob-n800: #111113;
+    --ob-n900: #09090b;
     --ob-shadow: 0 18px 60px rgba(0, 0, 0, .24);
     --notur-bg-primary: var(--ob-base) !important;
     --notur-bg-secondary: var(--ob-n800) !important;
@@ -34,6 +39,9 @@
 }
 :root[data-obsidian="light"] {
     color-scheme: light;
+    --ob-primary-bg: #18181b;
+    --ob-primary-fg: #fafafa;
+    --ob-primary-hover: #303036;
     --ob-base: #f0f0f3;
     --ob-panel: rgba(255, 255, 255, .87);
     --ob-elevated: #fff;
@@ -55,7 +63,7 @@
     --ob-shadow: 0 18px 60px rgba(0, 0, 0, .08);
 }
 :root[data-obsidian] body {
-    background: radial-gradient(ellipse at 75% -10%, color-mix(in srgb, var(--ob-accent) 9%, transparent), transparent 55%), var(--ob-base) !important;
+    background: radial-gradient(ellipse at 75% -10%, color-mix(in srgb, var(--ob-accent) 3%, transparent), transparent 55%), var(--ob-base) !important;
     color: var(--ob-n100);
     font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     min-height: 100dvh;
@@ -140,19 +148,20 @@
 
 /* Shared controls: covers hashed CSS modules and legacy styled-components. */
 :root[data-obsidian] :is(button, [role="button"], input[type="submit"], a[class*="Button"]):not([data-ob-nav] *):not([data-ob-subnav] *):not(.ob-backdrop) {
-    background: color-mix(in srgb, var(--ob-button-tone, var(--ob-n50)) 9%, var(--ob-panel)) !important;
-    color: var(--ob-button-tone, var(--ob-n50)) !important;
-    border: 1px solid color-mix(in srgb, var(--ob-button-tone, var(--ob-n50)) 22%, transparent) !important;
-    border-radius: 9px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 3px 12px rgba(0,0,0,.08) !important;
+    background: var(--ob-action-bg, var(--ob-panel)) !important;
+    color: var(--ob-action-fg, var(--ob-n50)) !important;
+    border: 1px solid var(--ob-action-border, var(--ob-border)) !important;
+    border-radius: 7px;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0,0,0,.2) !important;
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     text-transform: none; letter-spacing: 0;
 }
 :root[data-obsidian] :is(button, [role="button"], input[type="submit"], a[class*="Button"]):not([data-ob-nav] *):not([data-ob-subnav] *):not(.ob-backdrop):hover:not(:disabled) {
-    background: color-mix(in srgb, var(--ob-button-tone, var(--ob-n50)) 16%, var(--ob-panel-hover)) !important;
-    border-color: color-mix(in srgb, var(--ob-button-tone, var(--ob-n50)) 38%, transparent) !important;
+    background: var(--ob-action-hover, var(--ob-panel-hover)) !important;
+    border-color: var(--ob-action-border, var(--ob-n600)) !important;
 }
-:root[data-obsidian] :is(button, input[type="submit"]):disabled { opacity: .45; box-shadow: none !important; }
+:root[data-obsidian] :is(button, input[type="submit"]):disabled { opacity: .5; box-shadow: none !important; }
 /* Xterm owns its canvas colors; its public theme option is updated by terminal.ts. */
 :root[data-obsidian] #terminal, :root[data-obsidian] .xterm, :root[data-obsidian] .xterm-viewport,
 :root[data-obsidian] [data-ob-terminal-frame] {

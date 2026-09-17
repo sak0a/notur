@@ -8,11 +8,11 @@ test.beforeEach(async ({ page }) => {
 
 test('appearance persists, colors retain meaning, and the desktop layout fits', async ({ page }) => {
     await expect(page.locator('[data-ob-nav]')).toHaveCSS('position', 'fixed');
-    await expect(page.locator('.ButtonStyle.danger')).toHaveCSS('color', 'rgb(244, 160, 165)');
+    await expect(page.locator('.ButtonStyle.danger')).toHaveCSS('color', 'rgb(255, 255, 255)');
     await page.getByRole('button', { name: 'Switch to light mode' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-obsidian', 'light');
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(240, 240, 243)');
-    await expect(page.locator('.ButtonStyle.danger')).toHaveCSS('color', 'rgb(166, 42, 57)');
+    await expect(page.locator('.ButtonStyle.danger')).toHaveCSS('color', 'rgb(255, 255, 255)');
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-obsidian', 'light');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -70,8 +70,8 @@ test('lazy styles and replacement navigation are adapted; uninstall restores the
 });
 
 test('actual compiled module styles receive glass surfaces without readable class names', async ({ page }) => {
-    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(11, 11, 13)');
-    for (const selector of ['.style-module_V4CSEpa4', '.style-module_j35sQtg2', '.style-module_HHpjDvv7', '.style-module_tpzh9TL4']) {
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(5, 5, 6)');
+    for (const selector of ['.style-module_V4CSEpa4', '.style-module_j35sQtg2', '.style-module_HHpjDvv7']) {
         const element = page.locator(selector).first();
         await expect(element).toHaveCSS('backdrop-filter', 'blur(16px)');
         const background = await element.evaluate(node => getComputedStyle(node).backgroundColor);
@@ -125,4 +125,23 @@ test('blocked storage still permits toggling and reduced motion is respected', a
     await page.getByRole('button', { name: 'Switch to light mode' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-obsidian', 'light');
     await expect(page.locator('.ob-appearance')).toHaveCSS('transition-duration', '1e-05s');
+});
+
+test('primary, outline and destructive actions have distinct high-contrast variants', async ({ page }) => {
+    const start = page.getByRole('button', { name: 'Start', exact: true });
+    const restart = page.getByRole('button', { name: 'Restart', exact: true });
+    const stop = page.getByRole('button', { name: 'Stop', exact: true });
+    await expect(start).toHaveCSS('background-color', 'rgb(250, 250, 250)');
+    await expect(start).toHaveCSS('color', 'rgb(9, 9, 11)');
+    await expect(restart).toHaveCSS('background-color', 'rgba(16, 16, 18, 0.84)');
+    await expect(stop).toHaveCSS('background-color', 'rgb(220, 38, 38)');
+    await expect(stop).toHaveCSS('color', 'rgb(255, 255, 255)');
+    await start.hover();
+    await expect(start).toHaveCSS('background-color', 'rgb(222, 222, 227)');
+    await page.getByRole('button', { name: 'Switch to light mode' }).click();
+    await expect(start).toHaveCSS('background-color', 'rgb(24, 24, 27)');
+    await expect(start).toHaveCSS('color', 'rgb(250, 250, 250)');
+    await start.evaluate((button: HTMLButtonElement) => { button.disabled = true; });
+    await expect(start).toBeDisabled();
+    await expect(start).toHaveCSS('opacity', '0.5');
 });

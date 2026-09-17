@@ -83,12 +83,18 @@ export function createPaletteAdapter(): (sheets: StyleSheetList) => string {
                 declarations.push('border:1px solid var(--ob-border);border-radius:12px;box-shadow:inset 0 1px rgba(255,255,255,.04),var(--ob-shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);');
             }
             // Expose destructive intent independently of a production class hash.
-            if (backgroundColor) {
-                const rgb = backgroundColor.match(/rgba?\(\s*(\d+)[, ]+\s*(\d+)[, ]+\s*(\d+)/i);
-                const hex = backgroundColor.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+            if (backgroundColor || background === 'transparent') {
+                // Variant tokens follow the original cascade, including grey
+                // secondary and disabled rules, without relying on module names.
+                declarations.push('--ob-action-bg:var(--ob-panel);--ob-action-fg:var(--ob-n50);--ob-action-border:var(--ob-border);--ob-action-hover:var(--ob-panel-hover);');
+                if (backgroundColor && translate(backgroundColor).includes('--ob-accent')) {
+                    declarations.push('--ob-action-bg:var(--ob-primary-bg);--ob-action-fg:var(--ob-primary-fg);--ob-action-border:var(--ob-primary-bg);--ob-action-hover:var(--ob-primary-hover);');
+                }
+                const rgb = backgroundColor?.match(/rgba?\(\s*(\d+)[, ]+\s*(\d+)[, ]+\s*(\d+)/i);
+                const hex = backgroundColor?.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
                 const channels = rgb ? rgb.slice(1).map(Number) : hex ? hex.slice(1).map(value => parseInt(value, 16)) : [];
                 if (channels.length && channels[0] > channels[1] * 1.35 && channels[0] > channels[2] * 1.15) {
-                    declarations.push('--ob-button-tone:var(--ob-danger);');
+                    declarations.push('--ob-action-bg:var(--ob-destructive-bg);--ob-action-fg:#fff;--ob-action-border:var(--ob-destructive-bg);--ob-action-hover:var(--ob-destructive-hover);');
                 }
             }
             if (!declarations.length) return '';
