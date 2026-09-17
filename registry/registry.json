@@ -1,7 +1,7 @@
 {
     "$schema": "./schema/registry-index.schema.json",
     "version": "1.0.0",
-    "generated_at": "2026-09-17T23:40:34Z",
+    "generated_at": "2026-09-17T23:54:20Z",
     "extensions": [
         {
             "id": "notur/hello-world",
@@ -36,15 +36,18 @@
         {
             "id": "notur/obsidian",
             "name": "Obsidian",
-            "description": "Client-panel theme with dark/light appearance, sidebar navigation, translucent surfaces and a mobile drawer. Initial preview release.",
-            "version": "0.1.0",
-            "latest_version": "0.1.0",
-            "versions": ["0.1.0"],
+            "description": "Neutral black/charcoal client theme with glass stats, graphs, action buttons and file rows, black console, sidebar navigation and dark/light mode.",
+            "version": "0.1.1",
+            "latest_version": "0.1.1",
+            "versions": ["0.1.0", "0.1.1"],
             "author": "Notur",
             "license": "MIT",
             "repository": "https://github.com/sak0a/notur",
-            "archive_url": "https://github.com/sak0a/notur/releases/download/obsidian-v0.1.0/notur-obsidian-0.1.0.notur",
-            "sha256": "24e3fb86f0c4eafa93996f2c6cca8373b3e5450d2a59ac9a21989395bdc059d4",
+            "archive_url": "https://github.com/sak0a/notur/releases/download/obsidian-v{version}/notur-obsidian-{version}.notur",
+            "sha256": {
+                "0.1.0": "24e3fb86f0c4eafa93996f2c6cca8373b3e5450d2a59ac9a21989395bdc059d4",
+                "0.1.1": "5ec6790a90b39559cfc34ccc699156becfb3bd85e4498932f1213daf31bf3739"
+            },
             "tags": ["theme", "dark-mode", "sidebar", "client-panel"],
             "compatibility": {
                 "notur": "^1.5.3",
