@@ -6,7 +6,7 @@ Guide for contributing to the Notur Extension Library itself.
 
 - PHP 8.2+
 - Composer 2.x
-- Node.js 22+
+- Node.js 22.22.2+ or 24.15+ (24 LTS recommended)
 - A package manager: npm, Yarn, pnpm, or Bun
 
 ## Setup

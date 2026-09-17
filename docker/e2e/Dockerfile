@@ -1,12 +1,14 @@
 # Notur E2E Test Environment
 # Depends on the reusable base built from docker/e2e/Dockerfile.base.
-ARG E2E_BASE_IMAGE=notur/e2e-base:php8.2-node22-panel1.12.2
+ARG E2E_BASE_IMAGE=notur/e2e-base:php8.4-node24-panel1.15.1
 
 FROM ${E2E_BASE_IMAGE} AS notur-node-deps
 
 WORKDIR /opt/notur
 
 COPY package.json package-lock.json ./
+COPY bridge/package.json ./bridge/package.json
+COPY sdk/package.json ./sdk/package.json
 
 RUN npm ci --no-audit --no-fund \
     && npx playwright install chromium

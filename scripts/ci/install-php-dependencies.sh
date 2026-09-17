@@ -4,12 +4,18 @@ set -euo pipefail
 case "${1:-}" in
     locked)
         composer install --no-interaction --prefer-dist --no-progress
+        expected='12 10 11'
+        ;;
+    latest-laravel11)
+        composer require --dev 'orchestra/testbench:^9.0' 'phpunit/phpunit:^11.0' --no-update --no-interaction
+        composer config policy.advisories.block false
+        composer update --with-all-dependencies --no-interaction --prefer-dist --no-progress
         expected='11 9 11'
         ;;
     lowest-laravel10|latest-laravel10)
         # Testbench 8 targets Laravel 10; Testbench 9 targets Laravel 11.
         # Keep this override local to the CI checkout. The committed lock stays
-        # on Laravel 11 for ordinary installs and the security audit.
+        # on Laravel 12 for ordinary installs and the security audit.
         composer require --dev 'orchestra/testbench:^8.0' 'phpunit/phpunit:^10.5' --no-update --no-interaction
         composer config minimum-stability stable
         # Laravel 10 packages have published advisories. These compatibility
@@ -23,7 +29,7 @@ case "${1:-}" in
         expected='10 8 10'
         ;;
     *)
-        echo "Usage: $0 {locked|lowest-laravel10|latest-laravel10}" >&2
+        echo "Usage: $0 {locked|lowest-laravel10|latest-laravel10|latest-laravel11}" >&2
         exit 2
         ;;
 esac

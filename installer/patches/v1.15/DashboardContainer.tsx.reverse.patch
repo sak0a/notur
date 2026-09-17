@@ -1,0 +1,50 @@
+--- a/resources/scripts/components/dashboard/DashboardContainer.tsx
++++ b/resources/scripts/components/dashboard/DashboardContainer.tsx
+@@ -54,7 +54,6 @@
+ 
+     return (
+         <PageContentBlock title={'Dashboard'} showFlashKey={'dashboard'}>
+-            <div id="notur-slot-dashboard.header" style={{ display: 'contents' }}></div>
+             {rootAdmin && (
+                 <div css={tw`mb-2 flex justify-end items-center`}>
+                     <p css={tw`uppercase text-xs text-neutral-400 mr-2`}>
+@@ -71,26 +70,21 @@
+                 <Spinner centered size={'large'} />
+             ) : (
+                 <Pagination data={servers} onPageSelect={setPage}>
+-                    {({ items }) => (
+-                        <>
+-                            <div id="notur-slot-dashboard.serverlist.before" style={{ display: 'contents' }}></div>
+-                            {items.length > 0 ? (
+-                                items.map((server, index) => (
+-                                    <ServerRow key={server.uuid} server={server} css={index > 0 ? tw`mt-2` : undefined} />
+-                                ))
+-                            ) : (
+-                                <p css={tw`text-center text-sm text-neutral-400`}>
+-                                    {showOnlyAdmin
+-                                        ? 'There are no other servers to display.'
+-                                        : 'There are no servers associated with your account.'}
+-                                </p>
+-                            )}
+-                            <div id="notur-slot-dashboard.serverlist.after" style={{ display: 'contents' }}></div>
+-                        </>
+-                    )}
++                    {({ items }) =>
++                        items.length > 0 ? (
++                            items.map((server, index) => (
++                                <ServerRow key={server.uuid} server={server} css={index > 0 ? tw`mt-2` : undefined} />
++                            ))
++                        ) : (
++                            <p css={tw`text-center text-sm text-neutral-400`}>
++                                {showOnlyAdmin
++                                    ? 'There are no other servers to display.'
++                                    : 'There are no servers associated with your account.'}
++                            </p>
++                        )
++                    }
+                 </Pagination>
+             )}
+-            <div id="notur-slot-dashboard.footer" style={{ display: 'contents' }}></div>
+         </PageContentBlock>
+     );
+ };

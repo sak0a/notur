@@ -1,0 +1,10 @@
+--- a/resources/scripts/components/server/files/FileDropdownMenu.tsx
++++ b/resources/scripts/components/server/files/FileDropdownMenu.tsx
+@@ -186,7 +186,6 @@
+                     </Can>
+                 )}
+                 {file.isFile && <Row onClick={doDownload} icon={faFileDownload} title={'Download'} />}
+-                <div id="notur-slot-server.files.dropdown" style={{ display: 'contents' }}></div>
+                 <Can action={'file.delete'}>
+                     <Row onClick={() => setShowConfirmation(true)} icon={faTrashAlt} title={'Delete'} $danger />
+                 </Can>

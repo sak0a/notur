@@ -1,9 +1,9 @@
 {
-  "extension.yaml": "f5a02f31c65d13832b81b32af957defe27e439d61a73707a101b17440920b958",
-  "resources/frontend/dist/hello-world.js": "4af2439bddcfc0293f00d4bf220a664ca6cf413fafac0d080ea5f8d7704a752d",
-  "resources/frontend/src/index.tsx": "48df690cf9e8d3f764cfedff554a452c43df30e9d1fb03e8aa079ff6a6a216f7",
-  "src/HelloWorldExtension.php": "dcb80fcad778e563a599a37e0be2314c3aa36cdd038586f2eba147dc7d74d8ad",
+  "extension.yaml": "2b90f251a6f1155475de795fa8dae869a018766aa7bee9b1b9afea6f7ed4eac2",
+  "resources/frontend/dist/hello-world.js": "fe56e5455bbde8632b82435fcad465cfe881e57112102075e872896639ff8fb1",
+  "resources/frontend/src/index.tsx": "16c633c0c7c6d1a5c296fb79c3da3ef676deeadfcb3dccc508103ddbd293f353",
+  "src/HelloWorldExtension.php": "522ebbf792c14a550ce2ef438f7ff7464f2602aac29fb532acd5c567d4cc6144",
   "src/routes/api-client.php": "efda1c0d914a51f94e45a2d25104c07cf6743502dd09356442c129e8e0dda083",
-  "tsconfig.json": "980327c249e64897f9c1526b26d841a5f99ac9a1d5a55ada2b6e84ad19b31e96",
-  "webpack.config.js": "93e238da221b383304cfc6c4e09e4935f88c0db6720e6f9772b7a145d37cdb97"
+  "tsconfig.json": "ff07f11a7010690e395350c0d2aaa74d0930f0fe32e4b95390cff0dff6b51bd5",
+  "webpack.config.js": "3d725ef2456080f00a09d693dffb6714487127787e3962147a1c4dcbacf380b0"
 }

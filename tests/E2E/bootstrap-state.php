@@ -58,6 +58,10 @@ $fullExtensionManifest['health']['checks'] = [
     ],
 ];
 
+// Reconciliation reloads manifests from disk on each request. Persist the
+// fixture fields there as well as in the database.
+file_put_contents($fullExtensionPath . '/extension.yaml', Yaml::dump($fullExtensionManifest, 8, 2));
+
 $admin = User::query()->where('email', $adminEmail)->first();
 if (!$admin instanceof User) {
     $admin = new User();

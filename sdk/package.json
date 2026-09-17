@@ -42,19 +42,22 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "react": "^16.14.0",
     "react-dom": "^16.14.0"
   },
   "dependencies": {
-    "libsodium-wrappers": "^0.7.13",
-    "yaml": "^2.3.0"
+    "libsodium-wrappers": "^0.8.4",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "typescript": "^5.3.0",
+    "typescript": "^6.0.3",
     "@types/react": "^16.14.0",
     "@types/react-dom": "^16.9.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

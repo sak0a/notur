@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# test-patch-roundtrip.sh — verify patches/v1.12/ apply cleanly forward and reverse.
+# test-patch-roundtrip.sh — verify the selected panel patches apply cleanly forward and reverse.
 #
-# Usage: test-patch-roundtrip.sh <tag>      (e.g. v1.12.0, v1.12.1, v1.12.2)
+# Usage: test-patch-roundtrip.sh <tag>      (e.g. v1.12.2 or v1.15.1)
 #
 # Exit 0 if forward + reverse application leaves the source tree pristine,
 # with no warnings, no .orig files, no offset/fuzz notices.
@@ -16,7 +16,12 @@ if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PATCH_DIR="$(cd "${SCRIPT_DIR}/../patches/v1.12" && pwd)"
+case "$TAG" in
+    v1.12.*) PATCH_VERSION=v1.12 ;;
+    v1.15.0|v1.15.1) PATCH_VERSION=v1.15 ;;
+    *) echo "Unsupported panel tag: $TAG" >&2; exit 64 ;;
+esac
+PATCH_DIR="$(cd "${SCRIPT_DIR}/../patches/${PATCH_VERSION}" && pwd)"
 WORK_ROOT="${TMPDIR:-/tmp}/notur-roundtrip"
 PANEL_REPO="${WORK_ROOT}/panel"
 

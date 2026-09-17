@@ -403,10 +403,10 @@ function packageTemplate(id) {
             '@types/react-dom': '^16.9.0',
             react: '^16.14.0',
             'react-dom': '^16.14.0',
-            'ts-loader': '^9.5.0',
-            typescript: '^5.3.0',
-            webpack: '^5.90.0',
-            'webpack-cli': '^6.0.0',
+            'ts-loader': '^9.6.2',
+            typescript: '^6.0.3',
+            webpack: '^5.111.0',
+            'webpack-cli': '^7.2.3',
         },
     }, null, 2)}
 `;
@@ -417,7 +417,7 @@ function tsconfigTemplate() {
   "compilerOptions": {
     "target": "ES2019",
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "jsx": "react",
     "strict": true,
     "esModuleInterop": true,

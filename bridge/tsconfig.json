@@ -6,7 +6,7 @@
         "jsx": "react",
         "strict": true,
         "esModuleInterop": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "declaration": true,
         "declarationDir": "./dist/types",

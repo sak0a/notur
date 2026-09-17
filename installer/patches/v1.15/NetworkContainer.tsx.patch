@@ -1,0 +1,18 @@
+--- a/resources/scripts/components/server/network/NetworkContainer.tsx
++++ b/resources/scripts/components/server/network/NetworkContainer.tsx
+@@ -52,6 +52,7 @@
+ 
+     return (
+         <ServerContentBlock showFlashKey={'server:network'} title={'Network'}>
++            <div id="notur-slot-server.network.before" style={{ display: 'contents' }}></div>
+             {!data ? (
+                 <Spinner size={'large'} centered />
+             ) : (
+@@ -77,6 +78,7 @@
+                     )}
+                 </>
+             )}
++            <div id="notur-slot-server.network.after" style={{ display: 'contents' }}></div>
+         </ServerContentBlock>
+     );
+ };

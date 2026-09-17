@@ -143,6 +143,12 @@ class FrameworkUninstallCommand extends Command
 
     private function detectPatchVersion(): string
     {
+        // The panel is the root Composer package, so it is absent from the lock.
+        $panelVersion = ltrim((string) config('app.version', ''), 'v');
+        if (in_array($panelVersion, ['1.15.0', '1.15.1'], true)) {
+            return 'v1.15';
+        }
+
         $lockFile = base_path('composer.lock');
         if (!file_exists($lockFile)) {
             Log::warning('Notur uninstall: composer.lock not found; assuming v1.12 patches.');
@@ -163,16 +169,19 @@ class FrameworkUninstallCommand extends Command
 
             $version = (string) ($package['version'] ?? $package['pretty_version'] ?? '');
             $version = ltrim($version, 'v');
+            if (in_array($version, ['1.15.0', '1.15.1'], true)) {
+                return 'v1.15';
+            }
             if (str_starts_with($version, '1.12.')) {
                 return 'v1.12';
             }
 
-            // Found pterodactyl/panel but not a v1.12.x release. install.sh now
-            // hard-fails on non-v1.12, so this branch typically only fires for
+            // Found pterodactyl/panel but not a supported release. install.sh now
+            // hard-fails on unsupported versions, so this branch typically only fires for
             // a manually-installed Notur on an unsupported panel. Reverse
             // patches will likely fail; restoreFromBackups() is the fallback.
             Log::warning(sprintf(
-                'Notur uninstall: pterodactyl/panel version "%s" is not v1.12.x; reverse patches may not apply cleanly.',
+                'Notur uninstall: pterodactyl/panel version "%s" is unsupported; reverse patches may not apply cleanly.',
                 $version,
             ));
             return 'v1.12';

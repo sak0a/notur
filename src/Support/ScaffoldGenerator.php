@@ -430,10 +430,10 @@ TSX;
                 'react' => '^16.14.0',
                 'react-dom' => '^16.14.0',
                 'style-loader' => '^4.0.0',
-                'ts-loader' => '^9.5.0',
-                'typescript' => '^5.3.0',
-                'webpack' => '^5.90.0',
-                'webpack-cli' => '^6.0.0',
+                'ts-loader' => '^9.6.2',
+                'typescript' => '^6.0.3',
+                'webpack' => '^5.111.0',
+                'webpack-cli' => '^7.2.3',
             ],
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
@@ -450,7 +450,7 @@ TSX;
                 'jsx' => 'react',
                 'strict' => true,
                 'esModuleInterop' => true,
-                'moduleResolution' => 'node',
+                'moduleResolution' => 'bundler',
                 'outDir' => './resources/frontend/dist',
                 'rootDir' => './resources/frontend/src',
                 'sourceMap' => true,

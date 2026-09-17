@@ -1,0 +1,18 @@
+--- a/resources/scripts/components/server/startup/StartupContainer.tsx
++++ b/resources/scripts/components/server/startup/StartupContainer.tsx
+@@ -84,6 +84,7 @@
+         )
+     ) : (
+         <ServerContentBlock title={'Startup Settings'} showFlashKey={'startup:image'}>
++            <div id="notur-slot-server.startup.before" style={{ display: 'contents' }}></div>
+             <div css={tw`md:flex`}>
+                 <TitledGreyBox title={'Startup Command'} css={tw`flex-1`}>
+                     <div css={tw`px-1 py-2`}>
+@@ -130,6 +131,7 @@
+                     <VariableBox key={variable.envVariable} variable={variable} />
+                 ))}
+             </div>
++            <div id="notur-slot-server.startup.after" style={{ display: 'contents' }}></div>
+         </ServerContentBlock>
+     );
+ };

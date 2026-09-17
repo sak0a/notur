@@ -5,7 +5,7 @@ cd /var/www/pterodactyl
 
 export NODE_OPTIONS="${NODE_OPTIONS:---openssl-legacy-provider}"
 
-composer config platform.php 8.2.30 --no-interaction
+composer config platform.php 8.4.0 --no-interaction
 composer config audit.block-insecure false --no-interaction
 composer config audit.ignore "PKSA-8qx3-n5y5-vvnd,PKSA-w7xr-vk7n-rstm" --no-interaction
 composer config minimum-stability dev --no-interaction

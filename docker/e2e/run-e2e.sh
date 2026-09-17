@@ -14,7 +14,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
-BASE_IMAGE="${E2E_BASE_IMAGE:-notur/e2e-base:php8.2-node22-panel1.12.2}"
+BASE_IMAGE="${E2E_BASE_IMAGE:-notur/e2e-base:php8.4-node24-panel1.15.1}"
 APP_IMAGE="${E2E_APP_IMAGE:-notur/e2e-app:local}"
 TEST_RUNNER_IMAGE="${E2E_TEST_RUNNER_IMAGE:-notur/e2e-test-runner:local}"
 

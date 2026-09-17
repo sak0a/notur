@@ -25,9 +25,9 @@ A standalone extension framework for [Pterodactyl Panel](https://pterodactyl.io/
 
 ## Requirements
 
-- Pterodactyl Panel v1.12+
+- Pterodactyl Panel v1.12.x or v1.15.0–v1.15.1
 - PHP 8.2+
-- Node.js 22+ (matches panel requirement)
+- Node.js 22.22.2+ or 24.15+ (Node.js 24 LTS recommended for development)
 - Composer 2.x
 - Package manager: npm, Yarn, pnpm, or Bun
 
@@ -83,12 +83,16 @@ npm run test:frontend
 ```
 
 The root project uses `package-lock.json` for CI builds, npm audit, and releases.
-The docs site in `website/` has its own `bun.lock`; the hello-world example has
-its own `package-lock.json`. PHP CI uses the committed Laravel 11 lock on PHP
-8.2–8.4, resolves recent Laravel 10/Testbench 8 dependencies on PHP 8.3,
+The docs site in `website/` has its own `bun.lock`; bundled examples and the CS2 extension
+have their own `package-lock.json` files. PHP CI uses the committed Laravel 12/Testbench 10 lock on PHP
+8.2–8.5, resolves Laravel 11/Testbench 9 and Laravel 10/Testbench 8 on PHP 8.3,
 and tests the oldest stable Laravel 10 dependencies on PHP 8.2. Docker E2E
-continues to cover PHP 8.2 with one panel configuration rather than duplicating
+covers PHP 8.4, Node.js 24, MySQL 8.4 and Pterodactyl 1.15.1 with one panel configuration rather than duplicating
 the PHP matrix.
+
+TypeScript stays on 6.x because `ts-loader` requires the JavaScript compiler API
+removed in TypeScript 7. React stays on 16.14 to match the panel runtime. The docs
+site overrides Vite to patched 6.4.x while retaining stable VitePress 1.6.
 
 ## Docker E2E
 
@@ -116,9 +120,9 @@ bash docker/e2e/run-e2e.sh --keep
 bash docker/e2e/run-e2e.sh --no-cache --rebuild-base
 ```
 
-The reusable local base image is named `notur/e2e-base:php8.2-node22-panel1.12.2`. It contains the slow-moving E2E dependencies: PHP extensions, system packages, Node.js, Bun, Composer, the Pterodactyl panel tarball, and browser runtime libraries. Normal runs reuse it and only rebuild the lightweight repo-specific layers. If the base image is missing, `run-e2e.sh` fails with instructions instead of silently downloading all packages again.
+The reusable local base image is named `notur/e2e-base:php8.4-node24-panel1.15.1`. It contains the slow-moving E2E dependencies: PHP extensions, system packages, Node.js, Bun, Composer, the Pterodactyl panel tarball, and browser runtime libraries. Normal runs reuse it and only rebuild the lightweight repo-specific layers. If the base image is missing, `run-e2e.sh` fails with instructions instead of silently downloading all packages again.
 
-GitHub Actions uses the published GHCR base image `ghcr.io/sak0a/notur-e2e-base:php8.2-node22-panel1.12.2` instead of rebuilding that slow layer on every PR. Publish or refresh it manually from the `Publish E2E Base Image` workflow after changing `docker/e2e/Dockerfile.base` or the PHP/Node/panel version tuple. The normal E2E workflow fails fast if the published base image is missing.
+GitHub Actions uses the published GHCR base image `ghcr.io/sak0a/notur-e2e-base:php8.4-node24-panel1.15.1` instead of rebuilding that slow layer on every PR. Publish or refresh it manually from the `Publish E2E Base Image` workflow after changing `docker/e2e/Dockerfile.base` or the PHP/Node/panel version tuple. If the published base image is missing, CI builds it locally from the current Dockerfile.
 
 The default `all` suite runs the shell and browser E2E suites against a bootstrapped Notur panel. The `install-uninstall` suite is intentionally explicit because it destructively removes Notur from the panel while verifying that the underlying Pterodactyl installation remains usable.
 

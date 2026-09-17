@@ -1,0 +1,18 @@
+--- a/resources/scripts/components/server/files/FileEditContainer.tsx
++++ b/resources/scripts/components/server/files/FileEditContainer.tsx
+@@ -122,7 +122,6 @@
+     return (
+         <PageContentBlock>
+             <FlashMessageRender byKey={'files:view'} css={tw`mb-4`} />
+-            <div id="notur-slot-server.files.edit.before" style={{ display: 'contents' }}></div>
+             <ErrorBoundary>
+                 <div css={tw`mb-4`}>
+                     <FileManagerBreadcrumbs withinFileEditor isNewFile={action !== 'edit'} />
+@@ -191,7 +190,6 @@
+                     </Can>
+                 )}
+             </div>
+-            <div id="notur-slot-server.files.edit.after" style={{ display: 'contents' }}></div>
+         </PageContentBlock>
+     );
+ };

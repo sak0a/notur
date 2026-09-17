@@ -1,6 +1,6 @@
 services:
   db:
-    image: mysql:8.0
+    image: mysql:8.4
     environment:
       MYSQL_ROOT_PASSWORD: notur_e2e
       MYSQL_DATABASE: panel
@@ -25,7 +25,7 @@ services:
       dockerfile: docker/e2e/Dockerfile
       target: app
       args:
-        E2E_BASE_IMAGE: ${E2E_BASE_IMAGE:-notur/e2e-base:php8.2-node22-panel1.12.2}
+        E2E_BASE_IMAGE: ${E2E_BASE_IMAGE:-notur/e2e-base:php8.4-node24-panel1.15.1}
     depends_on:
       db:
         condition: service_healthy
@@ -63,7 +63,7 @@ services:
       dockerfile: docker/e2e/Dockerfile
       target: test-runner
       args:
-        E2E_BASE_IMAGE: ${E2E_BASE_IMAGE:-notur/e2e-base:php8.2-node22-panel1.12.2}
+        E2E_BASE_IMAGE: ${E2E_BASE_IMAGE:-notur/e2e-base:php8.4-node24-panel1.15.1}
     depends_on:
       app:
         condition: service_healthy

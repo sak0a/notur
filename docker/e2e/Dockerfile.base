@@ -1,11 +1,11 @@
 # Reusable base for the Notur Docker E2E environment.
 #
 # Build once locally:
-#   docker build -f docker/e2e/Dockerfile.base -t notur/e2e-base:php8.2-node22-panel1.12.2 .
-FROM php:8.2-fpm
+#   docker build -f docker/e2e/Dockerfile.base -t notur/e2e-base:php8.4-node24-panel1.15.1 .
+FROM php:8.4-fpm
 
-ARG NODE_VERSION=22
-ARG PANEL_VERSION=v1.12.2
+ARG NODE_VERSION=24
+ARG PANEL_VERSION=v1.15.1
 
 ENV NODE_OPTIONS=--openssl-legacy-provider
 

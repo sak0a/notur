@@ -31,15 +31,15 @@ This file is a minimal binder — adding the include here is the cleanest approa
 
 ### Step 3: Apply React Patches
 
-The patch set adds slot containers and dynamic route merging to the panel's React source. The automated installer selects the right patch version (`v1.11` or `v1.12`) automatically. For manual installation, pick the folder that matches your panel version and apply the core patches:
+The patch set adds slot containers and dynamic route merging to the panel's React source. The automated installer selects the right patch version (`v1.12` or `v1.15`) automatically. For manual installation, pick the folder that matches your panel version and apply the core patches:
 
 ```bash
 cd /var/www/pterodactyl
 
 # Choose the matching patch set for your panel version:
 # PATCH_SET=v1.11
-# PATCH_SET=v1.12
-PATCH_SET=v1.12
+# Use v1.12 for Panel 1.12.x; v1.15 for Panel 1.15.0–1.15.1.
+PATCH_SET=v1.15
 
 # Apply core patches (required for basic functionality)
 patch -p1 < vendor/notur/notur/installer/patches/${PATCH_SET}/routes.ts.patch
@@ -193,9 +193,9 @@ bun run build:production
 
 | Component | Supported Versions |
 |---|---|
-| Pterodactyl Panel | v1 canary / 1.11.x |
-| PHP | 8.2, 8.3 |
-| Node.js | 22+ |
+| Pterodactyl Panel | 1.12.x, 1.15.0–1.15.1 |
+| PHP | 8.2–8.5 (8.4+ recommended) |
+| Node.js | 24 LTS recommended; see development requirements |
 | Package Manager | npm, Yarn, pnpm, or Bun |
-| MySQL | 8.0+ |
-| MariaDB | 10.6+ |
+| MySQL | 8.4 LTS |
+| MariaDB | 11.4 LTS |

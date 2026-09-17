@@ -1,0 +1,18 @@
+--- a/resources/scripts/components/server/schedules/ScheduleContainer.tsx
++++ b/resources/scripts/components/server/schedules/ScheduleContainer.tsx
+@@ -40,7 +40,6 @@
+     return (
+         <ServerContentBlock title={'Schedules'}>
+             <FlashMessageRender byKey={'schedules'} css={tw`mb-4`} />
+-            <div id="notur-slot-server.schedules.before" style={{ display: 'contents' }}></div>
+             {!schedules.length && loading ? (
+                 <Spinner size={'large'} centered />
+             ) : (
+@@ -75,7 +74,6 @@
+                     </Can>
+                 </>
+             )}
+-            <div id="notur-slot-server.schedules.after" style={{ display: 'contents' }}></div>
+         </ServerContentBlock>
+     );
+ };

@@ -13,6 +13,8 @@ on:
       - 'routes/**'
       - 'resources/**'
       - 'examples/**'
+      - 'extensions/**'
+      - 'installer/tests/**'
       - 'composer.json'
       - 'composer.lock'
       - 'package.json'
@@ -34,6 +36,8 @@ on:
       - 'routes/**'
       - 'resources/**'
       - 'examples/**'
+      - 'extensions/**'
+      - 'installer/tests/**'
       - 'composer.json'
       - 'composer.lock'
       - 'package.json'
@@ -53,13 +57,15 @@ jobs:
       matrix:
         include:
           - { php: '8.2', laravel: '10', dependencies: 'lowest-laravel10' }
-          - { php: '8.2', laravel: '11', dependencies: 'locked' }
+          - { php: '8.2', laravel: '12', dependencies: 'locked' }
           - { php: '8.3', laravel: '10', dependencies: 'latest-laravel10' }
-          - { php: '8.3', laravel: '11', dependencies: 'locked' }
-          - { php: '8.4', laravel: '11', dependencies: 'locked' }
+          - { php: '8.3', laravel: '12', dependencies: 'locked' }
+          - { php: '8.4', laravel: '12', dependencies: 'locked' }
+          - { php: '8.5', laravel: '12', dependencies: 'locked' }
+          - { php: '8.3', laravel: '11', dependencies: 'latest-laravel11' }
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -73,7 +79,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.dependencies }}-${{ hashFiles('composer.lock') }}
@@ -92,9 +98,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { php: '8.2', laravel: '10', dependencies: 'lowest-laravel10', database: { type: 'mysql', image: 'mysql:8.0' } }
-          - { php: '8.4', laravel: '11', dependencies: 'locked', database: { type: 'mysql', image: 'mysql:8.0' } }
-          - { php: '8.4', laravel: '11', dependencies: 'locked', database: { type: 'mariadb', image: 'mariadb:10.6' } }
+          - { php: '8.2', laravel: '10', dependencies: 'lowest-laravel10', database: { type: 'mysql', image: 'mysql:8.4', healthcheck: 'mysqladmin ping -h 127.0.0.1 -u root -ptesting' } }
+          - { php: '8.4', laravel: '12', dependencies: 'locked', database: { type: 'mysql', image: 'mysql:8.4', healthcheck: 'mysqladmin ping -h 127.0.0.1 -u root -ptesting' } }
+          - { php: '8.4', laravel: '12', dependencies: 'locked', database: { type: 'mariadb', image: 'mariadb:11.4', healthcheck: 'healthcheck.sh --connect --innodb_initialized' } }
 
     services:
       database:
@@ -111,13 +117,13 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -ptesting"
+          --health-cmd="${{ matrix.database.healthcheck }}"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -131,7 +137,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.dependencies }}-${{ hashFiles('composer.lock') }}
@@ -158,16 +164,16 @@ jobs:
         run: ./vendor/bin/phpunit --testsuite Integration
 
   frontend-build:
-    name: Frontend Build (Node 22)
+    name: Frontend Build (Node 24)
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       - name: Install dependencies
@@ -182,6 +188,22 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
 
+      - name: Build and audit bundled extensions
+        run: |
+          for directory in examples/full-extension sdk/examples/red-button extensions/cs2-modframework; do
+            npm ci --prefix "$directory" --no-fund
+            npm run build --prefix "$directory"
+            npm audit --prefix "$directory"
+          done
+          npm audit --prefix examples/hello-world
+
+      - name: Run installer regression checks
+        run: |
+          for script in installer/tests/test-*.sh; do
+            case "$script" in *patch-roundtrip*) continue ;; esac
+            bash "$script"
+          done
+
       - name: Run frontend tests
         run: npm run test:frontend
 
@@ -190,7 +212,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -200,9 +222,9 @@ jobs:
           coverage: none
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
@@ -226,10 +248,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        panel-tag: [v1.12.0, v1.12.1, v1.12.2]
+        panel-tag: [v1.12.0, v1.12.1, v1.12.2, v1.15.0, v1.15.1]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The round-trip script is the authoritative correctness gate: it
       # clones the panel tag, applies forward+reverse patches, and verifies

@@ -22,10 +22,12 @@ module.exports = defineConfig({
             'react-dom': path.resolve(__dirname, '../../node_modules/react-dom'),
         },
     },
-    esbuild: {
-        jsx: 'transform',
-        jsxFactory: 'React.createElement',
-        jsxFragment: 'React.Fragment',
+    oxc: {
+        jsx: {
+            runtime: 'classic',
+            pragma: 'React.createElement',
+            pragmaFrag: 'React.Fragment',
+        },
         target: 'es2018',
     },
 });

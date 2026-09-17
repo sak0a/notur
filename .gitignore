@@ -1,6 +1,6 @@
 # Dependencies
 /vendor/
-/node_modules/
+**/node_modules/
 /bun.lock
 yarn.lock
 /website/node_modules/

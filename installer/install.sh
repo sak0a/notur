@@ -1082,21 +1082,24 @@ detect_panel_version() {
 PANEL_VERSION=$(detect_panel_version)
 info "Detected panel version: ${PANEL_VERSION:-unknown}"
 
-# Map to patch directory. v1.12.x is the only supported branch.
+# Map to patch directory for verified panel branches.
 # Accept both "1.12.0" and "v1.12.0" forms — Composer may surface either
 # depending on whether the version was sourced from composer.json or a git tag.
 case "$PANEL_VERSION" in
     1.12.*|v1.12.*)
         PATCH_VERSION="v1.12"
         ;;
+    1.15.0|v1.15.0|1.15.1|v1.15.1)
+        PATCH_VERSION="v1.15"
+        ;;
     1.11.*|v1.11.*)
-        die "Pterodactyl v1.11.x is no longer supported by Notur. Please upgrade to v1.12.x."
+        die "Pterodactyl v1.11.x is no longer supported by Notur. Please upgrade to v1.12.x or v1.15.0–v1.15.1."
         ;;
     "")
-        die "Could not detect Pterodactyl panel version. Notur requires v1.12.x."
+        die "Could not detect Pterodactyl panel version. Notur requires v1.12.x or v1.15.0–v1.15.1."
         ;;
     *)
-        die "Unsupported Pterodactyl version: ${PANEL_VERSION}. Notur supports v1.12.x only."
+        die "Unsupported Pterodactyl version: ${PANEL_VERSION}. Notur supports v1.12.x and v1.15.0–v1.15.1."
         ;;
 esac
 

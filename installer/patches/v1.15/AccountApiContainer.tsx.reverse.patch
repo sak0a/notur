@@ -1,0 +1,18 @@
+--- a/resources/scripts/components/dashboard/AccountApiContainer.tsx
++++ b/resources/scripts/components/dashboard/AccountApiContainer.tsx
+@@ -44,7 +44,6 @@
+     return (
+         <PageContentBlock title={'Account API'}>
+             <FlashMessageRender byKey={'account'} />
+-            <div id="notur-slot-account.api.before" style={{ display: 'contents' }}></div>
+             <div css={tw`md:flex flex-nowrap my-10`}>
+                 <ContentBox title={'Create API Key'} css={tw`flex-none w-full md:w-1/2`}>
+                     <CreateApiKeyForm onKeyCreated={(key) => setKeys((s) => [...s!, key])} />
+@@ -92,7 +91,6 @@
+                     )}
+                 </ContentBox>
+             </div>
+-            <div id="notur-slot-account.api.after" style={{ display: 'contents' }}></div>
+         </PageContentBlock>
+     );
+ };

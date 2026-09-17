@@ -1,0 +1,18 @@
+--- a/resources/scripts/components/dashboard/ssh/AccountSSHContainer.tsx
++++ b/resources/scripts/components/dashboard/ssh/AccountSSHContainer.tsx
+@@ -27,6 +27,7 @@
+     return (
+         <PageContentBlock title={'SSH Keys'}>
+             <FlashMessageRender byKey={'account'} />
++            <div id="notur-slot-account.ssh.before" style={{ display: 'contents' }}></div>
+             <div css={tw`md:flex flex-nowrap my-10`}>
+                 <ContentBox title={'Add SSH Key'} css={tw`flex-none w-full md:w-1/2`}>
+                     <CreateSSHKeyForm />
+@@ -58,6 +59,7 @@
+                     )}
+                 </ContentBox>
+             </div>
++            <div id="notur-slot-account.ssh.after" style={{ display: 'contents' }}></div>
+         </PageContentBlock>
+     );
+ };

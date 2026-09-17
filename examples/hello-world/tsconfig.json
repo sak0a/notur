@@ -6,10 +6,9 @@
         "jsx": "react",
         "strict": true,
         "esModuleInterop": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "outDir": "./resources/frontend/dist",
         "rootDir": "./resources/frontend/src",
-        "baseUrl": ".",
         "paths": {
             "@notur/sdk": ["../../sdk/dist"]
         },

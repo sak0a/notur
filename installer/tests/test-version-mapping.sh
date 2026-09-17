@@ -48,14 +48,14 @@ run_mapping() {
 }
 
 assert_supported() {
-    local input="$1"
+    local input="$1" expected="${2:-v1.12}"
     local out rc
     out=$(run_mapping "$input") || rc=$? && rc=${rc:-0}
-    if [ "${rc:-0}" -eq 0 ] && echo "$out" | grep -q "^PATCH_VERSION=v1.12$"; then
-        echo "  PASS: $input -> v1.12"
+    if [ "${rc:-0}" -eq 0 ] && echo "$out" | grep -q "^PATCH_VERSION=$expected$"; then
+        echo "  PASS: $input -> $expected"
         pass=$((pass+1))
     else
-        echo "  FAIL: $input expected v1.12 (rc=0), got rc=${rc:-?}, output:"
+        echo "  FAIL: $input expected $expected (rc=0), got rc=${rc:-?}, output:"
         echo "$out" | sed 's/^/      /'
         fail=$((fail+1))
     fi
@@ -83,6 +83,12 @@ assert_supported "1.12.2"
 assert_supported "v1.12.0"
 assert_supported "v1.12.1"
 assert_supported "v1.12.2"
+assert_supported "1.15.0" v1.15
+assert_supported "v1.15.0" v1.15
+assert_supported "1.15.1" v1.15
+assert_supported "v1.15.1" v1.15
+assert_unsupported "1.15.2" "Unsupported"
+assert_unsupported "1.13.0" "Unsupported"
 
 echo ""
 echo "=== Unsupported v1.11 (must exit nonzero, mention v1.12.x) ==="
