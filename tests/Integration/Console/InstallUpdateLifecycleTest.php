@@ -292,6 +292,42 @@ class InstallUpdateLifecycleTest extends TestCase
         }
     }
 
+    public function test_safe_mode_upgrade_preserves_authoritative_disabled_state_with_stale_database(): void
+    {
+        config(['notur.safe_mode' => true]);
+        $this->installed('acme/demo', false);
+        InstalledExtension::where('extension_id', 'acme/demo')->update(['enabled' => true, 'version' => '0.9.0']);
+        $archive = $this->archive('acme/demo', '2.0.0', 'frontend/new.js', 'new asset');
+
+        $this->artisan('notur:add', ['extension' => $archive, '--force' => true])
+            ->expectsOutput("Extension 'acme/demo' v2.0.0 installed and disabled.")
+            ->assertExitCode(0);
+
+        $state = $this->app->make(ExtensionManager::class)->getInstalledState('acme/demo');
+        $this->assertFalse($state['enabled']);
+        $this->assertSame('2.0.0', $state['version']);
+        $this->assertDatabaseHas('notur_extensions', ['extension_id' => 'acme/demo', 'enabled' => 0, 'version' => '2.0.0']);
+    }
+
+    public function test_safe_mode_registration_failure_restores_authoritative_version_and_enabled_state(): void
+    {
+        config(['notur.safe_mode' => true]);
+        $this->installed('acme/demo', false);
+        InstalledExtension::where('extension_id', 'acme/demo')->update(['enabled' => true, 'version' => '0.9.0']);
+        $archive = $this->archive('acme/demo', '2.0.0', 'frontend/new.js', 'new asset');
+        DB::statement("CREATE TRIGGER reject_upgrade BEFORE UPDATE ON notur_extensions WHEN NEW.version = '2.0.0' BEGIN SELECT RAISE(FAIL, 'registration failed'); END");
+
+        $this->artisan('notur:add', ['extension' => $archive, '--force' => true])
+            ->expectsOutputToContain('registration failed')
+            ->assertExitCode(1);
+
+        $this->assertOldInstallIntact('acme/demo');
+        $state = $this->app->make(ExtensionManager::class)->getInstalledState('acme/demo');
+        $this->assertFalse($state['enabled']);
+        $this->assertSame('1.0.0', $state['version']);
+        $this->assertDatabaseHas('notur_extensions', ['extension_id' => 'acme/demo', 'enabled' => 0, 'version' => '1.0.0']);
+    }
+
     private function installed(string $id, bool $enabled): void
     {
         $path = ExtensionPath::base($id);

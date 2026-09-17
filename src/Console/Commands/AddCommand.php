@@ -171,12 +171,15 @@ class AddCommand extends ExtensionLifecycleCommand
     ): int {
         // Check if already installed
         $existing = InstalledExtension::where('extension_id', $extensionId)->first();
-        if ($existing && !$this->option('force')) {
+        $installedState = $manager->getInstalledState($extensionId);
+        if (($installedState !== null || $existing !== null) && !$this->option('force')) {
             $this->error("Extension '{$extensionId}' is already installed. Use --force to overwrite.");
             return 1;
         }
-        $previousVersion = $existing?->version;
-        $wasEnabled = $existing?->enabled ?? true;
+        // Safe mode skips reconciliation, so database values may be stale.
+        // Keep the database fallback for legacy entries not yet present in JSON.
+        $previousVersion = $installedState['version'] ?? $existing?->version;
+        $wasEnabled = $installedState['enabled'] ?? $existing?->enabled ?? true;
         $targetPath = ExtensionPath::base($extensionId);
         $publicPath = ExtensionPath::public($extensionId);
         $suffix = bin2hex(random_bytes(8));

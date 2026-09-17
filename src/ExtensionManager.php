@@ -544,6 +544,16 @@ class ExtensionManager
         return $this->stateStore()->reconcile(fn (array $state) => $this->projectState($state));
     }
 
+    /**
+     * Read the authoritative installed entry without reconciling the database.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getInstalledState(string $id): ?array
+    {
+        return $this->stateStore()->getEntry($id);
+    }
+
     private function stateStore(): ExtensionStateStore
     {
         return new ExtensionStateStore($this->getManifestPath());

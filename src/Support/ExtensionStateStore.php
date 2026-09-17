@@ -37,6 +37,16 @@ class ExtensionStateStore
         });
     }
 
+    /**
+     * Read committed state without projecting it into the database.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getEntry(string $id): ?array
+    {
+        return $this->locked(fn (): ?array => $this->read()['extensions'][$id] ?? null);
+    }
+
     /** @return array<string, mixed> */
     public function update(callable $change, callable $project): array
     {

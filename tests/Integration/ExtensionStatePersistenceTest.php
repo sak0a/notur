@@ -221,6 +221,20 @@ class ExtensionStatePersistenceTest extends TestCase
         $this->assertSame('{broken', file_get_contents($this->dir . '/extensions.json'));
     }
 
+    public function test_reading_installed_entry_does_not_project_stale_database(): void
+    {
+        $this->manager->registerExtension('acme/one', '1.0.0', null, false);
+        InstalledExtension::where('extension_id', 'acme/one')->update(['enabled' => true]);
+        $before = file_get_contents($this->dir . '/extensions.json');
+
+        $entry = $this->manager->getInstalledState('acme/one');
+
+        $this->assertFalse($entry['enabled']);
+        $this->assertTrue(InstalledExtension::where('extension_id', 'acme/one')->firstOrFail()->enabled);
+        $this->assertSame($before, file_get_contents($this->dir . '/extensions.json'));
+        $this->assertNull($this->manager->getInstalledState('acme/missing'));
+    }
+
     public function test_initial_boot_without_manifest_creates_no_state_files(): void
     {
         $this->manager->boot();
