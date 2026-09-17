@@ -158,19 +158,40 @@ class ExtensionDependencyLifecycleTest extends TestCase
         $this->assertFalse($this->master()['acme/core']['enabled']);
     }
 
-    public function test_boot_rejects_missing_dependency_before_loading_extension(): void
+    public function test_boot_isolates_missing_and_incompatible_dependencies_and_skips_transitive_dependents(): void
     {
-        $this->installFixture('acme/app', '1.0.0', ['acme/core' => '^1.0']);
-        $this->writeMaster(['acme/app' => true]);
+        $this->installFixture('acme/available', '1.0.0');
+        $this->installFixture('acme/disabled', '1.0.0');
+        $this->installFixture('acme/missing', '1.0.0', ['acme/absent' => '^1.0']);
+        $this->installFixture('acme/incompatible', '1.0.0', ['acme/available' => '^2.0']);
+        $this->installFixture('acme/requires-disabled', '1.0.0', ['acme/disabled' => '^1.0']);
+        $this->installFixture('acme/after-missing', '1.0.0', ['acme/missing' => '^1.0']);
+        $this->installFixture('acme/after-incompatible', '1.0.0', ['acme/incompatible' => '^1.0']);
+        $this->writeMaster([
+            'acme/available' => true,
+            'acme/disabled' => false,
+            'acme/missing' => true,
+            'acme/incompatible' => true,
+            'acme/requires-disabled' => true,
+            'acme/after-missing' => true,
+            'acme/after-incompatible' => true,
+        ]);
         $manager = $this->manager();
 
-        try {
-            $manager->boot();
-            $this->fail('Expected boot dependency validation.');
-        } catch (DependencyResolutionException $e) {
-            $this->assertStringContainsString("'acme/core' (^1.0), which is not installed", $e->getMessage());
-        }
-        $this->assertSame([], $manager->all());
+        $manager->boot();
+
+        $this->assertSame(['acme/available'], array_keys($manager->all()));
+        $failures = $manager->getBootFailures();
+        $this->assertSame('dependency validation', $failures['acme/missing']['stage']);
+        $this->assertStringContainsString("'acme/absent' (^1.0), which is not installed", $failures['acme/missing']['message']);
+        $this->assertSame('dependency validation', $failures['acme/incompatible']['stage']);
+        $this->assertStringContainsString('version 1.0.0 is installed', $failures['acme/incompatible']['message']);
+        $this->assertSame('dependency validation', $failures['acme/requires-disabled']['stage']);
+        $this->assertStringContainsString('which is disabled', $failures['acme/requires-disabled']['message']);
+        $this->assertSame('skipped', $failures['acme/after-missing']['status']);
+        $this->assertSame('acme/missing', $failures['acme/after-missing']['dependency']);
+        $this->assertSame('skipped', $failures['acme/after-incompatible']['status']);
+        $this->assertSame('acme/incompatible', $failures['acme/after-incompatible']['dependency']);
     }
 
     public function test_add_command_rejects_incompatible_update_before_replacing_files(): void

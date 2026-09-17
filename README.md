@@ -159,7 +159,7 @@ dependencies:
   acme/core: "^1.2 || ^2.0"
 ```
 
-Install and enable compatible dependencies before installing or enabling a dependent extension. Notur checks the proposed enabled set before installs, updates, and enables. Disabling or removing an extension checks its active dependents, so an unrelated broken extension does not block recovery. An active dependent prevents an update to an incompatible version or removal of its dependency; disable the dependent first. Updating a disabled extension leaves it disabled, even if the new version's dependencies are absent. At boot, missing, disabled, incompatible, and cyclic dependencies raise a dependency error before extensions are registered. The installed extension manifest supplies the version used for checks.
+Install and enable compatible dependencies before installing or enabling a dependent extension. Notur checks the proposed enabled set before installs, updates, and enables. Disabling or removing an extension checks its active dependents, so an unrelated broken extension does not block recovery. An active dependent prevents an update to an incompatible version or removal of its dependency; disable the dependent first. Updating a disabled extension leaves it disabled, even if the new version's dependencies are absent. At boot, extensions with missing, disabled, incompatible, or cyclic dependencies are reported and skipped, along with their dependents; unrelated extensions still start. The installed extension manifest supplies the version used for checks.
 
 ```bash
 php artisan notur:add acme/server-analytics   # Install from registry
@@ -173,7 +173,7 @@ php artisan notur:status                           # System status dashboard
 
 ### Emergency extension recovery
 
-Notur isolates extension manifest, entrypoint, registration and boot failures so an
+Notur isolates extension manifest, dependency, entrypoint, registration and boot failures so an
 unrelated extension and the panel can continue starting. Dependents of a failed
 extension are skipped for that process. `php artisan notur:status` (or
 `notur:status --json`) reports the extension ID, failure stage, exception and

@@ -159,7 +159,6 @@ class ExtensionManager
             $extManifest = $this->manifests[$id];
 
             // A dependent must not run against a dependency that failed in this boot.
-            // Missing/disabled dependencies retain their existing resolver behavior.
             $failedDependency = null;
             foreach ($graph[$id] as $dependency) {
                 if (isset($this->bootFailures[$dependency])) {
@@ -169,6 +168,13 @@ class ExtensionManager
             }
             if ($failedDependency !== null) {
                 $this->recordSkippedDependency($id, $failedDependency);
+                continue;
+            }
+
+            try {
+                $this->dependencyValidator()->validateRequirements($id, $manifest['extensions'], $this->manifests);
+            } catch (\Throwable $e) {
+                $this->recordBootFailure($id, 'dependency validation', $e);
                 continue;
             }
 
@@ -212,36 +218,70 @@ class ExtensionManager
      */
     private function resolveLoadOrder(array $graph): array
     {
-        try {
-            return $this->resolver->resolve($graph);
-        } catch (\Throwable) {
-            // A cycle (or another resolver failure) should not prevent unrelated
-            // extensions or the panel itself from starting.
-            $order = [];
-            foreach (array_keys($graph) as $id) {
-                $reachable = [$id => true];
-                $pending = [$id];
-                while ($pending !== []) {
-                    $node = array_pop($pending);
-                    foreach ($graph[$node] ?? [] as $dependency) {
-                        if (isset($graph[$dependency]) && !isset($reachable[$dependency])) {
-                            $reachable[$dependency] = true;
-                            $pending[] = $dependency;
-                        }
-                    }
-                }
+        // Missing or unreadable dependencies are checked when each extension is
+        // reached. They must not make sorting fail for an unrelated extension.
+        $availableGraph = [];
+        foreach ($graph as $id => $dependencies) {
+            $availableGraph[$id] = array_values(array_filter(
+                $dependencies,
+                static fn (string $dependency): bool => isset($graph[$dependency]),
+            ));
+        }
 
-                try {
-                    foreach ($this->resolver->resolve(array_intersect_key($graph, $reachable)) as $node) {
-                        $order[$node] = true;
-                    }
-                } catch (\Throwable $dependencyError) {
-                    $this->recordBootFailure($id, 'dependency resolution', $dependencyError);
+        $cycleNodes = [];
+        foreach ($availableGraph as $id => $dependencies) {
+            foreach ($dependencies as $dependency) {
+                if ($this->canReachDependency($dependency, $id, $availableGraph)) {
+                    $cycleNodes[$id] = true;
+                    break;
                 }
             }
-
-            return array_keys($order);
         }
+
+        foreach (array_keys($cycleNodes) as $id) {
+            $this->recordBootFailure(
+                $id,
+                'dependency resolution',
+                new DependencyResolutionException(
+                    "Circular dependency detected involving extension '{$id}'. Remove one dependency in the cycle."
+                ),
+            );
+        }
+
+        $sortableGraph = [];
+        foreach ($availableGraph as $id => $dependencies) {
+            if (isset($cycleNodes[$id])) {
+                continue;
+            }
+            $sortableGraph[$id] = array_values(array_filter(
+                $dependencies,
+                static fn (string $dependency): bool => !isset($cycleNodes[$dependency]),
+            ));
+        }
+
+        return $this->resolver->resolve($sortableGraph);
+    }
+
+    /** @param array<string, array<string>> $graph */
+    private function canReachDependency(string $start, string $target, array $graph): bool
+    {
+        $pending = [$start];
+        $visited = [];
+        while ($pending !== []) {
+            $node = array_pop($pending);
+            if ($node === $target) {
+                return true;
+            }
+            if (isset($visited[$node])) {
+                continue;
+            }
+            $visited[$node] = true;
+            foreach ($graph[$node] ?? [] as $dependency) {
+                $pending[] = $dependency;
+            }
+        }
+
+        return false;
     }
 
     private function recordBootFailure(string $id, string $stage, \Throwable $e): void

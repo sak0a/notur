@@ -60,10 +60,13 @@ class ExtensionBootRecoveryTest extends TestCase
         $this->fixture('acme/bad-manifest', 'name: Missing ID');
         $this->fixture('acme/cycle-a', "dependencies:\n  acme/cycle-b: '^1.0'");
         $this->fixture('acme/cycle-b', "dependencies:\n  acme/cycle-a: '^1.0'");
+        $this->fixture('acme/cycle-dependent', "dependencies:\n  acme/cycle-a: '^1.0'\nentrypoint: '" . CountingExtension::class . "'");
+        $this->fixture('acme/needs-absent', "dependencies:\n  acme/absent: '^1.0'");
         file_put_contents($this->fixturePath . '/notur/extensions.json', json_encode([
             'extensions' => array_fill_keys([
                 'acme/fails', 'acme/dependent', 'acme/transitive', 'acme/independent',
                 'acme/missing', 'acme/bad-manifest', 'acme/cycle-a', 'acme/cycle-b',
+                'acme/cycle-dependent', 'acme/needs-absent',
             ], ['version' => '1.0.0', 'enabled' => true]),
         ], JSON_THROW_ON_ERROR));
         if ($this->name() === 'test_corrupt_master_manifest_does_not_block_startup') {
@@ -109,6 +112,9 @@ class ExtensionBootRecoveryTest extends TestCase
         $this->assertSame('manifest', $manager->getBootFailures()['acme/bad-manifest']['stage']);
         $this->assertSame('dependency resolution', $manager->getBootFailures()['acme/cycle-a']['stage']);
         $this->assertSame('dependency resolution', $manager->getBootFailures()['acme/cycle-b']['stage']);
+        $this->assertSame('skipped', $manager->getBootFailures()['acme/cycle-dependent']['status']);
+        $this->assertSame('acme/cycle-a', $manager->getBootFailures()['acme/cycle-dependent']['dependency']);
+        $this->assertSame('dependency validation', $manager->getBootFailures()['acme/needs-absent']['stage']);
         $this->assertSame([], $this->app->make(PermissionBroker::class)->getExtensionPermissions('acme/fails'));
 
         $manager->boot();
@@ -140,15 +146,33 @@ class ExtensionBootRecoveryTest extends TestCase
             ->assertExitCode(0);
 
         InstalledExtension::create([
-            'extension_id' => 'acme/fails',
-            'name' => 'Failing extension',
+            'extension_id' => 'acme/needs-absent',
+            'name' => 'Missing dependency',
             'version' => '1.0.0',
             'enabled' => true,
-            'manifest' => ['id' => 'acme/fails'],
+            'manifest' => ['id' => 'acme/needs-absent'],
         ]);
-        $this->artisan('notur:disable', ['extension' => 'acme/fails'])
-            ->expectsOutput("Extension 'acme/fails' has been disabled.")
+        $this->artisan('notur:disable', ['extension' => 'acme/needs-absent'])
+            ->expectsOutput("Extension 'acme/needs-absent' has been disabled.")
             ->assertExitCode(0);
+
+        foreach (['acme/fails', 'acme/dependent', 'acme/transitive'] as $id) {
+            InstalledExtension::create([
+                'extension_id' => $id,
+                'name' => $id,
+                'version' => '1.0.0',
+                'enabled' => true,
+                'manifest' => ['id' => $id],
+            ]);
+        }
+        $this->artisan('notur:disable', ['extension' => 'acme/fails'])
+            ->expectsOutputToContain("Extension 'acme/dependent' requires 'acme/fails'")
+            ->assertExitCode(1);
+        foreach (['acme/transitive', 'acme/dependent', 'acme/fails'] as $id) {
+            $this->artisan('notur:disable', ['extension' => $id])
+                ->expectsOutput("Extension '{$id}' has been disabled.")
+                ->assertExitCode(0);
+        }
         $this->assertFalse(InstalledExtension::where('extension_id', 'acme/fails')->first()->enabled);
         $manifest = json_decode(file_get_contents($this->fixturePath . '/notur/extensions.json'), true);
         $this->assertFalse($manifest['extensions']['acme/fails']['enabled']);
