@@ -170,6 +170,25 @@ class ExtensionStatePersistenceTest extends TestCase
         $this->assertSame($tracking, array_intersect_key($recovered->getRawOriginal(), array_flip($trackingColumns)));
     }
 
+    public function test_reconciliation_does_not_project_metadata_from_uncommitted_install_files(): void
+    {
+        $extensionPath = $this->manager->getExtensionsPath() . '/acme/one';
+        mkdir($extensionPath, 0755, true);
+        file_put_contents($extensionPath . '/extension.yaml', "id: acme/one\nname: Original\nversion: 1.0.0\n");
+        $original = ExtensionManifest::load($extensionPath);
+        $this->manager->registerExtension('acme/one', '1.0.0', $original, false);
+
+        // Replacement files are visible while migrations are still running.
+        file_put_contents($extensionPath . '/extension.yaml', "id: acme/one\nname: Pending\nversion: 2.0.0\n");
+        $this->manager->reconcileState();
+
+        $record = InstalledExtension::where('extension_id', 'acme/one')->firstOrFail();
+        $this->assertSame('1.0.0', $record->version);
+        $this->assertSame('Original', $record->name);
+        $this->assertSame($original->getRaw(), $record->manifest);
+        $this->assertFalse($record->enabled);
+    }
+
     public function test_reconciling_unchanged_state_does_not_write_database(): void
     {
         $extensionPath = $this->manager->getExtensionsPath() . '/acme/one';
@@ -188,6 +207,18 @@ class ExtensionStatePersistenceTest extends TestCase
         } finally {
             $connection->disableQueryLog();
         }
+    }
+
+    public function test_safe_mode_does_not_access_or_reconcile_state(): void
+    {
+        file_put_contents($this->dir . '/extensions.json', '{broken');
+        config(['notur.safe_mode' => true]);
+
+        $this->manager->boot();
+
+        $this->assertSame([], $this->manager->getBootFailures());
+        $this->assertFileDoesNotExist($this->dir . '/extensions.json.lock');
+        $this->assertSame('{broken', file_get_contents($this->dir . '/extensions.json'));
     }
 
     public function test_initial_boot_without_manifest_creates_no_state_files(): void

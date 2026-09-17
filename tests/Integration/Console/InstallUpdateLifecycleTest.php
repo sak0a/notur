@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Notur\Tests\Integration\Console;
 
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Notur\ExtensionManager;
 use Illuminate\Support\Facades\Event;
 use Mockery;
 use Notur\Events\ExtensionUpdated;
@@ -220,6 +222,74 @@ class InstallUpdateLifecycleTest extends TestCase
         $this->assertDatabaseHas('notur_extensions', ['extension_id' => 'acme/first', 'version' => '2.0.0']);
         $this->assertDatabaseHas('notur_extensions', ['extension_id' => 'acme/second', 'version' => '2.0.0']);
         $this->assertSame('second asset', file_get_contents(ExtensionPath::public('acme/second') . '/frontend/new.js'));
+    }
+
+    public function test_registration_failure_restores_disabled_files_state_and_metadata(): void
+    {
+        $this->installed('acme/demo', false);
+        $oldManifest = ['id' => 'acme/demo', 'name' => 'Original', 'version' => '1.0.0'];
+        file_put_contents(ExtensionPath::base('acme/demo') . '/extension.yaml', "id: acme/demo\nname: Original\nversion: 1.0.0\n");
+        InstalledExtension::where('extension_id', 'acme/demo')->update([
+            'name' => 'Original', 'manifest' => json_encode($oldManifest),
+        ]);
+        $archive = $this->archive('acme/demo', '2.0.0', 'frontend/new.js', 'new asset');
+        DB::statement("CREATE TRIGGER reject_upgrade BEFORE UPDATE ON notur_extensions WHEN NEW.version = '2.0.0' BEGIN SELECT RAISE(FAIL, 'registration failed'); END");
+
+        $this->artisan('notur:add', ['extension' => $archive, '--force' => true])
+            ->expectsOutputToContain('registration failed')
+            ->assertExitCode(1);
+
+        $this->assertOldInstallIntact('acme/demo');
+        $this->assertNoStagingDirectories('acme/demo');
+        $state = json_decode(file_get_contents(ExtensionPath::manifest()), true);
+        $this->assertFalse($state['extensions']['acme/demo']['enabled']);
+        $this->app->make(ExtensionManager::class)->reconcileState();
+        $record = InstalledExtension::where('extension_id', 'acme/demo')->firstOrFail();
+        $this->assertFalse($record->enabled);
+        $this->assertSame('Original', $record->name);
+        $this->assertSame('1.0.0', $record->manifest['version']);
+    }
+
+    public function test_first_install_registration_failure_removes_authoritative_state_and_files(): void
+    {
+        $archive = $this->archive('acme/demo', '1.0.0', 'frontend/new.js', 'new asset');
+        DB::statement("CREATE TRIGGER reject_install BEFORE INSERT ON notur_extensions BEGIN SELECT RAISE(FAIL, 'registration failed'); END");
+
+        $this->artisan('notur:add', ['extension' => $archive])
+            ->expectsOutputToContain('registration failed')
+            ->assertExitCode(1);
+
+        $this->assertDirectoryDoesNotExist(ExtensionPath::base('acme/demo'));
+        $this->assertDirectoryDoesNotExist(ExtensionPath::public('acme/demo'));
+        $this->assertNoStagingDirectories('acme/demo');
+        $state = json_decode(file_get_contents(ExtensionPath::manifest()), true);
+        $this->assertArrayNotHasKey('acme/demo', $state['extensions']);
+        $this->app->make(ExtensionManager::class)->reconcileState();
+        $this->assertDatabaseMissing('notur_extensions', ['extension_id' => 'acme/demo']);
+    }
+
+    public function test_disabled_upgrade_never_publishes_enabled_state_or_nests_projection_transaction(): void
+    {
+        $this->installed('acme/demo', false);
+        $archive = $this->archive('acme/demo', '2.0.0', 'frontend/new.js', 'new asset');
+        $observed = false;
+        InstalledExtension::updating(function (InstalledExtension $record) use (&$observed): void {
+            if ($record->extension_id !== 'acme/demo') {
+                return;
+            }
+            $observed = true;
+            $state = json_decode(file_get_contents(ExtensionPath::manifest()), true);
+            $this->assertFalse($state['extensions']['acme/demo']['enabled']);
+            $this->assertFalse($record->enabled);
+            $this->assertSame(1, DB::transactionLevel());
+        });
+
+        try {
+            $this->artisan('notur:add', ['extension' => $archive, '--force' => true])->assertExitCode(0);
+            $this->assertTrue($observed);
+        } finally {
+            InstalledExtension::flushEventListeners();
+        }
     }
 
     private function installed(string $id, bool $enabled): void

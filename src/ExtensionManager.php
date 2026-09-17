@@ -564,9 +564,17 @@ class ExtensionManager
                     try {
                         $path = $this->getExtensionsPath() . '/' . str_replace('/', DIRECTORY_SEPARATOR, $id);
                         $manifest = ExtensionManifest::load($path);
-                    } catch (ManifestException) {
-                        // A legacy entry may have no readable extension directory.
+                    } catch (\Throwable) {
+                        // Broken or missing YAML must not block disabling an extension.
+                        // Preserve existing metadata until its files can be repaired.
                     }
+                }
+
+                if ($manifest !== null && ($manifest->getId() !== $id || $manifest->getVersion() !== $entry['version'])) {
+                    // An install can stage live files before committing its state.
+                    // Do not project that uncommitted version's metadata during boot.
+                    Log::warning("[Notur] Skipping metadata projection for '{$id}': files do not match committed extension state.");
+                    $manifest = null;
                 }
 
                 if ($record === null) {
