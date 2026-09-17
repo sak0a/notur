@@ -421,9 +421,24 @@ fix_permissions() {
     if [ -d "$dir" ] && [ -n "$WEB_USER" ]; then
         # Only change ownership if running as root
         if [ "$(id -u)" = "0" ]; then
-            chown -R "${WEB_USER}:${WEB_USER}" "$dir" 2>/dev/null || true
+            local web_group
+            web_group=$(id -gn "$WEB_USER") || return 1
+            chown -R "${WEB_USER}:${web_group}" "$dir" || return 1
         fi
     fi
+}
+
+# Artisan can create state locks as root, including during the final cache clear.
+# Run on failure too, so a partially completed install does not lock out PHP.
+finalize_permissions() {
+    local status="$1" dir
+    for dir in "${PANEL_DIR}/notur" "${PANEL_DIR}/public/notur" "${PANEL_DIR}/storage/notur"; do
+        if ! fix_permissions "$dir"; then
+            error "Could not set ownership of ${dir} for ${WEB_USER}. Repair permissions before using Notur."
+            if [ "$status" -eq 0 ]; then status=1; fi
+        fi
+    done
+    return "$status"
 }
 
 # Helper: trust the panel directory in Git so Composer can inspect VCS
@@ -1090,6 +1105,7 @@ create_install_backup || die "Could not create the pre-install file backup. No p
 if [ -f "${PANEL_DIR}/vendor/notur/notur/composer.json" ]; then
     info "Existing Notur installation detected; upgrading/reconciling files and preserving extension state."
 fi
+trap 'finalize_permissions "$?"' EXIT
 trap 'error "Installation interrupted. File backup retained at ${BACKUP_DIR}; database changes are not automatically rolled back."' ERR
 
 # ── Step 1: Install Composer package ─────────────────────────────────────
@@ -1400,6 +1416,10 @@ fi
 } > "${CHECKSUM_FILE}"
 
 php artisan optimize:clear || die "Could not clear Laravel caches."
+
+# Final ownership pass must follow every root-run Artisan command.
+finalize_permissions 0 || die "Could not finalize Notur permissions."
+trap - EXIT
 
 # ── Done ─────────────────────────────────────────────────────────────────
 
