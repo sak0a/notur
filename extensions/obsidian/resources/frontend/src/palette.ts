@@ -37,22 +37,26 @@ export function createPaletteAdapter(): (sheets: StyleSheetList) => string {
     colors.set('#131a20', 'var(--ob-base)');
     const cache = new WeakMap<CSSStyleSheet, { count: number; css: string }>();
     const colorPattern = /#[\da-f]{3,8}\b|(?:rgb|hsl)a?\((?:[^()]|\([^()]*\))*\)/gi;
-    const translate = (color: string): string => {
+    const translate = (color: string, surface = false, hover = false): string => {
         const direct = colors.get(normalize(color));
-        if (direct) return direct;
+        const role = (mapped: string) => surface && /--ob-n(?:600|700|800|900)/.test(mapped) ?
+            `var(--ob-panel${hover ? '-hover' : ''})` : mapped;
+        if (direct) return role(direct);
         // Tailwind v3 emits hsl(... / var(--tw-bg-opacity)), including inside
         // styled-components. Resolve the palette independently of its opacity.
         const functional = color.match(/^(rgba?|hsla?)\((.*)\)$/i);
         if (!functional) return color;
         const [, kind, body] = functional;
-        const parts = body.includes('/') ? body.split('/') : body.split(',').length === 4 ?
-            [body.split(',').slice(0, 3).join(','), body.split(',')[3]] : [];
+        // Do not split the fallback comma inside var(--tw-bg-opacity, 1).
+        const legacy = body.match(/^([^,]+),([^,]+),([^,]+),(.+)$/);
+        const parts = body.includes('/') ? body.split('/') : legacy ?
+            [legacy.slice(1, 4).join(','), legacy[4]] : [];
         if (parts.length !== 2) return color;
         const mapped = colors.get(normalize(`${kind.replace(/a$/, '')}(${parts[0].trim()})`));
         if (!mapped) return color;
         const opacity = parts[1].trim();
         const percentage = opacity.endsWith('%') ? opacity : `calc(${opacity} * 100%)`;
-        return `color-mix(in srgb, ${mapped} ${percentage}, transparent)`;
+        return `color-mix(in srgb, ${role(mapped)} ${percentage}, transparent)`;
     };
     const visit = (rules: CSSRuleList): string => Array.from(rules).map(rule => {
         if (rule instanceof CSSStyleRule) {
@@ -61,6 +65,7 @@ export function createPaletteAdapter(): (sheets: StyleSheetList) => string {
             const declarations: string[] = [];
             const background = rule.style.getPropertyValue('background-color') || rule.style.getPropertyValue('background');
             const backgroundColor = background.match(colorPattern)?.[0];
+            const surface = !!backgroundColor && translate(backgroundColor, true).includes('--ob-panel');
             const semanticBackground = backgroundColor && translate(backgroundColor) === backgroundColor &&
                 !['#ffffff', '#000000', 'rgba(0, 0, 0, 0)'].includes(normalize(backgroundColor));
             const properties = new Set([...Array.from(rule.style), 'background', 'border', 'border-color']);
@@ -69,11 +74,23 @@ export function createPaletteAdapter(): (sheets: StyleSheetList) => string {
                 const value = rule.style.getPropertyValue(property);
                 if (!value) return;
                 const mapped = property === 'color' && semanticBackground ? value :
-                    value.replace(colorPattern, translate);
+                    value.replace(colorPattern, color => translate(color, property.startsWith('background'), rule.selectorText.includes(':hover')));
                 // Mirror unchanged semantic colors too: otherwise the scoped primary
                 // rule would outrank a later danger/success variant from the host.
                 declarations.push(`${property}:${mapped}${rule.style.getPropertyPriority(property) ? ' !important' : ''};`);
             });
+            if (surface) {
+                declarations.push('border:1px solid var(--ob-border);border-radius:12px;box-shadow:inset 0 1px rgba(255,255,255,.04),var(--ob-shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);');
+            }
+            // Expose destructive intent independently of a production class hash.
+            if (backgroundColor) {
+                const rgb = backgroundColor.match(/rgba?\(\s*(\d+)[, ]+\s*(\d+)[, ]+\s*(\d+)/i);
+                const hex = backgroundColor.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+                const channels = rgb ? rgb.slice(1).map(Number) : hex ? hex.slice(1).map(value => parseInt(value, 16)) : [];
+                if (channels.length && channels[0] > channels[1] * 1.35 && channels[0] > channels[2] * 1.15) {
+                    declarations.push('--ob-button-tone:var(--ob-danger);');
+                }
+            }
             if (!declarations.length) return '';
             // Keep pseudo-elements and each selector's original specificity intact.
             const selector = scopeSelectors(rule.selectorText);

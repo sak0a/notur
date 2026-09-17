@@ -1,22 +1,25 @@
 :root[data-obsidian] {
     color-scheme: dark;
-    --ob-base: #101715;
-    --ob-panel: rgba(24, 35, 30, .88);
-    --ob-elevated: #22302a;
-    --ob-border: rgba(189, 219, 201, .13);
-    --ob-accent: #85c9a6;
-    --ob-accent-ink: #122b20;
-    --ob-n50: #eef5f0;
-    --ob-n100: #e2ece5;
-    --ob-n200: #c7d4cc;
-    --ob-n300: #a6b8ad;
-    --ob-n400: #91a298;
-    --ob-n500: #84978b;
-    --ob-n600: #42564a;
-    --ob-n700: #2b3a31;
-    --ob-n800: #1e2c24;
-    --ob-n900: #16221b;
-    --ob-shadow: 0 18px 60px rgba(4, 16, 10, .19);
+    --ob-base: #0b0b0d;
+    --ob-panel: rgba(31, 31, 35, .72);
+    --ob-elevated: #252529;
+    --ob-panel-hover: rgba(48, 48, 54, .82);
+    --ob-danger: #f4a0a5;
+    --ob-terminal: #09090b;
+    --ob-border: rgba(255, 255, 255, .12);
+    --ob-accent: #d4d4dc;
+    --ob-accent-ink: #141416;
+    --ob-n50: #fafafa;
+    --ob-n100: #ededf0;
+    --ob-n200: #d4d4d9;
+    --ob-n300: #b5b5bf;
+    --ob-n400: #a0a0ad;
+    --ob-n500: #90909e;
+    --ob-n600: #494951;
+    --ob-n700: #303036;
+    --ob-n800: #202024;
+    --ob-n900: #151518;
+    --ob-shadow: 0 18px 60px rgba(0, 0, 0, .24);
     --notur-bg-primary: var(--ob-base) !important;
     --notur-bg-secondary: var(--ob-n800) !important;
     --notur-bg-tertiary: var(--ob-n700) !important;
@@ -31,23 +34,25 @@
 }
 :root[data-obsidian="light"] {
     color-scheme: light;
-    --ob-base: #edf2ee;
+    --ob-base: #f0f0f3;
     --ob-panel: rgba(255, 255, 255, .87);
     --ob-elevated: #fff;
-    --ob-border: rgba(43, 74, 54, .16);
-    --ob-accent: #287653;
+    --ob-panel-hover: rgba(233, 233, 239, .94);
+    --ob-danger: #a62a39;
+    --ob-border: rgba(20, 20, 28, .14);
+    --ob-accent: #484852;
     --ob-accent-ink: #fff;
-    --ob-n50: #182d21;
-    --ob-n100: #233b2c;
-    --ob-n200: #374e3e;
-    --ob-n300: #4d6455;
-    --ob-n400: #586f5e;
-    --ob-n500: #627869;
-    --ob-n600: #a6b9ac;
-    --ob-n700: #d8e3db;
-    --ob-n800: #e5ece7;
-    --ob-n900: #f7faf8;
-    --ob-shadow: 0 18px 60px rgba(37, 66, 47, .07);
+    --ob-n50: #18181c;
+    --ob-n100: #24242b;
+    --ob-n200: #36363f;
+    --ob-n300: #51515d;
+    --ob-n400: #62626f;
+    --ob-n500: #70707d;
+    --ob-n600: #b2b2bc;
+    --ob-n700: #dddde3;
+    --ob-n800: #e7e7ed;
+    --ob-n900: #fafafd;
+    --ob-shadow: 0 18px 60px rgba(0, 0, 0, .08);
 }
 :root[data-obsidian] body {
     background: radial-gradient(ellipse at 75% -10%, color-mix(in srgb, var(--ob-accent) 9%, transparent), transparent 55%), var(--ob-base) !important;
@@ -98,7 +103,7 @@
     background: transparent !important; overflow: auto; overscroll-behavior: contain; box-shadow: none;
     border-top: 1px solid var(--ob-border); padding-top: 15px; scrollbar-width: thin; scrollbar-color: var(--ob-n600) transparent;
 }
-:root[data-obsidian] [data-ob-subnav-shell] { background: transparent !important; box-shadow: none; overflow: visible; }
+:root[data-obsidian] [data-ob-subnav-shell] { background: transparent !important; box-shadow: none !important; border: 0 !important; overflow: visible; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 :root[data-obsidian] [data-ob-subnav] { display: flex; flex-direction: column; align-items: stretch; gap: 3px; padding-left: 0; padding-right: 0; }
 :root[data-obsidian] [data-ob-subnav]::before { content: 'WORKSPACE'; color: var(--ob-n400); font-size: 10px; letter-spacing: .14em; padding: 0 12px 9px; }
 :root[data-obsidian] [data-ob-subnav] :is(a, button) {
@@ -125,10 +130,44 @@
     :root[data-obsidian] [data-ob-nav] { background: var(--ob-n900) !important; }
     :root[data-ob-shell] .ob-menu { display: block; position: fixed; z-index: 44; top: 16px; right: 16px; padding: 10px 16px; border: 1px solid var(--ob-border); border-radius: 10px; color: var(--ob-n50); background: var(--ob-panel); backdrop-filter: blur(20px); font: inherit; font-size: 13px; cursor: pointer; }
     :root[data-ob-open] [data-ob-nav], :root[data-ob-open] [data-ob-subnav], :root[data-ob-open] .ob-controls { transform: translateX(0); visibility: visible; transition-property: transform; }
-    :root[data-ob-open] .ob-backdrop { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(6, 15, 10, .6); backdrop-filter: blur(4px); border: 0; width: 100%; height: 100%; }
+    :root[data-ob-open] .ob-backdrop { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(0, 0, 0, .7); backdrop-filter: blur(4px); border: 0; width: 100%; height: 100%; }
     :root[data-ob-open] body { overflow: hidden; }
     .ob-skip { left: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
     :root[data-obsidian] *, :root[data-obsidian] *::before, :root[data-obsidian] *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Shared controls: covers hashed CSS modules and legacy styled-components. */
+:root[data-obsidian] :is(button, [role="button"], input[type="submit"], a[class*="Button"]):not([data-ob-nav] *):not([data-ob-subnav] *):not(.ob-backdrop) {
+    background: color-mix(in srgb, var(--ob-button-tone, var(--ob-n50)) 9%, var(--ob-panel)) !important;
+    color: var(--ob-button-tone, var(--ob-n50)) !important;
+    border: 1px solid color-mix(in srgb, var(--ob-button-tone, var(--ob-n50)) 22%, transparent) !important;
+    border-radius: 9px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 3px 12px rgba(0,0,0,.08) !important;
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    text-transform: none; letter-spacing: 0;
+}
+:root[data-obsidian] :is(button, [role="button"], input[type="submit"], a[class*="Button"]):not([data-ob-nav] *):not([data-ob-subnav] *):not(.ob-backdrop):hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ob-button-tone, var(--ob-n50)) 16%, var(--ob-panel-hover)) !important;
+    border-color: color-mix(in srgb, var(--ob-button-tone, var(--ob-n50)) 38%, transparent) !important;
+}
+:root[data-obsidian] :is(button, input[type="submit"]):disabled { opacity: .45; box-shadow: none !important; }
+/* Xterm owns its canvas colors; its public theme option is updated by terminal.ts. */
+:root[data-obsidian] #terminal, :root[data-obsidian] .xterm, :root[data-obsidian] .xterm-viewport,
+:root[data-obsidian] [data-ob-terminal-frame] {
+    background: var(--ob-terminal) !important; color: #d4d4d8 !important;
+    border-color: rgba(255,255,255,.1) !important;
+}
+:root[data-obsidian] [data-ob-terminal-frame] { border-radius: 12px 12px 0 0; overflow: hidden; }
+:root[data-obsidian] [data-ob-terminal-shell] input {
+    background: #111114 !important; color: #dedee3 !important; border-color: #34343b !important;
+}
+:root[data-obsidian] [data-ob-terminal-shell] input::placeholder { color: #90909e !important; }
+:root[data-obsidian] [data-ob-chart] {
+    background: var(--ob-panel) !important; border: 1px solid var(--ob-border) !important;
+    border-radius: 14px; box-shadow: inset 0 1px rgba(255,255,255,.05), var(--ob-shadow) !important;
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+:root[data-obsidian] body, :root[data-obsidian] #app { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+:root[data-obsidian] :is(.bg-gray-600, .bg-neutral-600) { border: 1px solid var(--ob-border) !important; border-radius: 12px !important; box-shadow: inset 0 1px rgba(255,255,255,.04), var(--ob-shadow) !important; }

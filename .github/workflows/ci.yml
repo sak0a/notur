@@ -212,6 +212,12 @@ jobs:
       - name: Run frontend tests
         run: npm run test:frontend
 
+      - name: Install Chromium for theme regression tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify Obsidian against compiled panel styles and xterm
+        run: npm run test:obsidian
+
   security-audit:
     name: Security Audit Policies
     runs-on: ubuntu-latest

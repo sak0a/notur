@@ -1,5 +1,6 @@
 import css from './theme.css';
 import { createPaletteAdapter } from './palette';
+import { createTerminalAdapter } from './terminal';
 
 const STORAGE_KEY = 'notur.obsidian.appearance';
 
@@ -114,6 +115,7 @@ export function mountTheme(): () => void {
     window.addEventListener('storage', storage);
 
     const adapt = createPaletteAdapter();
+    const terminal = createTerminalAdapter();
     let frame = 0;
     const sync = () => {
         frame = 0;
@@ -148,6 +150,25 @@ export function mountTheme(): () => void {
         }
         const content = document.querySelector<HTMLElement>('[class*="ContentContainer"]');
         if (content) { set(content, 'id', 'ob-main'); set(content, 'tabindex', '-1'); }
+        const terminalContainer = document.querySelector<HTMLElement>('.xterm')?.parentElement;
+        const terminalShell = terminalContainer?.closest<HTMLElement>('.relative');
+        if (terminalContainer && terminalShell) {
+            set(terminalShell, 'data-ob-terminal-shell', '');
+            let frame = terminalContainer;
+            while (frame.parentElement && frame.parentElement !== terminalShell) frame = frame.parentElement;
+            set(frame, 'data-ob-terminal-frame', '');
+        }
+        document.querySelectorAll<HTMLCanvasElement>('canvas').forEach(canvas => {
+            if (canvas.closest('.xterm, #terminal')) return;
+            // ChartBlock has a heading and a canvas in sibling wrappers.
+            let ancestor = canvas.parentElement;
+            for (let depth = 0; ancestor && depth < 3; depth++, ancestor = ancestor.parentElement) {
+                if (ancestor.querySelector('h3') && ancestor.querySelectorAll('canvas').length === 1) {
+                    set(ancestor, 'data-ob-chart', ''); break;
+                }
+            }
+        });
+        terminal.sync();
         skip.hidden = !content;
         const mapped = adapt(document.styleSheets);
         if (adapted.textContent !== mapped) adapted.textContent = mapped;
@@ -164,6 +185,7 @@ export function mountTheme(): () => void {
     sync();
     return () => {
         observer.disconnect(); cancelAnimationFrame(frame);
+        terminal.cleanup();
         resizeObserver.disconnect(); root.style.removeProperty('--ob-subnav-top');
         document.removeEventListener('load', schedule, true);
         document.removeEventListener('keydown', keyboard);

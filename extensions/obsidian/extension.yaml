@@ -1,7 +1,7 @@
 notur: "1.0"
 id: "notur/obsidian"
 name: "Obsidian"
-version: "0.1.0"
+version: "0.1.1"
 description: "A glass client-panel theme with sidebar navigation and dark/light appearance."
 authors:
   - name: "Notur"
