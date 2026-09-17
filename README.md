@@ -84,11 +84,11 @@ npm run test:frontend
 
 The root project uses `package-lock.json` for CI builds, npm audit, and releases.
 The docs site in `website/` has its own `bun.lock`; bundled examples and the CS2 extension
-have their own `package-lock.json` files. PHP CI uses the committed Laravel 12/Testbench 10 lock on PHP
-8.2–8.5, resolves Laravel 11/Testbench 9 and Laravel 10/Testbench 8 on PHP 8.3,
-and tests the oldest stable Laravel 10 dependencies on PHP 8.2. Docker E2E
-covers PHP 8.4, Node.js 24, MySQL 8.4 and Pterodactyl 1.15.1 with one panel configuration rather than duplicating
-the PHP matrix.
+have their own `package-lock.json` files. PHP CI tests the committed Laravel 12/Testbench 10
+lock on PHP 8.4 and 8.5. The Composer compatibility ranges for PHP 8.2/8.3 and
+Laravel 10/11 remain available, but those versions are no longer tested in CI.
+Patch CI covers Panel 1.12.2, 1.15.0 and 1.15.1. Docker E2E covers PHP 8.4, Node.js 24,
+MySQL 8.4 and Pterodactyl 1.15.1.
 
 TypeScript stays on 6.x because `ts-loader` requires the JavaScript compiler API
 removed in TypeScript 7. React stays on 16.14 to match the panel runtime. The docs

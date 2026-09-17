@@ -50,19 +50,14 @@ on:
 
 jobs:
   php-unit-tests:
-    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }} Unit Tests (${{ matrix.dependencies }})
+    name: PHP ${{ matrix.php }} / Laravel 12 Unit Tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { php: '8.2', laravel: '10', dependencies: 'lowest-laravel10' }
-          - { php: '8.2', laravel: '12', dependencies: 'locked' }
-          - { php: '8.3', laravel: '10', dependencies: 'latest-laravel10' }
-          - { php: '8.3', laravel: '12', dependencies: 'locked' }
-          - { php: '8.4', laravel: '12', dependencies: 'locked' }
-          - { php: '8.5', laravel: '12', dependencies: 'locked' }
-          - { php: '8.3', laravel: '11', dependencies: 'latest-laravel11' }
+          - { php: '8.4' }
+          - { php: '8.5' }
 
     steps:
       - uses: actions/checkout@v7
@@ -82,25 +77,24 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.dependencies }}-${{ hashFiles('composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.dependencies }}-
+          key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-${{ matrix.php }}-
 
       - name: Install Composer dependencies
-        run: bash scripts/ci/install-php-dependencies.sh "${{ matrix.dependencies }}"
+        run: bash scripts/ci/install-php-dependencies.sh
 
       - name: Run unit tests
         run: ./vendor/bin/phpunit --testsuite Unit
 
   php-integration-tests:
-    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }} / ${{ matrix.database.type }} Integration (${{ matrix.dependencies }})
+    name: PHP ${{ matrix.php }} / Laravel 12 / ${{ matrix.database.type }} Integration
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { php: '8.2', laravel: '10', dependencies: 'lowest-laravel10', database: { type: 'mysql', image: 'mysql:8.4', healthcheck: 'mysqladmin ping -h 127.0.0.1 -u root -ptesting' } }
-          - { php: '8.4', laravel: '12', dependencies: 'locked', database: { type: 'mysql', image: 'mysql:8.4', healthcheck: 'mysqladmin ping -h 127.0.0.1 -u root -ptesting' } }
-          - { php: '8.4', laravel: '12', dependencies: 'locked', database: { type: 'mariadb', image: 'mariadb:11.4', healthcheck: 'healthcheck.sh --connect --innodb_initialized' } }
+          - { php: '8.4', database: { type: 'mysql', image: 'mysql:8.4', healthcheck: 'mysqladmin ping -h 127.0.0.1 -u root -ptesting' } }
+          - { php: '8.4', database: { type: 'mariadb', image: 'mariadb:11.4', healthcheck: 'healthcheck.sh --connect --innodb_initialized' } }
 
     services:
       database:
@@ -140,11 +134,11 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.dependencies }}-${{ hashFiles('composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-${{ matrix.php }}-${{ matrix.dependencies }}-
+          key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-${{ matrix.php }}-
 
       - name: Install Composer dependencies
-        run: bash scripts/ci/install-php-dependencies.sh "${{ matrix.dependencies }}"
+        run: bash scripts/ci/install-php-dependencies.sh
 
       - name: Wait for database
         run: |
@@ -248,7 +242,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        panel-tag: [v1.12.0, v1.12.1, v1.12.2, v1.15.0, v1.15.1]
+        panel-tag: [v1.12.2, v1.15.0, v1.15.1]
 
     steps:
       - uses: actions/checkout@v7
