@@ -54,25 +54,16 @@ class NoturArchive
         // Write checksums.json into the source temporarily
         $checksumsFile = $sourcePath . '/checksums.json';
         $checksumsExisted = file_exists($checksumsFile);
+        $originalChecksums = $checksumsExisted ? file_get_contents($checksumsFile) : null;
         file_put_contents(
             $checksumsFile,
             json_encode($checksums, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n",
         );
 
+        // Use a unique, explicit tar suffix: Phar otherwise rewrites unknown
+        // extensions and can collide with an earlier pack or unpack operation.
+        $tarPath = dirname($outputPath) . '/.notur-pack-' . bin2hex(random_bytes(12)) . '.tar';
         try {
-            // Remove .gz extension for PharData — it adds it on compress
-            $tarPath = preg_replace('/\.gz$/', '', $outputPath);
-            if ($tarPath === null) {
-                $tarPath = $outputPath;
-            }
-
-            // Remove stale files if they exist
-            foreach ([$tarPath, $tarPath . '.gz', $outputPath] as $stale) {
-                if (file_exists($stale)) {
-                    unlink($stale);
-                }
-            }
-
             $phar = new \PharData($tarPath);
 
             // Add checksums.json
@@ -87,19 +78,19 @@ class NoturArchive
             // Compress to .tar.gz
             $phar->compress(\Phar::GZ);
 
-            // Clean up the uncompressed tar
-            if (file_exists($tarPath) && $tarPath !== $outputPath) {
-                unlink($tarPath);
-            }
-
-            // Rename .tar.gz to .notur if needed
-            $gzPath = $tarPath . '.gz';
-            if ($gzPath !== $outputPath && file_exists($gzPath)) {
-                rename($gzPath, $outputPath);
+            unset($phar);
+            if (!rename($tarPath . '.gz', $outputPath)) {
+                throw new RuntimeException("Cannot write archive at: {$outputPath}");
             }
         } finally {
-            // Clean up temporary checksums.json only if we created it
-            if (!$checksumsExisted && file_exists($checksumsFile)) {
+            foreach ([$tarPath, $tarPath . '.gz'] as $temporary) {
+                if (file_exists($temporary)) {
+                    unlink($temporary);
+                }
+            }
+            if ($checksumsExisted) {
+                file_put_contents($checksumsFile, $originalChecksums);
+            } elseif (file_exists($checksumsFile)) {
                 unlink($checksumsFile);
             }
         }
@@ -129,6 +120,8 @@ class NoturArchive
         string $targetPath,
         bool $verifyChecksums = true,
         bool $requireChecksums = true,
+        int $maxExtractedBytes = 536870912,
+        int $maxEntries = 10000,
     ): array {
         if (!file_exists($archivePath)) {
             throw new RuntimeException("Archive not found: {$archivePath}");
@@ -136,6 +129,37 @@ class NoturArchive
 
         if (!is_dir($targetPath)) {
             mkdir($targetPath, 0755, true);
+        }
+
+        // Bound gzip expansion before PharData decompresses the archive internally.
+        $probe = fopen($archivePath, 'rb');
+        if ($probe === false) {
+            throw new RuntimeException("Cannot read archive: {$archivePath}");
+        }
+        $magic = fread($probe, 2);
+        fclose($probe);
+        if ($magic === "\x1f\x8b") {
+            $stream = gzopen($archivePath, 'rb');
+            if ($stream === false) {
+                throw new RuntimeException('Cannot open compressed archive.');
+            }
+            try {
+                $expanded = 0;
+                // Include tar headers and padding in addition to file payloads.
+                $limit = $maxExtractedBytes + ($maxEntries * 1024) + 10240;
+                while (!gzeof($stream)) {
+                    $chunk = gzread($stream, 65536);
+                    if ($chunk === false || ($chunk === '' && !gzeof($stream))) {
+                        throw new RuntimeException('Cannot read compressed archive.');
+                    }
+                    $expanded += strlen($chunk);
+                    if ($expanded > $limit) {
+                        throw new RuntimeException('Archive exceeds the decompression size limit.');
+                    }
+                }
+            } finally {
+                gzclose($stream);
+            }
         }
 
         // PharData infers archive format from file extension. Since .notur is
@@ -149,6 +173,31 @@ class NoturArchive
 
         try {
             $phar = new \PharData($aliasPath ?? $archivePath);
+            $bytes = 0;
+            $count = 0;
+            $prefix = 'phar://' . $phar->getPath() . '/';
+            foreach (new \RecursiveIteratorIterator($phar, \RecursiveIteratorIterator::SELF_FIRST) as $entry) {
+                $relative = substr($entry->getPathname(), strlen($prefix));
+                self::validateArchivePath($relative);
+                if ($entry->isLink() || (!$entry->isFile() && !$entry->isDir())) {
+                    throw new RuntimeException("Archive contains an unsupported entry: {$relative}");
+                }
+                $bytes += $entry->isFile() ? $entry->getSize() : 0;
+                if (++$count > $maxEntries || $bytes > $maxExtractedBytes) {
+                    throw new RuntimeException('Archive exceeds the unpacked size or file-count limit.');
+                }
+                // Never extract through a pre-existing link in the destination.
+                $destination = rtrim($targetPath, '/');
+                if (is_link($destination)) {
+                    throw new RuntimeException('Extraction target must not be a symbolic link.');
+                }
+                foreach (explode('/', $relative) as $component) {
+                    $destination .= '/' . $component;
+                    if (is_link($destination)) {
+                        throw new RuntimeException("Extraction path contains a symbolic link: {$relative}");
+                    }
+                }
+            }
             $phar->extractTo($targetPath, null, true);
         } catch (\Throwable $e) {
             throw new RuntimeException(
@@ -191,6 +240,15 @@ class NoturArchive
         return $checksums;
     }
 
+    private static function validateArchivePath(string $path): void
+    {
+        if ($path === '' || str_starts_with($path, '/') || str_contains($path, "\\")
+            || str_contains($path, "\0") || preg_match('#(^|/)\.\.?(/|$)#', $path)
+            || preg_match('/^[a-z]:/i', $path)) {
+            throw new RuntimeException("Invalid archive path: {$path}");
+        }
+    }
+
     /**
      * Verify that extracted files match their recorded checksums.
      *
@@ -212,6 +270,7 @@ class NoturArchive
                 continue;
             }
 
+            self::validateArchivePath($relativePath);
             $expectedPaths[] = $relativePath;
             $fullPath = $basePath . '/' . $relativePath;
 

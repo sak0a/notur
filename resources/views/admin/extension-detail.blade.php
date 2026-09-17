@@ -123,12 +123,7 @@
                             </button>
                         </form>
                     @endif
-                    <form action="{{ route('admin.notur.extensions.remove', $extension->extension_id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to remove {{ $extension->extension_id }}?');">
-                        @csrf
-                        <button type="submit" class="btn btn-danger pull-right">
-                            <i class="fa fa-trash"></i> Remove
-                        </button>
-                    </form>
+                    @include('notur::admin.partials.remove-extension', ['compact' => false])
                 </div>
             </div>
         </div>
@@ -672,4 +667,5 @@
         <div class="nb-brand-bar__logo">N</div>
         <div class="nb-brand-bar__text">Notur Extension Framework</div>
     </div>
+    @include('notur::admin.partials.lifecycle-actions')
 @endsection

@@ -29,36 +29,74 @@ class FrameworkUninstallCommand extends Command
         }
 
         $this->info('Uninstalling Notur...');
-        $exitCode = 0;
-
-        // Step 1: Restore patched React files
-        $this->restoreReactPatches();
-
-        // Step 2: Roll back all Notur database migrations
-        $this->rollbackMigrations();
-
-        // Step 3: Remove Blade injection
-        $this->removeBladeInjection();
-
-        // Step 4: Delete notur/ directory and public/notur/ assets
-        $this->removeNoturDirectories();
-
-        // Step 5: Run composer remove
-        $exitCode = $this->runComposerRemove();
-
-        // Step 6: Trigger frontend rebuild
-        $this->rebuildFrontend();
+        try {
+            $backup = app(\Notur\Support\LifecycleBackup::class)->create([
+                'resources' => base_path('resources'),
+                'notur' => base_path('notur'),
+                'extensions' => \Notur\Support\ExtensionPath::extensionsDir(),
+                'public' => base_path('public/notur'),
+                'public-assets' => base_path('public/assets'),
+                'composer.json' => base_path('composer.json'),
+                'composer.lock' => base_path('composer.lock'),
+                'config.php' => config_path('notur.php'),
+            ], 'uninstall');
+            $this->info("File backup: {$backup} (database not included).");
+            $this->restoreReactPatches();
+            // A failed build must not remove the running framework or its data.
+            if ($this->rebuildFrontend() !== 0) {
+                return 1;
+            }
+            $pending = [];
+            // Keep DB-only legacy entries, then include authoritative JSON state.
+            foreach (\Notur\Models\InstalledExtension::all() as $extension) {
+                // Dependents are removed first by retrying dependency-blocked entries.
+                $pending[$extension->extension_id] = true;
+            }
+            $state = app(\Notur\ExtensionManager::class)->reconcileState();
+            foreach (array_keys($state['extensions'] ?? []) as $id) {
+                $pending[$id] = true;
+            }
+            while ($pending !== []) {
+                $progress = false;
+                foreach (array_keys($pending) as $id) {
+                    try {
+                        app(\Notur\ExtensionManager::class)->assertCanRemove($id);
+                    } catch (\Notur\Exceptions\DependencyResolutionException) {
+                        continue;
+                    }
+                    if ($this->call('notur:remove', ['extension' => $id, '--force' => true]) !== 0) {
+                        return 1;
+                    }
+                    unset($pending[$id]);
+                    $progress = true;
+                }
+                if (!$progress) {
+                    throw new \RuntimeException('Cannot resolve extension removal order. Framework retained.');
+                }
+            }
+            $this->rollbackMigrations();
+            $this->removeBladeInjection();
+            $this->removeNoturDirectories();
+            if (is_file(config_path('notur.php')) && !unlink(config_path('notur.php'))) {
+                throw new \RuntimeException('Could not remove published Notur configuration.');
+            }
+            if ($this->call('optimize:clear') !== 0 || $this->runComposerRemove() !== 0) {
+                return 1;
+            }
+        } catch (\Throwable $e) {
+            $this->error('Uninstall stopped: ' . $e->getMessage());
+            return 1;
+        }
 
         $this->newLine();
-        $this->info('Notur has been uninstalled.');
-
-        return $exitCode;
+        $this->info('Notur has been uninstalled. File backups were retained in storage/notur/backups.');
+        return 0;
     }
 
     /**
      * Step 1: Restore patched React source files.
      *
-     * Attempts reverse patches first. Falls back to .notur-backup copies.
+     * Applies reverse patches; refuses conflicts to preserve subsequent local edits.
      */
     private function restoreReactPatches(): void
     {
@@ -81,7 +119,7 @@ class FrameworkUninstallCommand extends Command
 
                     $dryRun = 0;
                     exec(
-                        sprintf('cd %s && patch --dry-run -p1 < %s 2>/dev/null', escapeshellarg($panelDir), escapeshellarg($patch)),
+                        sprintf('cd %s && patch --batch --forward --dry-run -p1 < %s 2>/dev/null', escapeshellarg($panelDir), escapeshellarg($patch)),
                         $output,
                         $dryRun,
                     );
@@ -89,7 +127,7 @@ class FrameworkUninstallCommand extends Command
                     if ($dryRun === 0) {
                         $result = 0;
                         exec(
-                            sprintf('cd %s && patch -p1 < %s 2>/dev/null', escapeshellarg($panelDir), escapeshellarg($patch)),
+                            sprintf('cd %s && patch --batch --forward -p1 < %s 2>/dev/null', escapeshellarg($panelDir), escapeshellarg($patch)),
                             $output,
                             $result,
                         );
@@ -99,8 +137,12 @@ class FrameworkUninstallCommand extends Command
                             $allApplied = false;
                         }
                     } else {
-                        $this->warn("  Reverse patch cannot be applied cleanly: {$patchName}");
-                        $allApplied = false;
+                        $alreadyClean = 0;
+                        exec(sprintf('cd %s && patch --batch --reverse --dry-run -p1 < %s 2>/dev/null', escapeshellarg($panelDir), escapeshellarg($patch)), $output, $alreadyClean);
+                        if ($alreadyClean !== 0) {
+                            $this->warn("  Reverse patch conflicts with source: {$patchName}");
+                            $allApplied = false;
+                        }
                     }
                 }
 
@@ -111,10 +153,9 @@ class FrameworkUninstallCommand extends Command
             }
         }
 
-        // Fall back to .notur-backup copies
+        // Do not overwrite unrelated panel edits from old backup copies.
         if (!$reversePatchesApplied) {
-            $this->line('  Falling back to .notur-backup copies...');
-            $this->restoreFromBackups($panelDir);
+            throw new \RuntimeException('React patches could not be safely removed. Resolve source conflicts using the retained backup and retry.');
         }
     }
 
@@ -179,7 +220,7 @@ class FrameworkUninstallCommand extends Command
             // Found pterodactyl/panel but not a supported release. install.sh now
             // hard-fails on unsupported versions, so this branch typically only fires for
             // a manually-installed Notur on an unsupported panel. Reverse
-            // patches will likely fail; restoreFromBackups() is the fallback.
+            // patches will likely fail and stop uninstall for manual recovery.
             Log::warning(sprintf(
                 'Notur uninstall: pterodactyl/panel version "%s" is unsupported; reverse patches may not apply cleanly.',
                 $version,
@@ -189,55 +230,6 @@ class FrameworkUninstallCommand extends Command
 
         Log::warning('Notur uninstall: pterodactyl/panel not present in composer.lock; assuming v1.12 patches.');
         return 'v1.12';
-    }
-
-    /**
-     * Restore files from .notur-backup copies.
-     */
-    private function restoreFromBackups(string $panelDir): void
-    {
-        $backupFiles = [
-            'resources/scripts/routers/routes.ts',
-            'resources/scripts/routers/ServerRouter.tsx',
-            'resources/scripts/routers/DashboardRouter.tsx',
-            'resources/scripts/components/NavigationBar.tsx',
-        ];
-
-        $restored = 0;
-
-        foreach ($backupFiles as $relativePath) {
-            $backupFile = $panelDir . '/' . $relativePath . '.notur-backup';
-
-            if (file_exists($backupFile)) {
-                $targetFile = $panelDir . '/' . $relativePath;
-                copy($backupFile, $targetFile);
-                unlink($backupFile);
-                $this->line("  Restored: {$relativePath}");
-                $restored++;
-            }
-        }
-
-        // Also check Blade backup
-        $bladeFiles = [
-            'resources/views/layouts/scripts.blade.php',
-            'resources/views/templates/wrapper.blade.php',
-        ];
-
-        foreach ($bladeFiles as $relativePath) {
-            $backupFile = $panelDir . '/' . $relativePath . '.notur-backup';
-            if (file_exists($backupFile)) {
-                copy($backupFile, $panelDir . '/' . $relativePath);
-                unlink($backupFile);
-                $this->line("  Restored: {$relativePath}");
-                $restored++;
-            }
-        }
-
-        if ($restored === 0) {
-            $this->warn('  No backup files found. React files may need manual cleanup.');
-        } else {
-            $this->info("  Restored {$restored} file(s) from backups.");
-        }
     }
 
     /**
@@ -260,7 +252,7 @@ class FrameworkUninstallCommand extends Command
         // Also clean up Laravel's migrations table
         if (Schema::hasTable('migrations')) {
             \Illuminate\Support\Facades\DB::table('migrations')
-                ->where('migration', 'like', '%notur%')
+                ->whereIn('migration', array_map(static fn (string $path): string => basename($path, '.php'), glob(dirname(__DIR__, 3) . '/database/migrations/*.php')))
                 ->delete();
             $this->line('  Cleaned Notur entries from migrations table.');
         }
@@ -370,7 +362,7 @@ class FrameworkUninstallCommand extends Command
     /**
      * Step 6: Trigger frontend rebuild.
      */
-    private function rebuildFrontend(): void
+    private function rebuildFrontend(): int
     {
         $this->info('Step 6/6: Rebuilding frontend assets...');
 
@@ -382,7 +374,7 @@ class FrameworkUninstallCommand extends Command
             $this->warn('  No supported package manager found (bun, pnpm, yarn, npm).');
             $this->warn('  Frontend rebuild skipped. Run manually once a package manager is installed:');
             $this->warn('  bun/pnpm/yarn/npm run build:production');
-            return;
+            return 1;
         }
 
         $command = match ($packageManager) {
@@ -395,7 +387,7 @@ class FrameworkUninstallCommand extends Command
 
         if ($command === null) {
             $this->warn('  Frontend rebuild skipped due to unknown package manager.');
-            return;
+            return 1;
         }
 
         exec(
@@ -407,8 +399,10 @@ class FrameworkUninstallCommand extends Command
         if ($result !== 0) {
             $this->warn('  Frontend rebuild failed. Run manually:');
             $this->warn("  NODE_OPTIONS=--openssl-legacy-provider {$command}");
+            return 1;
         } else {
             $this->info('  Frontend rebuilt successfully.');
+            return 0;
         }
     }
 

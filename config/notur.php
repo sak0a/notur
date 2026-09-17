@@ -19,6 +19,9 @@ return [
     */
     'extensions_path' => 'notur/extensions',
 
+    // Private file snapshots; database backups must be managed separately.
+    'backups_path' => storage_path('notur/backups'),
+
     /*
     | Emergency recovery: skip discovery, autoloading and boot of all extensions.
     | A process-level NOTUR_SAFE_MODE=1 also works with cached Laravel config.

@@ -203,7 +203,7 @@ confirm() {
 
     # Read confirmations from the controlling terminal so piped/scripted stdin
     # (e.g. curl ... | bash) does not auto-decline prompts.
-    if [ -r /dev/tty ]; then
+    if ( : < /dev/tty ) 2>/dev/null; then
         print_prompt_line "${YELLOW}[Notur]${NC} ${prompt} [y/N]: "
         read -r response < /dev/tty
     else
@@ -260,13 +260,13 @@ get_node_packages() {
 }
 
 is_interactive_shell() {
-    [ -r /dev/tty ]
+    ( : < /dev/tty ) 2>/dev/null
 }
 
 print_prompt_line() {
     local text="$1"
 
-    if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+    if ( : < /dev/tty ) 2>/dev/null && [ -w /dev/tty ]; then
         printf '%b\n' "$text" > /dev/tty
     else
         printf '%b\n' "$text" >&2
@@ -277,7 +277,7 @@ prompt_for_number() {
     local prompt="$1"
     local response
 
-    if [ ! -r /dev/tty ]; then
+    if ! ( : < /dev/tty ) 2>/dev/null; then
         warn "No interactive terminal available for prompt: ${prompt}"
         return 1
     fi
@@ -359,6 +359,12 @@ install_distro_requirements() {
     if ! command -v perl >/dev/null 2>&1; then
         required_packages="$required_packages perl"
     fi
+
+    for tool in tar gzip; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            required_packages="$required_packages $tool"
+        fi
+    done
 
     # make + C++ compiler — pkg name varies wildly per distro (build-base on
     # alpine, build-essential on debian/ubuntu, etc.). node-gyp needs both
@@ -461,15 +467,11 @@ if is_docker_env; then
     warn "Docker installation detected."
     warn "Ensure your docker-compose.yml includes volume mounts for Notur data:"
     warn "  volumes:"
-    warn "    - 'notur-data:/app/notur/'"
-    warn "    - 'notur-public:/app/public/notur/'"
+    warn "    - 'notur-data:${PANEL_DIR}/notur/'"
+    warn "    - 'notur-public:${PANEL_DIR}/public/notur/'"
     echo ""
 fi
 
-# Install distro-specific requirements first (before other checks).
-# Use || true to continue even if package installation fails — the script
-# will fail later at a more specific point if required tools are missing.
-install_distro_requirements || true
 
 echo ""
 
@@ -508,6 +510,12 @@ if ! command -v composer &> /dev/null; then
     die "Composer is not installed."
 fi
 
+# Bootstrap only after confirming the requested panel and PHP tooling exist.
+install_distro_requirements || die "Could not install required system build tools."
+for tool in git patch perl tar gzip make g++ python3; do
+    command -v "$tool" >/dev/null 2>&1 || die "Required build tool is missing: $tool"
+done
+
 # Check Node.js
 if ! command -v node &> /dev/null; then
     warn "Node.js is not installed."
@@ -539,7 +547,7 @@ fi
 # otherwise `[ N -lt foo ]` errors with "integer expression expected" and
 # aborts the whole installer under set -e.
 case "$MIN_NODE_MAJOR" in
-    ''|*[!0-9]*)
+    ''|0|*[!0-9]*)
         die "Invalid MIN_NODE_MAJOR='${MIN_NODE_MAJOR}': must be a positive integer."
         ;;
 esac
@@ -691,7 +699,7 @@ detect_pkg_manager() {
         # User specified via environment variable
         case "$PKG_MANAGER" in
             bun|pnpm|yarn|npm) echo "$PKG_MANAGER"; return ;;
-            *) warn "Unknown PKG_MANAGER '$PKG_MANAGER', auto-detecting..." ;;
+            *) warn "Unknown PKG_MANAGER '$PKG_MANAGER', auto-detecting..." >&2 ;;
         esac
     fi
 
@@ -757,7 +765,7 @@ bootstrap_yarn() {
     fi
 
     info "Installing yarn to match yarn.lock..."
-    npm install -g yarn || return 1
+    npm install -g yarn@1.22.22 || return 1
 }
 
 prompt_for_package_manager_selection() {
@@ -839,7 +847,6 @@ activate_package_manager_selection() {
 ensure_selected_pkg_manager() {
     local lockfile_pkg_mgr="$1"
     local lockfile_managers="$2"
-    local fallback_pkg_mgr
     local selected_mgr
     local multiple_lockfiles=0
 
@@ -862,18 +869,16 @@ ensure_selected_pkg_manager() {
         return 0
     fi
 
-    if [ "$PKG_MGR" = "$lockfile_pkg_mgr" ] && [ "$PKG_MGR" = "yarn" ]; then
-        fallback_pkg_mgr=$(detect_fallback_pkg_manager "yarn")
-        if [ -n "$fallback_pkg_mgr" ]; then
-            warn "yarn.lock was detected, but yarn is not installed and no interactive prompt is available. Falling back to ${fallback_pkg_mgr}; this may ignore the panel's lockfile."
-            PKG_MGR="$fallback_pkg_mgr"
-            return 0
-        fi
+    if [ "$PKG_MGR" = "yarn" ]; then
+        bootstrap_yarn || die "Could not bootstrap Yarn. Install the panel's package manager and retry."
+        return 0
     fi
 
     die "Selected package manager '${PKG_MGR}' is not installed."
 }
 
+cd "${PANEL_DIR}"
+PANEL_DIR="$(pwd -P)"
 LOCKFILE_PKG_MANAGERS=$(detect_lockfile_pkg_managers)
 LOCKFILE_PKG_MGR=$(detect_lockfile_pkg_manager)
 PKG_MGR=$(detect_pkg_manager)
@@ -887,6 +892,11 @@ info "Using package manager: ${PKG_MGR}"
 
 # Package manager command helpers
 pkg_install() {
+    # Build tools are devDependencies, including in production containers.
+    local NODE_ENV=development
+    local npm_config_production=false
+    local npm_config_omit=""
+    export NODE_ENV npm_config_production npm_config_omit
     case "$PKG_MGR" in
         bun)
             # Prefer lockfile reproducibility when available.
@@ -932,10 +942,16 @@ pkg_run() {
 }
 
 pkg_exec() {
+    if [ -x "node_modules/.bin/${1##*/}" ]; then
+        local executable="$1"
+        shift
+        "./node_modules/.bin/${executable##*/}" "$@"
+        return
+    fi
     case "$PKG_MGR" in
         bun)  bunx "$@" ;;
         pnpm) pnpm dlx "$@" ;;
-        yarn) yarn dlx "$@" ;;
+        yarn) yarn exec "$@" ;;
         npm)  npx "$@" ;;
     esac
 }
@@ -986,9 +1002,9 @@ resolve_pkg_install_fallback() {
 }
 
 run_tailwind_cli() {
-    # Tailwind v4 ships CLI as @tailwindcss/cli; try legacy tailwindcss binary as fallback.
-    pkg_exec @tailwindcss/cli -i resources/tailwind/notur.css -o bridge/dist/tailwind.css || \
-        pkg_exec tailwindcss -i resources/tailwind/notur.css -o bridge/dist/tailwind.css
+    # Use the release-local CLI, never download an unrelated latest Tailwind.
+    [ -x node_modules/.bin/tailwindcss ] || return 1
+    node_modules/.bin/tailwindcss -i resources/tailwind/notur.css -o bridge/dist/tailwind.css
 }
 
 # Check whether a package.json declares a specific script.
@@ -1016,6 +1032,65 @@ fi
 
 ok "Pre-flight checks passed."
 echo ""
+
+# Detect panel version
+detect_panel_version() {
+    local version=""
+    if [ -f "${PANEL_DIR}/composer.lock" ]; then
+        version=$(grep -A1 '"name": "pterodactyl/panel"' "${PANEL_DIR}/composer.lock" | grep '"version"' | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/' || echo "")
+    fi
+    if [ -z "$version" ] && [ -f "${PANEL_DIR}/config/app.php" ]; then
+        version=$(grep "'version'" "${PANEL_DIR}/config/app.php" | head -1 | sed "s/.*'version'.*'\([^']*\)'.*/\1/" || echo "")
+    fi
+    echo "$version"
+}
+
+PANEL_VERSION=$(detect_panel_version)
+info "Detected panel version: ${PANEL_VERSION:-unknown}"
+
+# Map to patch directory for verified panel branches.
+# Accept both "1.12.0" and "v1.12.0" forms — Composer may surface either
+# depending on whether the version was sourced from composer.json or a git tag.
+case "$PANEL_VERSION" in
+    1.12.*|v1.12.*)
+        PATCH_VERSION="v1.12"
+        ;;
+    1.15.0|v1.15.0|1.15.1|v1.15.1)
+        PATCH_VERSION="v1.15"
+        ;;
+    1.11.*|v1.11.*)
+        die "Pterodactyl v1.11.x is no longer supported by Notur. Please upgrade to v1.12.x or v1.15.0–v1.15.1."
+        ;;
+    "")
+        die "Could not detect Pterodactyl panel version. Notur requires v1.12.x or v1.15.0–v1.15.1."
+        ;;
+    *)
+        die "Unsupported Pterodactyl version: ${PANEL_VERSION}. Notur supports v1.12.x and v1.15.0–v1.15.1."
+        ;;
+esac
+
+info "Using patch set: ${PATCH_VERSION}"
+
+# Snapshot files before Composer, patches or builds modify the installation.
+create_install_backup() {
+    local backup_root="${PANEL_DIR}/storage/notur/backups"
+    local entry
+    local entries=()
+    mkdir -p "$backup_root" || return 1
+    BACKUP_DIR=$(mktemp -d "$backup_root/install-XXXXXXXX") || return 1
+    chmod 700 "$BACKUP_DIR" || return 1
+    for entry in composer.json composer.lock package.json package-lock.json yarn.lock pnpm-lock.yaml bun.lock bun.lockb resources public/assets public/notur notur config/notur.php; do
+        [ ! -e "${PANEL_DIR}/$entry" ] || entries+=("$entry")
+    done
+    tar -czf "$BACKUP_DIR/files.tar.gz" -C "$PANEL_DIR" "${entries[@]}" || return 1
+    info "File backup: $BACKUP_DIR/files.tar.gz (database backup must be managed separately)."
+}
+
+create_install_backup || die "Could not create the pre-install file backup. No panel changes made."
+if [ -f "${PANEL_DIR}/vendor/notur/notur/composer.json" ]; then
+    info "Existing Notur installation detected; upgrading/reconciling files and preserving extension state."
+fi
+trap 'error "Installation interrupted. File backup retained at ${BACKUP_DIR}; database changes are not automatically rolled back."' ERR
 
 # ── Step 1: Install Composer package ─────────────────────────────────────
 
@@ -1067,44 +1142,6 @@ fi
 
 step "3/6" "Applying React source patches..."
 
-# Detect panel version
-detect_panel_version() {
-    local version=""
-    if [ -f "${PANEL_DIR}/composer.lock" ]; then
-        version=$(grep -A1 '"name": "pterodactyl/panel"' "${PANEL_DIR}/composer.lock" | grep '"version"' | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/' || echo "")
-    fi
-    if [ -z "$version" ] && [ -f "${PANEL_DIR}/config/app.php" ]; then
-        version=$(grep "'version'" "${PANEL_DIR}/config/app.php" | head -1 | sed "s/.*'version'.*'\([^']*\)'.*/\1/" || echo "")
-    fi
-    echo "$version"
-}
-
-PANEL_VERSION=$(detect_panel_version)
-info "Detected panel version: ${PANEL_VERSION:-unknown}"
-
-# Map to patch directory for verified panel branches.
-# Accept both "1.12.0" and "v1.12.0" forms — Composer may surface either
-# depending on whether the version was sourced from composer.json or a git tag.
-case "$PANEL_VERSION" in
-    1.12.*|v1.12.*)
-        PATCH_VERSION="v1.12"
-        ;;
-    1.15.0|v1.15.0|1.15.1|v1.15.1)
-        PATCH_VERSION="v1.15"
-        ;;
-    1.11.*|v1.11.*)
-        die "Pterodactyl v1.11.x is no longer supported by Notur. Please upgrade to v1.12.x or v1.15.0–v1.15.1."
-        ;;
-    "")
-        die "Could not detect Pterodactyl panel version. Notur requires v1.12.x or v1.15.0–v1.15.1."
-        ;;
-    *)
-        die "Unsupported Pterodactyl version: ${PANEL_VERSION}. Notur supports v1.12.x and v1.15.0–v1.15.1."
-        ;;
-esac
-
-info "Using patch set: ${PATCH_VERSION}"
-
 # Resolve script directory (realpath may not exist on Alpine)
 resolve_path() {
     if command -v realpath &> /dev/null; then
@@ -1133,17 +1170,18 @@ if [ -d "${PATCH_DIR}" ]; then
             fi
             info "  Applying: ${PATCH_NAME}"
             cd "${PANEL_DIR}"
-            if patch --dry-run -p1 < "${patch}" &>/dev/null; then
-                patch -p1 < "${patch}" || warn "  Failed to apply: ${PATCH_NAME}"
+            if patch --batch --forward --dry-run -p1 < "${patch}" &>/dev/null; then
+                patch --batch --forward -p1 < "${patch}" || die "Failed to apply: ${PATCH_NAME}. Backup: ${BACKUP_DIR}"
+            elif patch --batch --reverse --dry-run -p1 < "${patch}" &>/dev/null; then
+                info "  Patch already applied: ${PATCH_NAME}"
             else
-                warn "  Patch already applied or cannot be applied: ${PATCH_NAME}"
+                die "Patch conflicts with panel source: ${PATCH_NAME}. Backup: ${BACKUP_DIR}"
             fi
         fi
     done
     ok "React patches applied."
 else
-    warn "Patch directory not found. Skipping React patches."
-    warn "You may need to manually add slot containers to your React files."
+    die "Required patch directory not found: ${PATCH_DIR}"
 fi
 
 # ── Step 4: Rebuild frontend ─────────────────────────────────────────────
@@ -1196,9 +1234,9 @@ install_frontend_dependencies() {
     if [ "$PKG_MGR" = "npm" ]; then
         warn "Standard npm install failed. Retrying with --legacy-peer-deps..."
         if [ -f "package-lock.json" ]; then
-            npm ci --legacy-peer-deps && return 0
+            npm ci --include=dev --legacy-peer-deps && return 0
         else
-            npm install --legacy-peer-deps && return 0
+            npm install --include=dev --legacy-peer-deps && return 0
         fi
     fi
 
@@ -1207,7 +1245,7 @@ install_frontend_dependencies() {
 
 build_frontend() {
     install_frontend_dependencies || return 1
-    fix_webpack_cli_compat
+    fix_webpack_cli_compat || return 1
 
     # Some panel builds hardcode yarn in package.json scripts
     # (e.g. "build:production": "yarn run clean && ...").
@@ -1255,71 +1293,51 @@ mkdir -p "${PANEL_DIR}/storage/notur"
 
 NOTUR_DIR="${PANEL_DIR}/vendor/notur/notur"
 
-# Copy bridge.js to public (build it if missing)
-BRIDGE_JS="${PANEL_DIR}/vendor/notur/notur/bridge/dist/bridge.js"
-if [ ! -f "${BRIDGE_JS}" ]; then
-    warn "Bridge runtime not found. Building it now..."
-    if [ -d "${NOTUR_DIR}" ]; then
-        cd "${NOTUR_DIR}"
-        # Install dependencies and build bridge
-        if [ "$PKG_MGR" = "npm" ]; then
-            npm install --legacy-peer-deps && npm run build:bridge
-        else
-            pkg_install && pkg_run build:bridge
-        fi
-        cd "${PANEL_DIR}"
+# Resolve dependencies from the Notur package, independently of the panel.
+build_notur_assets() (
+    cd "${NOTUR_DIR}" || exit 1
+    PKG_MGR=$(detect_pkg_manager)
+    [ -n "$PKG_MGR" ] && package_manager_is_installed "$PKG_MGR" || exit 1
+    # The installed release is the source of truth for its Node engine range.
+    php -r '
+        require $argv[1] . "/vendor/autoload.php";
+        $package = json_decode(file_get_contents("package.json"), true, 512, JSON_THROW_ON_ERROR);
+        $range = $package["engines"]["node"] ?? "*";
+        if (!\Composer\Semver\Semver::satisfies($argv[2], $range)) {
+            fwrite(STDERR, "Notur assets require Node " . $range . "; found " . $argv[2] . PHP_EOL);
+            exit(1);
+        }
+    ' "$PANEL_DIR" "$node_version" || exit 1
+    install_frontend_dependencies || exit 1
+    if [ ! -s bridge/dist/bridge.js ]; then
+        pkg_run build:bridge || exit 1
     fi
-fi
+    if [ "$TAILWIND_REQUIRED" -eq 1 ] && [ ! -s bridge/dist/tailwind.css ]; then
+        if has_pkg_script package.json build:tailwind; then
+            pkg_run build:tailwind || exit 1
+        else
+            run_tailwind_cli || exit 1
+        fi
+    fi
+)
 
-if [ -f "${BRIDGE_JS}" ]; then
-    cp "${BRIDGE_JS}" "${PANEL_DIR}/public/notur/bridge.js"
-    ok "Bridge runtime installed."
-else
-    die "Bridge runtime could not be built. Please build it manually: cd vendor/notur/notur && npm install && npm run build:bridge"
-fi
-
-# Copy Tailwind CSS to public (build it if missing), but only for package versions that use it
-TAILWIND_CSS="${PANEL_DIR}/vendor/notur/notur/bridge/dist/tailwind.css"
+BRIDGE_JS="${NOTUR_DIR}/bridge/dist/bridge.js"
+TAILWIND_CSS="${NOTUR_DIR}/bridge/dist/tailwind.css"
 NOTUR_SCRIPTS_BLADE="${NOTUR_DIR}/resources/views/scripts.blade.php"
 TAILWIND_REQUIRED=0
 if [ -f "${NOTUR_SCRIPTS_BLADE}" ] && grep -q "/notur/tailwind.css" "${NOTUR_SCRIPTS_BLADE}"; then
     TAILWIND_REQUIRED=1
 fi
-
-if [ "${TAILWIND_REQUIRED}" -eq 1 ]; then
-    if [ ! -f "${TAILWIND_CSS}" ]; then
-        warn "Tailwind CSS not found. Building it now..."
-        if [ -d "${NOTUR_DIR}" ]; then
-            cd "${NOTUR_DIR}"
-            if has_pkg_script "${NOTUR_DIR}/package.json" "build:tailwind"; then
-                if [ "$PKG_MGR" = "npm" ]; then
-                    npm install --legacy-peer-deps && npm run build:tailwind
-                else
-                    pkg_install && pkg_run build:tailwind
-                fi
-            elif [ -f "${NOTUR_DIR}/resources/tailwind/notur.css" ]; then
-                warn "build:tailwind script not found. Using direct Tailwind CLI fallback..."
-                if [ "$PKG_MGR" = "npm" ]; then
-                    npm install --legacy-peer-deps && run_tailwind_cli
-                else
-                    pkg_install && run_tailwind_cli
-                fi
-            else
-                warn "Installed Notur package does not include Tailwind build assets. Skipping Tailwind CSS build."
-            fi
-            cd "${PANEL_DIR}"
-        fi
-    fi
-
-    if [ -f "${TAILWIND_CSS}" ]; then
-        cp "${TAILWIND_CSS}" "${PANEL_DIR}/public/notur/tailwind.css"
-        ok "Tailwind CSS installed."
-    else
-        warn "Tailwind CSS could not be built. Please build it manually: cd vendor/notur/notur && npm install && npm run build:tailwind"
-    fi
-else
-    info "Installed Notur package does not require shared Tailwind CSS. Skipping Tailwind CSS install."
+if [ ! -s "$BRIDGE_JS" ] || { [ "$TAILWIND_REQUIRED" -eq 1 ] && [ ! -s "$TAILWIND_CSS" ]; }; then
+    build_notur_assets || die "Could not build required Notur runtime assets."
 fi
+[ -s "$BRIDGE_JS" ] || die "Bridge runtime is missing or empty."
+cp "$BRIDGE_JS" "${PANEL_DIR}/public/notur/bridge.js"
+if [ "$TAILWIND_REQUIRED" -eq 1 ]; then
+    [ -s "$TAILWIND_CSS" ] || die "Required Tailwind CSS is missing or empty."
+    cp "$TAILWIND_CSS" "${PANEL_DIR}/public/notur/tailwind.css"
+fi
+ok "Notur runtime assets installed."
 
 # Initialize extensions.json
 if [ ! -f "${PANEL_DIR}/notur/extensions.json" ]; then
@@ -1339,26 +1357,8 @@ step "6/6" "Running database migrations..."
 cd "${PANEL_DIR}"
 
 run_migrations() {
-    if php artisan migrate --force; then
-        return 0
-    fi
-
-    if php artisan tinker --execute="echo \\Illuminate\\Support\\Facades\\Schema::hasTable('notur_activity_logs') ? '1' : '0';" 2>/dev/null | grep -q '^1$'; then
-        warn "Detected existing notur_activity_logs table. Marking migration as applied and retrying..."
-        php artisan tinker --execute="
-            if (\Illuminate\Support\Facades\Schema::hasTable('migrations')) {
-                \$migration = '2026_02_03_000004_create_notur_activity_logs_table';
-                \$exists = \Illuminate\Support\Facades\DB::table('migrations')->where('migration', \$migration)->exists();
-                if (!\$exists) {
-                    \$batch = ((int) (\Illuminate\Support\Facades\DB::table('migrations')->max('batch') ?? 0)) + 1;
-                    \Illuminate\Support\Facades\DB::table('migrations')->insert(['migration' => \$migration, 'batch' => \$batch]);
-                }
-            }
-        " >/dev/null 2>&1 || true
-        php artisan migrate --force --isolated && return 0
-    fi
-
-    return 1
+    # Never mark a migration complete merely because an unrelated table exists.
+    php artisan migrate --force
 }
 
 run_migrations || die "Migration failed."
@@ -1371,7 +1371,7 @@ CHECKSUM_FILE="${PANEL_DIR}/notur/.checksums"
 
 # Verify previously stored checksums before overwriting.
 if [ -f "${CHECKSUM_FILE}" ] && [ -f "${TARGET_BLADE}" ]; then
-    PREV_LAYOUT_HASH=$(grep '^layout:' "${CHECKSUM_FILE}" 2>/dev/null | awk '{print $2}')
+    PREV_LAYOUT_HASH=$(grep '^layout:' "${CHECKSUM_FILE}" 2>/dev/null | awk '{print $2}' || true)
     if [ -n "${PREV_LAYOUT_HASH:-}" ]; then
         if command -v sha256sum &>/dev/null; then
             CUR_LAYOUT_HASH=$(sha256sum "${TARGET_BLADE}" | cut -d' ' -f1)
@@ -1390,7 +1390,7 @@ fi
 
 {
     echo "# Notur file checksums — generated $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    if [ -f "${SCRIPTS_BLADE}" ]; then
+    if [ -f "${TARGET_BLADE}" ]; then
         if command -v sha256sum &>/dev/null; then
             echo "layout: $(sha256sum "${TARGET_BLADE}" | cut -d' ' -f1)"
         elif command -v shasum &>/dev/null; then
@@ -1398,6 +1398,8 @@ fi
         fi
     fi
 } > "${CHECKSUM_FILE}"
+
+php artisan optimize:clear || die "Could not clear Laravel caches."
 
 # ── Done ─────────────────────────────────────────────────────────────────
 
@@ -1425,10 +1427,12 @@ echo ""
 if is_docker_env; then
     warn "IMPORTANT: For Docker installations:"
     warn "  1. Add volume mounts to persist Notur data across container restarts:"
-    warn "       - 'notur-data:/app/notur'"
-    warn "       - 'notur-public:/app/public/notur'"
-    warn "     Or use bind mounts: './notur:/app/notur' (host path on left side)"
+    warn "       - 'notur-data:${PANEL_DIR}/notur'"
+    warn "       - 'notur-public:${PANEL_DIR}/public/notur'"
+    warn "     Or use bind mounts: './notur:${PANEL_DIR}/notur' (host path on left side)"
     warn "  2. If using Coolify or similar, configure persistent storage for these paths."
-    warn "  3. After updating the panel image, you may need to re-run this installer."
+    warn "  3. Persist ${PANEL_DIR}/storage/notur for backups. Back up the database separately."
+    warn "  4. Container changes to vendor, patched sources and built assets do NOT survive image replacement."
+    warn "     Bake these into your custom image or rerun installation before serving traffic after every redeploy."
     echo ""
 fi

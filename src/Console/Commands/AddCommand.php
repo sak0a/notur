@@ -49,6 +49,8 @@ class AddCommand extends ExtensionLifecycleCommand
         MigrationManager $migrationManager,
         SignatureVerifier $verifier,
         bool $cleanupArchive = false,
+        ?string $expectedId = null,
+        ?string $expectedVersion = null,
     ): int {
         $this->info("Installing from local file: {$filePath}");
 
@@ -92,6 +94,11 @@ class AddCommand extends ExtensionLifecycleCommand
 
             $extensionId = $manifest->getId();
             try {
+                if (($expectedId !== null && $extensionId !== $expectedId)
+                    || ($expectedVersion !== null && $manifest->getVersion() !== $expectedVersion)) {
+                    $this->error('Downloaded package identity/version does not match the requested registry release.');
+                    return 1;
+                }
                 return $this->finalizeInstall($extensionId, $tmpDir, $manifest, $manager, $migrationManager);
             } finally {
                 $this->cleanupPath($tmpDir);
@@ -160,6 +167,8 @@ class AddCommand extends ExtensionLifecycleCommand
             $migrationManager,
             $verifier,
             cleanupArchive: true,
+            expectedId: $extensionId,
+            expectedVersion: $version,
         );
     }
 
@@ -210,6 +219,7 @@ class AddCommand extends ExtensionLifecycleCommand
             if ($stagedManifest->getId() !== $extensionId || $stagedManifest->getVersion() !== $manifest->getVersion()) {
                 throw new RuntimeException('Staged manifest does not match the verified archive.');
             }
+            app(\Notur\Support\ExtensionComposerRequirements::class)->validate($stagedPath);
             $this->makeDirectory($stagedPublicPath);
             foreach (array_filter([$manifest->getFrontendBundle(), $manifest->getFrontendStyles()]) as $asset) {
                 $asset = $this->validateRelativePath($asset);
@@ -229,6 +239,11 @@ class AddCommand extends ExtensionLifecycleCommand
                 if (!is_dir($stagedPath . '/' . $migrations)) {
                     throw new RuntimeException("Declared migrations directory is missing: {$migrations}");
                 }
+            }
+
+            if (is_dir($targetPath) || is_dir($publicPath)) {
+                $backup = app(\Notur\Support\LifecycleBackup::class)->extension($extensionId);
+                $this->info("File backup: {$backup} (database not included).");
             }
 
             $this->info("Installing to {$targetPath}...");

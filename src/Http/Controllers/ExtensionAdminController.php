@@ -56,6 +56,8 @@ class ExtensionAdminController extends Controller
         return view('notur::admin.extensions', [
             'extensions' => $extensions,
             'installedIds' => $installedIds,
+            'bootFailures' => $this->manager->getBootFailures(),
+            'safeMode' => $this->manager->isSafeMode(),
             'registryQuery' => $query,
             'registryResults' => $registryResults,
             'registryError' => $registryError,
@@ -289,14 +291,16 @@ class ExtensionAdminController extends Controller
             if ($exitCode !== 0) {
                 return redirect()
                     ->route('admin.notur.diagnostics')
-                    ->with('error', 'Notur update failed: ' . ($output !== '' ? $output : 'Unknown Composer error.'));
+                    ->with('error', 'Notur update failed: ' . ($output !== '' ? $output : 'Installer exited without an error message.'));
             }
 
-            Artisan::call('optimize:clear');
+            if (Artisan::call('optimize:clear') !== 0) {
+                throw new \RuntimeException('Update ran, but Laravel cache cleanup failed. Inspect the installer output before retrying.');
+            }
 
             return redirect()
                 ->route('admin.notur.diagnostics')
-                ->with('success', "Notur updated to v{$latestVersion}. " . trim(Artisan::output()));
+                ->with('success', 'Notur update installer completed. ' . $output);
         } catch (\Throwable $e) {
             return redirect()
                 ->route('admin.notur.diagnostics')
@@ -495,12 +499,17 @@ class ExtensionAdminController extends Controller
     public function install(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'registry_id' => ['nullable', 'string', 'regex:/^[a-z0-9\\-]+\\/[a-z0-9\\-]+$/'],
-            'archive' => ['nullable', 'file', 'max:51200', 'extensions:notur'],
+            'registry_id' => ['nullable', 'string', 'regex:/^[a-z0-9\\-]+\\/[a-z0-9\\-]+$/', \Illuminate\Validation\Rule::prohibitedIf(fn () => $request->hasFile('archive'))],
+            'archive' => ['nullable', 'file', 'max:51200', 'extensions:notur', \Illuminate\Validation\Rule::prohibitedIf(fn () => $request->filled('registry_id')), 'required_with:signature'],
+            'signature' => ['nullable', 'file', 'max:64', 'extensions:sig', \Illuminate\Validation\Rule::requiredIf(fn () => config('notur.require_signatures') && $request->hasFile('archive'))],
+            'force' => ['sometimes', 'boolean'],
         ], [
             'registry_id.regex' => 'Registry ID must be in vendor/name format.',
             'archive.extensions' => 'Archive must be a .notur file.',
             'archive.max' => 'Archive may not be greater than 50 MB.',
+            'registry_id.prohibited' => 'Choose a registry ID or an archive, not both.',
+            'archive.prohibited' => 'Choose a registry ID or an archive, not both.',
+            'signature.required' => 'A detached .sig file is required for this signed archive.',
         ]);
 
         $registryId = isset($validated['registry_id']) ? trim((string) $validated['registry_id']) : '';
@@ -513,20 +522,30 @@ class ExtensionAdminController extends Controller
         }
 
         $tmpPath = null;
+        $tmpDirectory = null;
 
         try {
             if ($uploadedFile) {
-                $tmpPath = sys_get_temp_dir() . '/notur-upload-' . uniqid('', true) . '.notur';
+                $tmpDirectory = sys_get_temp_dir() . '/notur-upload-' . bin2hex(random_bytes(16));
+                if (!mkdir($tmpDirectory, 0700)) {
+                    throw new \RuntimeException('Could not create a temporary upload directory.');
+                }
+                $tmpPath = $tmpDirectory . '/extension.notur';
                 $uploadedFile->move(dirname($tmpPath), basename($tmpPath));
+                if ($request->hasFile('signature')) {
+                    $request->file('signature')->move($tmpDirectory, 'extension.notur.sig');
+                }
 
                 $exitCode = Artisan::call('notur:add', [
                     'extension' => $tmpPath,
-                    '--force' => true,
+                    '--force' => $request->boolean('force'),
+                    '--no-interaction' => true,
                 ]);
             } else {
                 $exitCode = Artisan::call('notur:add', [
                     'extension' => $registryId,
-                    '--force' => true,
+                    '--force' => $request->boolean('force'),
+                    '--no-interaction' => true,
                 ]);
             }
 
@@ -550,6 +569,9 @@ class ExtensionAdminController extends Controller
             }
             if (is_string($tmpPath) && $tmpPath !== '' && file_exists($tmpPath . '.sig')) {
                 @unlink($tmpPath . '.sig');
+            }
+            if (is_string($tmpDirectory) && is_dir($tmpDirectory)) {
+                @rmdir($tmpDirectory);
             }
         }
     }
@@ -594,7 +616,7 @@ class ExtensionAdminController extends Controller
 
             return redirect()
                 ->route('admin.notur.extensions')
-                ->with('success', "Extension '{$extensionId}' updated. " . $output);
+                ->with('success', "Update result for '{$extensionId}': " . $output);
         } catch (\Throwable $e) {
             return redirect()
                 ->route('admin.notur.extensions')
@@ -617,7 +639,12 @@ class ExtensionAdminController extends Controller
                     continue;
                 }
 
-                ['exitCode' => $exitCode, 'output' => $output] = $this->runUpdateCommand($extensionId);
+                try {
+                    ['exitCode' => $exitCode, 'output' => $output] = $this->runUpdateCommand($extensionId);
+                } catch (\Throwable $e) {
+                    $failures[] = "{$extensionId}: " . $e->getMessage();
+                    continue;
+                }
                 if ($exitCode !== 0) {
                     $failures[] = "{$extensionId}: " . ($output !== '' ? $output : 'Unknown error');
                     continue;
@@ -629,7 +656,7 @@ class ExtensionAdminController extends Controller
             if ($failures !== []) {
                 return redirect()
                     ->route('admin.notur.extensions')
-                    ->with('error', 'Some updates failed: ' . implode(' | ', $failures));
+                    ->with('error', "Updated {$updated} extension(s). Some updates failed: " . implode(' | ', $failures));
             }
 
             return redirect()
@@ -645,10 +672,11 @@ class ExtensionAdminController extends Controller
     /**
      * Remove an extension.
      */
-    public function remove(string $extensionId): RedirectResponse
+    public function remove(Request $request, string $extensionId): RedirectResponse
     {
+        $request->validate(['keep_data' => ['sometimes', 'boolean']]);
         try {
-            ['exitCode' => $exitCode, 'output' => $output] = $this->runRemoveCommand($extensionId);
+            ['exitCode' => $exitCode, 'output' => $output] = $this->runRemoveCommand($extensionId, $request->boolean('keep_data'));
 
             if ($exitCode !== 0) {
                 $message = $output !== ''
@@ -662,7 +690,7 @@ class ExtensionAdminController extends Controller
 
             return redirect()
                 ->route('admin.notur.extensions')
-                ->with('success', "Extension '{$extensionId}' has been removed.");
+                ->with('success', "Extension '{$extensionId}' has been removed." . ($request->boolean('keep_data') ? ' Settings and database tables were kept.' : ''));
         } catch (\Throwable $e) {
             return redirect()
                 ->route('admin.notur.extensions')
@@ -670,12 +698,13 @@ class ExtensionAdminController extends Controller
         }
     }
 
-    protected function runRemoveCommand(string $extensionId): array
+    protected function runRemoveCommand(string $extensionId, bool $keepData = false): array
     {
         $exitCode = Artisan::call('notur:remove', [
             'extension' => $extensionId,
             '--force' => true,
             '--no-interaction' => true,
+            '--keep-data' => $keepData,
         ]);
 
         return [
@@ -698,9 +727,9 @@ class ExtensionAdminController extends Controller
 
     protected function runUpdateCommand(string $extensionId): array
     {
-        $exitCode = Artisan::call('notur:add', [
+        $exitCode = Artisan::call('notur:update', [
             'extension' => $extensionId,
-            '--force' => true,
+            '--no-interaction' => true,
         ]);
 
         return [
@@ -711,93 +740,30 @@ class ExtensionAdminController extends Controller
 
     protected function runNoturSelfUpdateCommand(string $latestVersion): array
     {
+        // Composer alone leaves migrations, source patches and public assets stale.
         return $this->runProcess([
-            'composer',
-            'require',
-            "notur/notur:^{$latestVersion}",
-            '--with-all-dependencies',
-            '--no-interaction',
-            '--no-ansi',
+            'bash',
+            base_path('vendor/notur/notur/installer/install.sh'),
+            base_path(),
         ], base_path(), 300);
     }
 
-    /**
-     * @param array<int, string> $command
-     * @return array{exitCode: int, output: string}
-     */
-    private function runProcess(array $command, string $cwd, int $timeoutSeconds): array
+    /** @param array<int, string> $command */
+    protected function runProcess(array $command, string $cwd, int $timeoutSeconds): array
     {
         if (!function_exists('proc_open')) {
-            return [
-                'exitCode' => 1,
-                'output' => 'proc_open is disabled. Run the Composer update command from the CLI.',
-            ];
+            return ['exitCode' => 1, 'output' => 'Process execution is unavailable. Run installer/install.sh from the panel terminal.'];
         }
-
-        $descriptorSpec = [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ];
-
-        $env = array_merge($_ENV, [
-            'COMPOSER_ALLOW_SUPERUSER' => '1',
-        ]);
-
-        $process = @proc_open($command, $descriptorSpec, $pipes, $cwd, $env);
-        if (!is_resource($process)) {
-            return [
-                'exitCode' => 1,
-                'output' => 'Failed to start Composer. Ensure composer is available to the web server user.',
-            ];
-        }
-
-        fclose($pipes[0]);
-        stream_set_blocking($pipes[1], false);
-        stream_set_blocking($pipes[2], false);
-
-        $startedAt = time();
+        $process = new \Symfony\Component\Process\Process($command, $cwd, ['COMPOSER_ALLOW_SUPERUSER' => '1'], null, $timeoutSeconds);
         $output = '';
-        $exitCode = null;
-
         try {
-            while (true) {
-                $output .= stream_get_contents($pipes[1]) ?: '';
-                $output .= stream_get_contents($pipes[2]) ?: '';
-
-                $status = proc_get_status($process);
-                if (!$status['running']) {
-                    $exitCode = is_int($status['exitcode'] ?? null) ? $status['exitcode'] : null;
-                    break;
-                }
-
-                if ((time() - $startedAt) > $timeoutSeconds) {
-                    proc_terminate($process);
-                    return [
-                        'exitCode' => 1,
-                        'output' => "Composer update timed out after {$timeoutSeconds} seconds.",
-                    ];
-                }
-
-                usleep(100000);
-            }
-        } finally {
-            foreach ([1, 2] as $pipe) {
-                if (isset($pipes[$pipe]) && is_resource($pipes[$pipe])) {
-                    fclose($pipes[$pipe]);
-                }
-            }
+            $exitCode = $process->run(function (string $type, string $buffer) use (&$output): void {
+                $output .= $buffer;
+            });
+        } catch (\Symfony\Component\Process\Exception\ProcessTimedOutException $e) {
+            return ['exitCode' => 1, 'output' => "Installer timed out after {$timeoutSeconds} seconds. Check retained backups and complete installation from the panel terminal. " . trim($output)];
         }
-
-        $closeCode = proc_close($process);
-        if ($exitCode === null || $exitCode === -1) {
-            $exitCode = $closeCode;
-        }
-
-        return [
-            'exitCode' => $exitCode,
-            'output' => trim($output),
-        ];
+        return ['exitCode' => $exitCode, 'output' => trim($output)];
     }
 
     /**
@@ -827,6 +793,7 @@ class ExtensionAdminController extends Controller
                 'current' => $currentVersion,
                 'latest' => $latestVersion,
                 'available' => $available,
+                'ahead' => $latestVersion !== null && version_compare($currentVersion, $latestVersion, '>'),
             ];
         }
 
@@ -840,7 +807,7 @@ class ExtensionAdminController extends Controller
     {
         try {
             $this->manager->enable($extensionId);
-        } catch (DependencyResolutionException $e) {
+        } catch (\Throwable $e) {
             return redirect()->route('admin.notur.extensions')->with('error', $e->getMessage());
         }
 
@@ -856,7 +823,7 @@ class ExtensionAdminController extends Controller
     {
         try {
             $this->manager->disable($extensionId);
-        } catch (DependencyResolutionException $e) {
+        } catch (\Throwable $e) {
             return redirect()->route('admin.notur.extensions')->with('error', $e->getMessage());
         }
 

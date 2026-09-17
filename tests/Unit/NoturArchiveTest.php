@@ -51,6 +51,19 @@ class NoturArchiveTest extends TestCase
         $this->assertSame($outputPath, $result['archive']);
     }
 
+    public function test_repacking_replaces_archive_without_leaving_temporary_files(): void
+    {
+        $archive = $this->tempDir . '/repeat.notur';
+        file_put_contents($this->sourceDir . '/checksums.json', "original\n");
+        NoturArchive::pack($this->sourceDir, $archive);
+        file_put_contents($this->sourceDir . '/src/TestExtension.php', '<?php // updated');
+        NoturArchive::pack($this->sourceDir, $archive);
+        NoturArchive::unpack($archive, $this->extractDir);
+        $this->assertSame('<?php // updated', file_get_contents($this->extractDir . '/src/TestExtension.php'));
+        $this->assertSame("original\n", file_get_contents($this->sourceDir . '/checksums.json'));
+        $this->assertSame([], glob($this->tempDir . '/.notur-pack-*'));
+    }
+
     public function test_pack_generates_checksums(): void
     {
         $outputPath = $this->tempDir . '/test.notur';
@@ -80,6 +93,55 @@ class NoturArchiveTest extends TestCase
 
         $this->assertArrayNotHasKey('node_modules/package.json', $result['checksums']);
         $this->assertArrayNotHasKey('.git/HEAD', $result['checksums']);
+    }
+
+    public function test_gzip_expansion_is_bounded_before_phar_opens_it(): void
+    {
+        $archive = $this->tempDir . '/expansion.notur';
+        file_put_contents($archive, gzencode(str_repeat('x', 100000)));
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('decompression size limit');
+        NoturArchive::unpack($archive, $this->extractDir, true, true, 1, 1);
+    }
+
+    public function test_unpack_limits_are_checked_before_files_are_written(): void
+    {
+        $archive = $this->tempDir . '/limited.notur';
+        NoturArchive::pack($this->sourceDir, $archive);
+        foreach ([[1, 10000], [536870912, 1]] as [$maxBytes, $maxEntries]) {
+            try {
+                NoturArchive::unpack($archive, $this->extractDir, true, true, $maxBytes, $maxEntries);
+                $this->fail('Oversized archive was accepted.');
+            } catch (RuntimeException $e) {
+                $this->assertStringContainsString('limit', $e->getMessage());
+            }
+            $this->assertFileDoesNotExist($this->extractDir . '/extension.yaml');
+        }
+    }
+
+    public function test_checksums_cannot_read_outside_the_extraction_directory(): void
+    {
+        file_put_contents($this->tempDir . '/outside.txt', 'outside');
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Invalid archive path');
+        NoturArchive::verifyChecksums($this->extractDir, ['../outside.txt' => hash('sha256', 'outside')]);
+    }
+
+    public function test_unpack_refuses_preexisting_destination_symlinks(): void
+    {
+        $archive = $this->tempDir . '/linked.notur';
+        NoturArchive::pack($this->sourceDir, $archive);
+        mkdir($this->tempDir . '/outside');
+        symlink($this->tempDir . '/outside', $this->extractDir . '/src');
+        try {
+            NoturArchive::unpack($archive, $this->extractDir);
+            $this->fail('Destination symlink was accepted.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('symbolic link', $e->getMessage());
+        } finally {
+            unlink($this->extractDir . '/src');
+        }
+        $this->assertFileDoesNotExist($this->tempDir . '/outside/TestExtension.php');
     }
 
     public function test_unpack_extracts_files(): void

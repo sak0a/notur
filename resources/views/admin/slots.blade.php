@@ -23,9 +23,9 @@
                     <h3 class="box-title"><i class="fa fa-th" style="margin-right: 8px; opacity: 0.5;"></i>Slot Catalog</h3>
                     <div class="box-tools pull-right">
                         <div class="input-group input-group-sm" style="width: 250px;">
-                            <input type="text" class="form-control" id="slot-search" placeholder="Filter slots...">
+                            <input type="text" class="form-control" id="slot-search" aria-label="Filter slots" placeholder="Filter slots...">
                             <span class="input-group-btn">
-                                <button type="button" class="btn btn-default" id="slot-search-clear">
+                                <button type="button" class="btn btn-default" id="slot-search-clear" aria-label="Clear slot filter">
                                     <i class="fa fa-times"></i>
                                 </button>
                             </span>
@@ -40,7 +40,7 @@
                                 <th>Type</th>
                                 <th>Description</th>
                                 <th>Container ID</th>
-                                <th>Registered Extensions</th>
+                                <th>Active Extensions</th>
                             </tr>
                         </thead>
                         <tbody>

@@ -105,6 +105,7 @@ mkdir -p notur/extensions/notur
 cp -R /opt/notur/examples/full-extension notur/extensions/notur/full-extension
 
 php /opt/notur/tests/E2E/bootstrap-state.php
+php /opt/notur/tests/E2E/setup-update-fixture.php
 
 php artisan package:discover --ansi
 php artisan config:clear

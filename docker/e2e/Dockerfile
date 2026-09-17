@@ -38,6 +38,9 @@ RUN echo 'server { \n\
     } \n\
 }' > /etc/nginx/sites-available/default
 
+# Keep the published test port in generated form actions and redirects.
+RUN sed -i 's/HTTP_HOST        $host;/HTTP_HOST        $http_host;/' /etc/nginx/fastcgi_params
+
 RUN echo '[supervisord] \n\
 nodaemon=true \n\
 \n\

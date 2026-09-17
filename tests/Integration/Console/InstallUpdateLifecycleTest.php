@@ -45,6 +45,7 @@ class InstallUpdateLifecycleTest extends TestCase
         config(['notur.extensions_path' => $this->relativePath]);
         $this->scratch = sys_get_temp_dir() . '/notur-install-test-' . bin2hex(random_bytes(6));
         mkdir($this->scratch, 0755, true);
+        config(['notur.backups_path' => $this->scratch . '/backups']);
     }
 
     protected function tearDown(): void
@@ -73,6 +74,57 @@ class InstallUpdateLifecycleTest extends TestCase
         ]);
         $manifest = json_decode(file_get_contents(ExtensionPath::manifest()), true);
         $this->assertFalse($manifest['extensions']['acme/demo']['enabled']);
+    }
+
+    public function test_upgrade_retains_previous_files_in_private_backup(): void
+    {
+        $this->installed('acme/demo', false);
+        $archive = $this->archive('acme/demo', '2.0.0', 'frontend/new.js', 'new asset');
+        $this->artisan('notur:add', ['extension' => $archive, '--force' => true])->assertExitCode(0);
+        $backups = glob($this->scratch . '/backups/extension-*');
+        $this->assertCount(1, $backups);
+        $this->assertSame('old code', file_get_contents($backups[0] . '/extension/code.txt'));
+        $this->assertSame('old asset', file_get_contents($backups[0] . '/public/frontend/old.js'));
+        $this->assertSame(0700, fileperms($backups[0]) & 0777);
+    }
+
+    public function test_removal_stops_when_migration_rollback_fails(): void
+    {
+        $this->installed('acme/demo', true);
+        $path = ExtensionPath::base('acme/demo');
+        file_put_contents($path . '/extension.yaml', "id: acme/demo\nname: Demo\nversion: 1.0.0\nbackend:\n  migrations: migrations\n");
+        mkdir($path . '/migrations');
+        file_put_contents($path . '/migrations/2024_01_01_000001_fail.php', '<?php return new class { public function down(): void { throw new \RuntimeException("rollback failed"); } };');
+        \Notur\Models\ExtensionMigration::create(['extension_id' => 'acme/demo', 'migration' => '2024_01_01_000001_fail', 'batch' => 1]);
+        $this->artisan('notur:remove', ['extension' => 'acme/demo', '--force' => true])->assertExitCode(1);
+        $this->assertOldInstallIntact('acme/demo');
+        $this->assertDatabaseHas('notur_migrations', ['extension_id' => 'acme/demo']);
+        $this->assertDatabaseHas('notur_extensions', ['extension_id' => 'acme/demo', 'enabled' => 0]);
+    }
+
+    public function test_keep_data_preserves_settings_while_normal_removal_deletes_them(): void
+    {
+        foreach ([true, false] as $keep) {
+            $id = $keep ? 'acme/keep' : 'acme/remove';
+            $this->installed($id, true);
+            \Notur\Models\ExtensionSetting::create(['extension_id' => $id, 'key' => 'example', 'value' => 'saved']);
+            $this->artisan('notur:remove', ['extension' => $id, '--force' => true, '--keep-data' => $keep])->assertExitCode(0);
+            $this->assertSame($keep, \Notur\Models\ExtensionSetting::where('extension_id', $id)->exists());
+            $this->assertDirectoryDoesNotExist(ExtensionPath::base($id));
+        }
+    }
+
+    public function test_registry_cannot_install_a_different_extension(): void
+    {
+        $archive = $this->archive('acme/other', '2.0.0', 'frontend/new.js', 'new asset');
+        $registry = Mockery::mock(RegistryClient::class);
+        $registry->shouldReceive('getExtension')->once()->andReturn(['latest_version' => '2.0.0']);
+        $registry->shouldReceive('download')->once()->andReturnUsing(fn ($id, $version, $destination) => copy($archive, $destination));
+        $registry->shouldReceive('getExpectedArchiveChecksum')->once()->andReturn(null);
+        $this->app->instance(RegistryClient::class, $registry);
+        $this->artisan('notur:add', ['extension' => 'acme/demo'])->assertExitCode(1);
+        $this->assertDirectoryDoesNotExist(ExtensionPath::base('acme/other'));
+        $this->assertDatabaseCount('notur_extensions', 0);
     }
 
     public function test_missing_declared_asset_fails_before_replacing_either_tree(): void

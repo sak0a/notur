@@ -73,7 +73,7 @@ final class PackageManagerResolver
         $prefix = match ($manager) {
             'bun' => ['bunx'],
             'pnpm' => ['pnpm', 'dlx'],
-            'yarn' => ['yarn', 'dlx'],
+            'yarn' => ['yarn', 'exec'],
             default => ['npx'],
         };
 

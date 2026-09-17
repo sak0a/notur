@@ -53,6 +53,13 @@
                 </div>
             @endif
 
+            @if(!empty($safeMode))
+                <div class="alert alert-warning" role="status">Safe mode is active. Extensions are not running; enabled/disabled settings are retained for when safe mode ends.</div>
+            @endif
+            @if(!empty($bootFailures['@manifest']))
+                <div class="alert alert-danger" role="alert">Extension state could not be loaded: {{ $bootFailures['@manifest']['message'] }}</div>
+            @endif
+
             {{-- Install Extension --}}
             <div class="box box-success">
                 <div class="box-header with-border">
@@ -62,13 +69,13 @@
                     </div>
                 </div>
                 <div class="box-body">
-                    <form action="{{ route('admin.notur.extensions.install') }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('admin.notur.extensions.install') }}" method="POST" enctype="multipart/form-data" data-progress="Installing extension… Verifying and unpacking the archive. Please keep this page open.">
                         @csrf
                         <div class="row">
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="registry_id">Registry ID</label>
-                                    <input type="text" class="form-control" id="registry_id" name="registry_id" placeholder="vendor/extension-name">
+                                    <input type="text" class="form-control" id="registry_id" name="registry_id" value="{{ old('registry_id') }}" placeholder="vendor/extension-name">
                                     <p class="help-block">Enter the extension ID to install from the registry.</p>
                                 </div>
                             </div>
@@ -79,13 +86,26 @@
                                 <div class="form-group">
                                     <label for="archive">Upload .notur File</label>
                                     <input type="file" class="form-control" id="archive" name="archive" accept=".notur">
-                                    <p class="help-block">Upload a .notur archive file to install.</p>
+                                    <p class="help-block">Archives are verified and unpacked automatically. Maximum 50 MB; server upload limits may be lower.</p>
                                 </div>
                             </div>
-                            <div class="col-md-1 pt-[25px]">
-                                <button type="submit" class="btn btn-success">
+                            <div class="col-md-2 pt-[25px]">
+                                <button type="submit" class="btn btn-success btn-block">
                                     <i class="fa fa-download"></i> Install
                                 </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="signature">Signature (.sig){{ config('notur.require_signatures') ? ' — required for archive uploads' : ' — optional' }}</label>
+                                <input type="file" class="form-control" id="signature" name="signature" accept=".sig">
+                                <p class="help-block">Upload the detached signature supplied with the archive.</p>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="checkbox">
+                                    <label><input type="checkbox" name="force" value="1" {{ old('force') ? 'checked' : '' }}> Replace an already installed extension</label>
+                                </div>
+                                <p class="help-block">Replacement keeps its enabled/disabled state and saves a file backup. Database backups are separate.</p>
                             </div>
                         </div>
                     </form>
@@ -216,7 +236,7 @@
                 <div class="box-header with-border">
                     <h3 class="box-title"><i class="fa fa-puzzle-piece" style="margin-right: 8px; opacity: 0.5;"></i>Installed Extensions</h3>
                     <div class="box-tools pull-right">
-                        <form action="{{ route('admin.notur.extensions.update-all') }}" method="POST" class="inline" onsubmit="return confirm('Update all extensions with available registry updates?');">
+                        <form action="{{ route('admin.notur.extensions.update-all') }}" method="POST" class="inline" data-confirm="Update all extensions with available registry updates?">
                             @csrf
                             <button type="submit" class="btn btn-xs btn-success">
                                 <i class="fa fa-cloud-download"></i> Update All
@@ -269,6 +289,9 @@
                                             @if($updateAvailable && $latestVersion)
                                                 <br>
                                                 <span class="label label-warning">Update {{ $latestVersion }}</span>
+                                            @elseif(!empty($updateInfo['ahead']))
+                                                <br>
+                                                <span class="label label-info">Newer than registry</span>
                                             @elseif($latestVersion)
                                                 <br>
                                                 <span class="label label-info">Latest</span>
@@ -294,7 +317,12 @@
                                             <small style="font-family: var(--nb-mono, monospace);">{{ $extension->created_at ? $extension->created_at->format('Y-m-d') : 'N/A' }}</small>
                                         </td>
                                         <td data-testid="extension-status">
-                                            @if($extension->enabled)
+                                            @if($extension->enabled && !empty($bootFailures[$extension->extension_id]))
+                                                <span class="label label-danger">Failed to load</span>
+                                                <small class="text-danger" style="display: block; max-width: 240px; white-space: normal;">{{ $bootFailures[$extension->extension_id]['message'] }}</small>
+                                            @elseif($extension->enabled && !empty($safeMode))
+                                                <span class="label label-warning">Suspended (safe mode)</span>
+                                            @elseif($extension->enabled)
                                                 <span class="label label-success"><span class="nb-status nb-status--active"></span>Enabled</span>
                                             @else
                                                 <span class="label label-default"><span class="nb-status nb-status--inactive"></span>Disabled</span>
@@ -305,7 +333,7 @@
                                                 <i class="fa fa-eye"></i>
                                             </a>
                                             @if($updateAvailable)
-                                                <form action="{{ route('admin.notur.extensions.update', $extension->extension_id) }}" method="POST" class="inline" onsubmit="return confirm('Update {{ $extension->extension_id }} to {{ $latestVersion }}?');">
+                                                <form action="{{ route('admin.notur.extensions.update', $extension->extension_id) }}" method="POST" class="inline" data-confirm="Update {{ $extension->extension_id }} to {{ $latestVersion }}?">
                                                     @csrf
                                                     <button type="submit" class="btn btn-xs btn-success" title="Update" aria-label="Update {{ $extension->extension_id }}">
                                                         <i class="fa fa-cloud-download"></i>
@@ -327,12 +355,7 @@
                                                     </button>
                                                 </form>
                                             @endif
-                                            <form action="{{ route('admin.notur.extensions.remove', $extension->extension_id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to remove {{ $extension->extension_id }}? This will delete all extension files and roll back migrations.');">
-                                                @csrf
-                                                <button type="submit" class="btn btn-xs btn-danger" title="Remove" aria-label="Remove {{ $extension->extension_id }}">
-                                                    <i class="fa fa-trash"></i>
-                                                </button>
-                                            </form>
+                                            @include('notur::admin.partials.remove-extension', ['compact' => true])
                                         </td>
                                     </tr>
                                 @endforeach
@@ -349,4 +372,5 @@
             </div>
         </div>
     </div>
+    @include('notur::admin.partials.lifecycle-actions')
 @endsection

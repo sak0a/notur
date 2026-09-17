@@ -63,6 +63,10 @@ class MigrationManager
         foreach ($executed as $record) {
             $file = $migrationsPath . '/' . $record->migration . '.php';
 
+            if (!is_file($file)) {
+                throw new \RuntimeException("Cannot roll back {$extensionId}: missing migration {$record->migration}. Tracking record retained.");
+            }
+
             if (file_exists($file)) {
                 $instance = $this->resolveMigration($file, $record->migration);
 

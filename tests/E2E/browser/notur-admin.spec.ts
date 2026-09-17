@@ -300,6 +300,99 @@ test.describe.serial('Notur admin browser E2E', () => {
         await expect(extensionRow(page, BROKEN_EXTENSION_ID)).toContainText('Broken Remove Fixture');
     });
 
+    test('registry update preserves disabled state and updates the version', async () => {
+        const page = adminPage;
+        const row = extensionRow(page, 'audit/ui-update');
+        await expect(row).toContainText('Update 2.0.0');
+        await expect(row.getByTestId('extension-status')).toContainText('Disabled');
+        page.once('dialog', (dialog) => dialog.accept());
+        await row.getByRole('button', { name: 'Update audit/ui-update' }).click();
+        await expectFlashSuccess(page, 'Update result');
+        await expect(extensionRow(page, 'audit/ui-update')).toContainText('2.0.0');
+        await expect(extensionRow(page, 'audit/ui-update').getByTestId('extension-status')).toContainText('Disabled');
+        expect(mysqlScalar("SELECT version FROM notur_extensions WHERE extension_id='audit/ui-update';")).toBe('2.0.0');
+    });
+
+    test('keep-data removal preserves settings and explains the result', async () => {
+        const page = adminPage;
+        const row = extensionRow(page, 'audit/ui-update');
+        await row.getByRole('checkbox', { name: 'Keep data for audit/ui-update' }).check();
+        page.once('dialog', async (dialog) => {
+            expect(dialog.message()).toContain('keeping its settings');
+            await dialog.accept();
+        });
+        await row.getByRole('button', { name: 'Remove audit/ui-update' }).click();
+        await expectFlashSuccess(page, 'Settings and database tables were kept.');
+        await expect(extensionRow(page, 'audit/ui-update')).toHaveCount(0);
+        expect(mysqlScalar("SELECT COUNT(*) FROM notur_settings WHERE extension_id='audit/ui-update' AND `key`='retained';")).toBe('1');
+    });
+
+    test('duplicate upload requires explicit replacement and conflicting sources are rejected', async () => {
+        const page = adminPage;
+        const archive = buildNoturArchiveFromFixture();
+        const form = page.locator('form', { has: page.locator('input[name="archive"]') });
+        try {
+            await page.locator('input[name="archive"]').setInputFiles(archive);
+            await form.getByRole('button', { name: 'Install' }).click();
+            await expect(page.getByTestId('notur-flash-error')).toContainText('already installed');
+            await page.locator('input[name="archive"]').setInputFiles(archive);
+            await page.locator('input[name="registry_id"]').fill(HELLO_WORLD_ID);
+            await form.getByRole('button', { name: 'Install' }).click();
+            await expect(page.getByTestId('notur-validation-errors')).toContainText('Choose a registry ID or an archive');
+            await page.locator('input[name="registry_id"]').fill('');
+            await page.locator('input[name="archive"]').setInputFiles(archive);
+            await page.getByRole('checkbox', { name: 'Replace an already installed extension' }).check();
+            await form.getByRole('button', { name: 'Install' }).click();
+            await expectFlashSuccess(page, 'Extension installed successfully.');
+        } finally {
+            rmSync(dirname(archive), { recursive: true, force: true });
+        }
+    });
+
+    test('cancelled removal keeps the extension and leaves the button usable', async () => {
+        const page = adminPage;
+        const remove = extensionRow(page, HELLO_WORLD_ID).getByRole('button', { name: `Remove ${HELLO_WORLD_ID}` });
+        page.once('dialog', (dialog) => dialog.dismiss());
+        await remove.click();
+        await expect(remove).toBeEnabled();
+        await expect(extensionRow(page, HELLO_WORLD_ID)).toBeVisible();
+        expect(mysqlScalar(`SELECT COUNT(*) FROM notur_extensions WHERE extension_id='${HELLO_WORLD_ID}';`)).toBe('1');
+    });
+
+    test('pending install shows feedback and blocks repeat submission', async () => {
+        const page = adminPage;
+        const form = page.locator('form', { has: page.locator('input[name="archive"]') });
+        const state = await form.evaluate((element: HTMLFormElement) => {
+            // Observe the real handler, then keep the test page in place.
+            let allowed = 0;
+            element.addEventListener('submit', (event) => {
+                if (!event.defaultPrevented) allowed++;
+                event.preventDefault();
+            });
+            element.requestSubmit();
+            const disabled = element.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled;
+            const status = element.querySelector('[role="status"]')?.textContent;
+            element.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            return { disabled, status, allowed };
+        });
+        expect(state.disabled).toBe(true);
+        expect(state.status).toContain('Verifying and unpacking');
+        expect(state.allowed).toBe(1);
+        await page.reload();
+        await expect(form.getByRole('button', { name: 'Install' })).toBeEnabled();
+    });
+
+    test('extension controls fit a mobile viewport without page overflow', async () => {
+        const page = adminPage;
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.reload();
+        await expect(page.locator('input[name="signature"]')).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        const button = await page.locator('form', { has: page.locator('input[name="archive"]') }).getByRole('button', { name: 'Install' }).boundingBox();
+        expect(button!.x + button!.width).toBeLessThanOrEqual(390);
+        await page.setViewportSize({ width: 1280, height: 720 });
+    });
+
     test('enabled extension renders through the runtime bridge on panel pages', async () => {
         const page = adminPage;
 

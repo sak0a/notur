@@ -37,6 +37,7 @@ class CommandCoverageTest extends TestCase
 
         $this->tempDir = sys_get_temp_dir() . '/notur-command-coverage-' . uniqid('', true);
         mkdir($this->tempDir, 0755, true);
+        config(['notur.backups_path' => $this->tempDir . '/backups']);
     }
 
     protected function tearDown(): void

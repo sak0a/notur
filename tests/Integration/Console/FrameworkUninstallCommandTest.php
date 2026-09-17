@@ -49,6 +49,7 @@ class FrameworkUninstallCommandTest extends TestCase
         );
         $this->assertSame(count($migrations), DB::table('migrations')->whereIn('migration', $migrations)->count());
         DB::table('migrations')->insert(['migration' => '2026_01_01_000001_create_panel_users_table', 'batch' => 1]);
+        DB::table('migrations')->insert(['migration' => '2026_01_01_000002_import_notur_statistics', 'batch' => 1]);
 
         $output = new BufferedOutput();
         $command = new FrameworkUninstallCommand();
@@ -65,6 +66,7 @@ class FrameworkUninstallCommandTest extends TestCase
         }
         $this->assertSame(0, DB::table('migrations')->whereIn('migration', $migrations)->count());
         $this->assertTrue(DB::table('migrations')->where('migration', '2026_01_01_000001_create_panel_users_table')->exists());
+        $this->assertTrue(DB::table('migrations')->where('migration', '2026_01_01_000002_import_notur_statistics')->exists());
         $this->assertStringContainsString('Dropped table: notur_remote_push_keys', $output->fetch());
 
         // Database cleanup must also tolerate an already-clean installation.

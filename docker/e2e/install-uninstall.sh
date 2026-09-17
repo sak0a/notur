@@ -52,6 +52,8 @@ if ! mysql_notur_tables | grep -q "notur_extensions"; then
     exit 1
 fi
 
+bash /opt/notur/docker/e2e/extension-lifecycle.sh
+
 echo "[E2E] Running non-interactive Notur uninstall..."
 COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_DISABLE_AUDIT=1 php artisan notur:framework:uninstall --confirm --no-interaction
 

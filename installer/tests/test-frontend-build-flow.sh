@@ -84,8 +84,8 @@ run_case() {
         npm() {
             record "npm:$*"
             case "$T_CASE:$*" in
-                npm_retry_then_build:ci\ --legacy-peer-deps) return 0 ;;
-                npm_retry_then_build_fail:ci\ --legacy-peer-deps) return 1 ;;
+                npm_retry_then_build:ci\ --include=dev\ --legacy-peer-deps) return 0 ;;
+                npm_retry_then_build_fail:ci\ --include=dev\ --legacy-peer-deps) return 1 ;;
                 yarnless_script_fallback:run\ clean) return 0 ;;
                 *) return 0 ;;
             esac
@@ -266,7 +266,7 @@ assert_case_contains \
     "npm_retry_then_build" \
     "pkg-install" \
     "warn:Standard npm install failed. Retrying with --legacy-peer-deps..." \
-    "npm:ci --legacy-peer-deps" \
+    "npm:ci --include=dev --legacy-peer-deps" \
     "fix-webpack" \
     "pkg-run:build:production"
 assert_case_not_contains \
@@ -279,7 +279,7 @@ assert_case_sequence \
     "npm_retry_then_build" \
     "pkg-install" \
     "warn:Standard npm install failed. Retrying with --legacy-peer-deps..." \
-    "npm:ci --legacy-peer-deps" \
+    "npm:ci --include=dev --legacy-peer-deps" \
     "fix-webpack" \
     "pkg-run:build:production"
 
@@ -319,7 +319,7 @@ echo "=== dependency install failure stops the build early ==="
 assert_case_fails \
     "failed npm retry exits before build/fallback" \
     "npm_retry_then_build_fail" \
-    "npm:ci --legacy-peer-deps"
+    "npm:ci --include=dev --legacy-peer-deps"
 
 echo ""
 echo "Results: $pass passed, $fail failed"

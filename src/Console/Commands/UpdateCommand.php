@@ -12,7 +12,8 @@ class UpdateCommand extends Command
 {
     protected $signature = 'notur:update
         {extension? : The extension ID (vendor/name). Updates all if omitted.}
-        {--check : Only check for available updates, do not install}';
+        {--check : Only check for available updates, do not install}
+        {--force : Update all without confirmation}';
 
     protected $description = 'Update Notur extensions';
 
@@ -103,7 +104,12 @@ class UpdateCommand extends Command
             return 0;
         }
 
-        if (!$this->confirm('Update all?')) {
+        if (!$this->option('force') && !$this->input->isInteractive()) {
+            $this->error('Non-interactive bulk updates require --force.');
+            return 1;
+        }
+
+        if (!$this->option('force') && !$this->confirm('Update all?')) {
             return 0;
         }
 

@@ -115,7 +115,7 @@
                                             <form
                                                 action="{{ route('admin.notur.diagnostics.update-notur') }}"
                                                 method="POST"
-                                                onsubmit="return confirm('Update Notur to v{{ $noturUpdate['latest_version'] }}? This runs Composer from the web process and may take a few minutes.');"
+                                                data-confirm="Update Notur? This runs the full installer, creates a file backup, rebuilds assets and runs migrations. A separate database backup is needed." data-progress="Running the Notur installer… Please keep this page open."
                                             >
                                                 @csrf
                                                 <button type="submit" class="btn btn-xs btn-warning">
@@ -281,4 +281,5 @@
             render();
         })();
     </script>
+    @include('notur::admin.partials.lifecycle-actions')
 @endsection

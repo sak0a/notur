@@ -27,7 +27,7 @@ class RemoveCommand extends ExtensionLifecycleCommand
         $extensionId = $this->argument('extension');
 
         $record = InstalledExtension::where('extension_id', $extensionId)->first();
-        if (!$record) {
+        if (!$record && $manager->getInstalledState($extensionId) === null) {
             $this->error("Extension '{$extensionId}' is not installed.");
             return 1;
         }
@@ -50,6 +50,14 @@ class RemoveCommand extends ExtensionLifecycleCommand
 
         $this->info("Removing extension '{$extensionId}'...");
 
+        try {
+            $backup = app(\Notur\Support\LifecycleBackup::class)->extension($extensionId);
+            $this->info("File backup: {$backup} (database not included).");
+        } catch (\Throwable $e) {
+            $this->error("Backup failed; removal stopped: {$e->getMessage()}");
+            return 1;
+        }
+
         // Disable first when the extension still exists in the master manifest.
         try {
             $manager->disable($extensionId);
@@ -61,23 +69,33 @@ class RemoveCommand extends ExtensionLifecycleCommand
         if (!$this->option('keep-data')) {
             $extensionPath = ExtensionPath::base($extensionId);
             try {
-                $manifest = ExtensionManifest::load($extensionPath);
-                $migrationsPath = $extensionPath . '/' . $manifest->getMigrationsPath();
+                $hasMigrations = \Notur\Models\ExtensionMigration::where('extension_id', $extensionId)->exists();
+                $manifest = !is_dir($extensionPath) && !$hasMigrations ? null : ExtensionManifest::load($extensionPath);
+                $migrationsPath = $extensionPath . '/' . $manifest?->getMigrationsPath();
 
-                if ($manifest->getMigrationsPath()) {
+                if ($hasMigrations && !$manifest?->getMigrationsPath()) {
+                    throw new \RuntimeException('Tracked migrations exist but the manifest has no migrations path.');
+                }
+                if ($manifest?->getMigrationsPath()) {
                     $rolledBack = $migrationManager->rollback($extensionId, $migrationsPath);
                     if (!empty($rolledBack)) {
                         $this->info('Rolled back ' . count($rolledBack) . ' migration(s).');
                     }
                 }
             } catch (\Throwable $e) {
-                $this->warn("Could not roll back migrations: {$e->getMessage()}");
+                $this->error("Could not roll back migrations: {$e->getMessage()}");
+                $this->warn('Removal stopped. Files and registration were retained; the extension remains disabled. Repair the migration or explicitly use --keep-data.');
+                return 1;
             }
         }
 
         // Remove files and public assets
         $this->removeExtensionFiles($extensionId);
         $this->info('Removed extension files.');
+
+        if (!$this->option('keep-data')) {
+            \Notur\Models\ExtensionSetting::where('extension_id', $extensionId)->delete();
+        }
 
         // Unregister from manifest
         $manager->unregisterExtension($extensionId);

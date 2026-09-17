@@ -56,7 +56,7 @@ class BuildCommand extends Command
 
         // Install dependencies
         $this->info("Installing dependencies with {$packageManager}...");
-        $result = $this->runProcess($resolver->installCommand($packageManager), $path);
+        $result = $this->runProcess($resolver->installCommand($packageManager), $path, ['NODE_ENV' => 'development', 'npm_config_production' => 'false', 'npm_config_omit' => '']);
         if ($result !== 0) {
             $this->error('Failed to install dependencies.');
             return 1;
@@ -101,34 +101,12 @@ class BuildCommand extends Command
         return 0;
     }
 
-    private function runProcess(string $command, string $cwd): int
+    private function runProcess(string $command, string $cwd, array $env = []): int
     {
-        $process = proc_open(
-            $command,
-            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
-            $pipes,
-            $cwd,
-        );
-
-        if (!is_resource($process)) {
-            return 1;
-        }
-
-        $output = stream_get_contents($pipes[1]);
-        $errors = stream_get_contents($pipes[2]);
-
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-
-        $exitCode = proc_close($process);
-
-        if ($output) {
-            $this->line($output);
-        }
-        if ($errors && $exitCode !== 0) {
-            $this->error($errors);
-        }
-
-        return $exitCode;
+        // Drain stdout and stderr concurrently so noisy native builds cannot deadlock.
+        $process = \Symfony\Component\Process\Process::fromShellCommandline($command, $cwd, $env, null, null);
+        return $process->run(function (string $type, string $buffer): void {
+            $this->output->write($buffer);
+        });
     }
 }

@@ -43,7 +43,7 @@ class ExtensionAdminControllerTest extends TestCase
         $manager = Mockery::mock(ExtensionManager::class);
 
         $controller = new class($manager) extends ExtensionAdminController {
-            protected function runRemoveCommand(string $extensionId): array
+            protected function runRemoveCommand(string $extensionId, bool $keepData = false): array
             {
                 return [
                     'exitCode' => 0,
@@ -52,7 +52,7 @@ class ExtensionAdminControllerTest extends TestCase
             }
         };
 
-        $response = $controller->remove('acme/test');
+        $response = $controller->remove(\Illuminate\Http\Request::create('/remove', 'POST'), 'acme/test');
 
         $this->assertRemovalRedirect($response);
         $this->assertSame("Extension 'acme/test' has been removed.", $response->getSession()->get('success'));
@@ -64,7 +64,7 @@ class ExtensionAdminControllerTest extends TestCase
         $manager = Mockery::mock(ExtensionManager::class);
 
         $controller = new class($manager) extends ExtensionAdminController {
-            protected function runRemoveCommand(string $extensionId): array
+            protected function runRemoveCommand(string $extensionId, bool $keepData = false): array
             {
                 return [
                     'exitCode' => 1,
@@ -73,7 +73,7 @@ class ExtensionAdminControllerTest extends TestCase
             }
         };
 
-        $response = $controller->remove('acme/test');
+        $response = $controller->remove(\Illuminate\Http\Request::create('/remove', 'POST'), 'acme/test');
 
         $this->assertRemovalRedirect($response);
         $this->assertSame("Removal failed: Extension 'acme/test' could not be removed.", $response->getSession()->get('error'));
@@ -117,6 +117,7 @@ class ExtensionAdminControllerTest extends TestCase
                 'extension' => 'acme/test',
                 '--force' => true,
                 '--no-interaction' => true,
+                '--keep-data' => false,
             ],
         ]], $fakeArtisan->calls);
     }
@@ -158,7 +159,7 @@ class ExtensionAdminControllerTest extends TestCase
         ]], $fakeArtisan->calls);
     }
 
-    public function test_run_update_command_reinstalls_extension_with_force(): void
+    public function test_run_update_command_uses_version_checked_update(): void
     {
         $manager = Mockery::mock(ExtensionManager::class);
         $fakeArtisan = new class {
@@ -190,10 +191,10 @@ class ExtensionAdminControllerTest extends TestCase
 
         $this->assertSame(['exitCode' => 0, 'output' => 'Extension updated.'], $result);
         $this->assertSame([[
-            'notur:add',
+            'notur:update',
             [
                 'extension' => 'notur/cs2-modframework',
-                '--force' => true,
+                '--no-interaction' => true,
             ],
         ]], $fakeArtisan->calls);
     }
@@ -247,8 +248,23 @@ class ExtensionAdminControllerTest extends TestCase
 
         $this->assertSame(route('admin.notur.diagnostics'), $response->getTargetUrl());
         $this->assertSame('99.0.0', $controller->requestedVersion);
-        $this->assertStringContainsString('Notur updated to v99.0.0', (string) $response->getSession()->get('success'));
+        $this->assertStringContainsString('Notur update installer completed.', (string) $response->getSession()->get('success'));
         $this->assertSame([['optimize:clear', []]], $fakeArtisan->calls);
+    }
+
+    public function test_framework_update_invokes_complete_installer_instead_of_composer_only(): void
+    {
+        $controller = new class(\Mockery::mock(ExtensionManager::class)) extends ExtensionAdminController {
+            public array $invocation = [];
+            protected function runProcess(array $command, string $cwd, int $timeoutSeconds): array
+            {
+                $this->invocation = [$command, $cwd];
+                return ['exitCode' => 0, 'output' => 'installed'];
+            }
+            public function runInstaller(): array { return $this->runNoturSelfUpdateCommand('1.5.1'); }
+        };
+        $controller->runInstaller();
+        $this->assertSame([['bash', base_path('vendor/notur/notur/installer/install.sh'), base_path()], base_path()], $controller->invocation);
     }
 
     private function assertRemovalRedirect(RedirectResponse $response): void

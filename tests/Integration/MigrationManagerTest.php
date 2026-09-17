@@ -105,6 +105,20 @@ class MigrationManagerTest extends TestCase
         $this->assertSame(0, ExtensionMigration::where('extension_id', 'acme/test')->count());
     }
 
+    public function test_missing_rollback_file_retains_tracking_and_data(): void
+    {
+        $this->manager->migrate('acme/test', $this->fixturesPath);
+        unlink($this->fixturesPath . '/2024_01_15_000002_create_acme_logs_table.php');
+        try {
+            $this->manager->rollback('acme/test', $this->fixturesPath);
+            $this->fail('Missing migration must stop rollback.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('missing migration', $e->getMessage());
+        }
+        $this->assertTrue(Schema::hasTable('acme_logs'));
+        $this->assertSame(2, ExtensionMigration::where('extension_id', 'acme/test')->count());
+    }
+
     public function test_rollback_order_is_reverse_of_migrate(): void
     {
         $this->manager->migrate('acme/test', $this->fixturesPath);

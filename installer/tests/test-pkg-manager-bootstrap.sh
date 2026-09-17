@@ -311,7 +311,7 @@ assert_case_contains \
     "PKG_MGR=yarn" \
     "menu:yarn|yarn" \
     "info:Installing yarn to match yarn.lock..." \
-    "npm:install -g yarn"
+    "npm:install -g yarn@1.22.22"
 assert_case_not_contains \
     "single installed lockfile manager does not open the menu" \
     "ensure" \
@@ -321,11 +321,11 @@ assert_case_not_contains \
 echo ""
 echo "=== non-interactive and unsupported choices ==="
 assert_case_contains \
-    "non-interactive mode still falls back deterministically" \
+    "non-interactive mode bootstraps Yarn and preserves yarn.lock" \
     "ensure" \
     "noninteractive_missing_yarn" \
-    "PKG_MGR=bun" \
-    "warn:yarn.lock was detected, but yarn is not installed and no interactive prompt is available. Falling back to bun; this may ignore the panel's lockfile."
+    "PKG_MGR=yarn" \
+    "npm:install -g yarn@1.22.22"
 assert_case_fails \
     "cancelling the interactive selection exits clearly" \
     "cancel_selection" \

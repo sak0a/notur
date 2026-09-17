@@ -68,11 +68,12 @@ body.notur-admin-page .content-header > h1 small {
 }
 
 body.notur-admin-page .content-header .pull-right {
-    position: absolute;
-    top: 22px;
-    right: 20px;
-    margin-top: 0 !important;
-    z-index: 2;
+    position: static;
+    float: none !important;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px !important;
 }
 
 body.notur-admin-page .content-header .pull-right .btn {
@@ -98,6 +99,8 @@ body.notur-admin-page .content-header .pull-right .btn:hover {
 /* ── Breadcrumb ────────────────────────────────────────────────── */
 
 body.notur-admin-page .breadcrumb {
+    position: static;
+    float: none;
     background: transparent;
     padding: 12px 0 0;
     margin: 0;
