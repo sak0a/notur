@@ -162,6 +162,34 @@ php artisan notur:update                           # Check for updates
 php artisan notur:status                           # System status dashboard
 ```
 
+### Emergency extension recovery
+
+Notur isolates extension manifest, entrypoint, registration and boot failures so an
+unrelated extension and the panel can continue starting. Dependents of a failed
+extension are skipped for that process. `php artisan notur:status` (or
+`notur:status --json`) reports the extension ID, failure stage, exception and
+message; the Laravel log includes the exception stack trace. An explicitly
+configured entrypoint that cannot be loaded is reported as a failure too.
+
+If extension boot prevents normal recovery, start a fresh process with safe mode:
+
+```bash
+NOTUR_SAFE_MODE=1 php artisan notur:status --json
+NOTUR_SAFE_MODE=1 php artisan notur:disable acme/server-analytics
+```
+
+For a web panel, set `NOTUR_SAFE_MODE=true` in its environment and restart the
+PHP workers; remove the override and restart after disabling or repairing the
+extension. `notur.safe_mode` can also be configured in `config/notur.php`. A
+process-level environment variable takes precedence even with cached Laravel
+configuration. Safe mode skips all extension manifest discovery, autoloading and
+booting; it does not change the saved enabled flags. It does not undo hooks,
+services, routes or arbitrary PHP effects already registered in a running
+process—restart workers for a clean recovery. Failed extensions are not marked
+disabled automatically, so operators can inspect and repair them.
+If the master `notur/extensions.json` is corrupt or unreadable, fix that file
+before using `notur:disable`; its discovery error is reported as `@manifest`.
+
 ## Project Structure
 
 | Directory | Contents |

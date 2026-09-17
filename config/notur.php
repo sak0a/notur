@@ -20,6 +20,12 @@ return [
     'extensions_path' => 'notur/extensions',
 
     /*
+    | Emergency recovery: skip discovery, autoloading and boot of all extensions.
+    | A process-level NOTUR_SAFE_MODE=1 also works with cached Laravel config.
+    */
+    'safe_mode' => env('NOTUR_SAFE_MODE', false),
+
+    /*
     |--------------------------------------------------------------------------
     | Require Signatures
     |--------------------------------------------------------------------------
