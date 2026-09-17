@@ -1,7 +1,7 @@
 {
     "$schema": "./schema/registry-index.schema.json",
     "version": "1.0.0",
-    "generated_at": "2026-05-06T01:24:16Z",
+    "generated_at": "2026-09-17T23:40:34Z",
     "extensions": [
         {
             "id": "notur/hello-world",
@@ -31,6 +31,29 @@
             "compatibility": {
                 "notur": ">=1.0.0",
                 "pterodactyl": ">=1.11"
+            }
+        },
+        {
+            "id": "notur/obsidian",
+            "name": "Obsidian",
+            "description": "Client-panel theme with dark/light appearance, sidebar navigation, translucent surfaces and a mobile drawer. Initial preview release.",
+            "version": "0.1.0",
+            "latest_version": "0.1.0",
+            "versions": ["0.1.0"],
+            "author": "Notur",
+            "license": "MIT",
+            "repository": "https://github.com/sak0a/notur",
+            "archive_url": "https://github.com/sak0a/notur/releases/download/obsidian-v0.1.0/notur-obsidian-0.1.0.notur",
+            "sha256": "24e3fb86f0c4eafa93996f2c6cca8373b3e5450d2a59ac9a21989395bdc059d4",
+            "tags": ["theme", "dark-mode", "sidebar", "client-panel"],
+            "compatibility": {
+                "notur": "^1.5.3",
+                "pterodactyl": "~1.12.0 || ~1.15.0"
+            },
+            "requires": {
+                "notur": "^1.5.3",
+                "pterodactyl": "~1.12.0 || ~1.15.0",
+                "php": "^8.2"
             }
         }
     ]
