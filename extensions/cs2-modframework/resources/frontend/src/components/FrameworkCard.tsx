@@ -238,9 +238,9 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
             installed
                 ? React.createElement('span', { style: installedBadge }, '\u2713 Installed')
                 : React.createElement('span', { style: notInstalledBadge }, 'Not Installed'),
-            installed && installedVersion
+            installed && installedVersion && latest
                 ? React.createElement('span', { style: updateAvailable ? updateBadge : currentBadge },
-                    updateAvailable ? `Update: v${latest?.version}` : 'Up to date',
+                    updateAvailable ? `Latest: v${latest?.version}` : 'Matches latest',
                 )
                 : null,
             installed && !installedVersion
@@ -259,6 +259,13 @@ export const FrameworkCard: React.FC<FrameworkCardProps> = ({
                 ? React.createElement('span', { style: currentBadge }, 'Restart required')
                 : null,
         ),
+
+        installed && installedVersion
+            ? React.createElement('div', { style: versionTextStyle },
+                status?.version_source === 'server_files'
+                    ? 'Version detected from server files; restart to load changed files.'
+                    : 'Version recorded by Notur; manual file changes have not been verified.')
+            : installed ? React.createElement('div', { style: versionTextStyle }, 'No readable version metadata found. Install a selected version to record it.') : null,
 
         React.createElement('div', { style: footerStyle },
             React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '0.35rem' } },

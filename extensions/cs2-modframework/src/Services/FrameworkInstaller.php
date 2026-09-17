@@ -72,11 +72,16 @@ class FrameworkInstaller
         foreach (self::FRAMEWORK_DIRS as $framework => $dir) {
             $detectedDirectory = $this->detectFrameworkDirectory($framework, $addons, $gameinfoContent);
             $installed = $detectedDirectory !== null;
-            $installedVersion = $installed ? ($versions[$framework]['version'] ?? null) : null;
+            $detectedVersion = $installed
+                ? (new InstalledVersionDetector($this->fileRepository))->detect($framework, $detectedDirectory)
+                : null;
+            $recordedVersion = $installed ? ($versions[$framework]['version'] ?? null) : null;
+            $installedVersion = $detectedVersion ?? $recordedVersion;
             $status[$framework] = [
                 'installed' => $installed,
                 'directory' => $detectedDirectory !== null ? "game/csgo/addons/{$detectedDirectory}" : null,
                 'installed_version' => is_string($installedVersion) && $installedVersion !== '' ? $installedVersion : null,
+                'version_source' => $detectedVersion !== null ? 'server_files' : (is_string($installedVersion) && $installedVersion !== '' ? 'install_record' : null),
                 'restart_required' => $installed,
             ];
         }

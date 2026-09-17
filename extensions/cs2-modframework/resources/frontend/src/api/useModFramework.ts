@@ -7,6 +7,7 @@ export interface FrameworkStatus {
     installed: boolean;
     directory: string | null;
     installed_version: string | null;
+    version_source?: 'server_files' | 'install_record' | null;
     restart_required?: boolean;
 }
 

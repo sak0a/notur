@@ -19,7 +19,7 @@ namespace Pterodactyl\Repositories\Wings {
                 return [];
             }
 
-            public function getContent(string $path): string
+            public function getContent(string $path, ?int $notLargerThan = null): string
             {
                 return '';
             }
@@ -37,6 +37,7 @@ use Pterodactyl\Repositories\Wings\DaemonFileRepository;
 
 require_once __DIR__ . '/../../../extensions/cs2-modframework/src/Services/GameInfoModifier.php';
 require_once __DIR__ . '/../../../extensions/cs2-modframework/src/Services/GitHubReleaseResolver.php';
+require_once __DIR__ . '/../../../extensions/cs2-modframework/src/Services/InstalledVersionDetector.php';
 require_once __DIR__ . '/../../../extensions/cs2-modframework/src/Services/FrameworkInstaller.php';
 
 class FrameworkInstallerDetectionTest extends TestCase
@@ -154,6 +155,62 @@ class FrameworkInstallerDetectionTest extends TestCase
         $this->assertNull($status['metamod']['installed_version']);
     }
 
+    public function test_manual_versions_override_stale_records_and_preserve_case(): void
+    {
+        $files = [
+            '/game/csgo/addons/CounterStrikeSharp/api/CounterStrikeSharp.API.deps.json' => json_encode([
+                'libraries' => ['Some.Plugin/9.9.9' => [], 'CounterStrikeSharp.API/1.0.374' => []],
+            ]),
+            '/game/csgo/addons/SwiftlyS2/bin/managed/SwiftlyS2.CS2.deps.json' => json_encode([
+                'libraries' => ['SwiftlyS2.CS2/1.4.10' => []],
+            ]),
+            '/game/csgo/addons/metamod/bin/linuxsteamrt64/metamod.2.cs2.so' => "\x7fELF\x00other\x002.0.0-dev+1469\x00",
+            '/game/csgo/addons/.notur-framework-versions.json' => json_encode([
+                'swiftly' => ['version' => '1.0.0'],
+            ]),
+        ];
+        $repository = new FakeDaemonFileRepository([
+            '/game/csgo/addons' => array_map(fn ($name) => ['name' => $name, 'is_file' => false], ['CounterStrikeSharp', 'SwiftlyS2', 'metamod']),
+        ], null, $files);
+        $status = $this->makeInstaller($repository)->getStatus();
+        foreach (['swiftly' => '1.4.10', 'counterstrikesharp' => '1.0.374', 'metamod' => '2.0.0-git1469'] as $framework => $version) {
+            $this->assertSame($version, $status[$framework]['installed_version']);
+            $this->assertSame('server_files', $status[$framework]['version_source']);
+        }
+    }
+
+    public function test_unreadable_metadata_falls_back_to_labeled_install_record(): void
+    {
+        $status = $this->makeInstaller(new FakeDaemonFileRepository([
+            '/game/csgo/addons' => [['name' => 'swiftlys2', 'is_file' => false]],
+        ], null, [
+            '/game/csgo/addons/swiftlys2/bin/managed/SwiftlyS2.CS2.deps.json' => '{bad json',
+            '/game/csgo/addons/.notur-framework-versions.json' => '{"swiftly":{"version":"1.2.0"}}',
+        ]))->getStatus();
+        $this->assertSame('1.2.0', $status['swiftly']['installed_version']);
+        $this->assertSame('install_record', $status['swiftly']['version_source']);
+    }
+
+    public function test_unrelated_or_ambiguous_metadata_does_not_guess_a_version(): void
+    {
+        foreach ([
+            '{"libraries":{"Some.Plugin/9.9.9":{}}}',
+            '{"libraries":{"SwiftlyS2.CS2/1.0.0":{},"SwiftlyS2.CS2/2.0.0":{}}}',
+            '{"libraries":{"SwiftlyS2.CS2/not-a-version":{}}}',
+            str_repeat('x', 262145),
+        ] as $content) {
+            $detector = new \Notur\Cs2Modframework\Services\InstalledVersionDetector(new FakeDaemonFileRepository([], null, [
+                '/game/csgo/addons/swiftlys2/bin/managed/SwiftlyS2.CS2.deps.json' => $content,
+            ]));
+            $this->assertNull($detector->detect('swiftly', 'swiftlys2'));
+        }
+        $detector = new \Notur\Cs2Modframework\Services\InstalledVersionDetector(new FakeDaemonFileRepository([], null, [
+            '/game/csgo/addons/metamod/bin/linuxsteamrt64/metamod.2.cs2.so' => "\x002.0.0-dev+1469\x00",
+        ]));
+        $this->assertNull($detector->detect('metamod', 'metamod'));
+        $this->assertNull($detector->detect('swiftly', '../swiftlys2'));
+    }
+
     private function makeInstaller(FakeDaemonFileRepository $repository): FrameworkInstaller
     {
         $releaseResolver = $this->createMock(GitHubReleaseResolver::class);
@@ -184,7 +241,7 @@ class FakeDaemonFileRepository extends DaemonFileRepository
         return $this->directories[$path];
     }
 
-    public function getContent(string $path): string
+    public function getContent(string $path, ?int $notLargerThan = null): string
     {
         if (array_key_exists($path, $this->files)) {
             return $this->files[$path];
