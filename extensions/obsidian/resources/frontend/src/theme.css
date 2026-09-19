@@ -180,3 +180,209 @@
 }
 :root[data-obsidian] body, :root[data-obsidian] #app { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 :root[data-obsidian] :is(.bg-gray-600, .bg-neutral-600) { border: 1px solid var(--ob-border) !important; border-radius: 12px !important; box-shadow: inset 0 1px rgba(255,255,255,.04), var(--ob-shadow) !important; }
+
+/* Global destinations sit in a floating pill bar; only workspace routes use the rail. */
+:root[data-ob-shell] body { padding: 110px 32px 0; }
+:root[data-ob-shell][data-ob-workspace] body { padding-left: 290px; }
+:root[data-obsidian] [data-ob-nav] {
+    inset: 18px 28px auto; width: auto; height: 58px; border: 0; border-radius: 0;
+    background: transparent !important; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+:root[data-obsidian] [data-ob-nav] > div:last-child { display: flex; justify-content: space-between; gap: 24px; padding: 0; height: 58px; max-height: none; overflow: visible; }
+:root[data-obsidian] [data-ob-nav] #logo { flex: 0 1 210px; min-width: 100px; padding: 0; }
+:root[data-obsidian] [data-ob-nav] #logo > a { font-size: 19px; }
+:root[data-obsidian] [data-ob-nav] #logo::after { content: none; }
+:root[data-obsidian] [data-ob-nav] #logo + div { flex-direction: row; gap: 4px; padding: 6px; height: 58px; border: 1px solid var(--ob-border); border-radius: 999px; background: var(--ob-panel); box-shadow: inset 0 1px rgba(255,255,255,.05); backdrop-filter: blur(24px); }
+:root[data-obsidian] [data-ob-nav] [data-ob-search] { display: none !important; }
+:root[data-obsidian] [data-ob-nav] :is(a, button):not(#logo > a):not(.ob-search *) { border-radius: 999px; padding: 11px 15px; min-height: 42px; gap: 8px; white-space: nowrap; }
+:root[data-obsidian] [data-ob-nav] a.active { background: var(--ob-n700) !important; color: var(--ob-n50) !important; box-shadow: inset 0 0 0 1px var(--ob-border) !important; }
+:root[data-obsidian] [data-ob-subnav] { left: 24px; top: 110px; bottom: 94px; width: 238px; padding: 20px 12px; border: 1px solid var(--ob-border); border-radius: 18px; background: var(--ob-panel) !important; backdrop-filter: blur(24px); }
+:root[data-obsidian] .ob-controls { left: 24px; bottom: 24px; width: 238px; }
+:root[data-obsidian]:not([data-ob-workspace]) .ob-controls { left: auto; right: 28px; width: 175px; }
+:root[data-obsidian] .ob-search { position: relative; width: clamp(180px, 21vw, 300px); margin-right: 8px; }
+:root[data-obsidian] .ob-search input { width: 100%; height: 42px; padding: 0 18px; border-radius: 999px !important; border: 1px solid var(--ob-border); background: var(--ob-n900); font-size: 13px; box-shadow: none; }
+:root[data-obsidian] .ob-search-results { position: absolute; top: 55px; left: 0; width: 360px; max-width: calc(100vw - 32px); padding: 10px; background: var(--ob-n900); border: 1px solid var(--ob-border); border-radius: 18px; box-shadow: var(--ob-shadow); }
+:root[data-obsidian] .ob-search-results[hidden] { display: none; }
+:root[data-obsidian] .ob-search-results p { color: var(--ob-n400); padding: 8px 10px; font-size: 12px; }
+:root[data-obsidian] [data-ob-nav] .ob-search-results a { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; border-radius: 10px; padding: 12px; min-height: 0; white-space: normal; }
+:root[data-obsidian] .ob-search-results strong { font-size: 13px; font-weight: 500; }
+:root[data-obsidian] .ob-search-results span { color: var(--ob-n400); font-size: 11px; }
+@media (max-width: 1100px) and (min-width: 901px) {
+    :root[data-obsidian] [data-ob-nav] :is(a,button):not(#logo > a):not(.ob-search *) { padding: 10px; gap: 6px; }
+    :root[data-obsidian] [data-ob-nav] #logo { flex-basis: 130px; }
+}
+@media (max-width: 900px) {
+    :root[data-ob-shell] body, :root[data-ob-shell][data-ob-workspace] body { padding: 190px 16px 0; }
+    :root[data-obsidian] [data-ob-nav] { inset: 16px 16px auto; height: auto; transform: none; visibility: visible; background: transparent !important; }
+    :root[data-obsidian] [data-ob-nav] > div:last-child { display: block; height: auto; }
+    :root[data-obsidian] [data-ob-nav] #logo { padding: 7px 0 18px; }
+    :root[data-obsidian] [data-ob-nav] #logo + div { display: flex; flex-wrap: wrap; height: auto; justify-content: space-between; border-radius: 24px; gap: 3px; padding: 7px; }
+    :root[data-obsidian] .ob-search { width: 100%; margin: 0 0 3px; }
+    :root[data-obsidian] .ob-search-results { top: 48px; width: 100%; }
+    :root[data-obsidian] [data-ob-nav] :is(a,button):not(#logo > a):not(.ob-search *) { min-height: 36px; padding: 8px 10px; font-size: 11px; gap: 0; }
+    :root[data-obsidian] [data-ob-nav] :is(a,button):not(#logo > a):not(.ob-search *) > :is(svg,span) { display: none; }
+    :root[data-obsidian] [data-ob-subnav] { top: 180px; z-index: 43; background: var(--ob-n900) !important; }
+    :root[data-ob-shell] .ob-menu { top: 17px; padding: 7px 13px; border-radius: 999px; }
+    :root:not([data-ob-workspace]) .ob-menu { display: none; }
+    :root[data-ob-shell]:not([data-ob-workspace]) .ob-controls { transform: none; visibility: visible; right: 16px; }
+    :root[data-ob-open] .ob-backdrop { z-index: 42; }
+    :root[data-ob-open] .ob-controls { z-index: 43; }
+}
+
+/* Shared rhythm: one surface per form, consistent content inset and pill actions. */
+:root[data-obsidian] #ob-main { margin-top: 12px !important; margin-bottom: 32px !important; padding-top: 0; padding-bottom: 0; }
+:root[data-obsidian] #ob-main > [class*="AccountOverviewContainer"] { margin-top: 0 !important; gap: 24px; align-items: start; }
+:root[data-obsidian] #ob-main > [class*="AccountOverviewContainer"] > div { margin: 0 !important; width: auto; min-width: 0; }
+:root[data-obsidian] [data-ob-card], :root[data-obsidian] [data-ob-titled] { background: var(--ob-panel) !important; border: 1px solid var(--ob-border) !important; border-radius: 20px !important; padding: 24px !important; box-shadow: inset 0 1px rgba(255,255,255,.035) !important; align-self: start; min-width: 0; }
+:root[data-obsidian] [data-ob-card] > h2,
+:root[data-obsidian] [data-ob-card] > div,
+:root[data-obsidian] [data-ob-titled] > div {
+    border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; padding: 0 !important;
+}
+:root[data-obsidian] [data-ob-card] > h2 { color: var(--ob-n50); font-size: 20px; line-height: 1.35; font-weight: 600; margin: 0 0 24px !important; }
+:root[data-obsidian] [data-ob-titled] > div:first-child { margin-bottom: 20px; }
+:root[data-obsidian] [data-ob-titled] > div:first-child p { color: var(--ob-n50); text-transform: none; font-size: 16px; font-weight: 600; letter-spacing: -.015em; }
+:root[data-obsidian] :is(button, input[type="submit"], a[class*="Button"]):not(.ob-backdrop):not([role="switch"]):not([role="checkbox"]) { border-radius: 999px !important; }
+:root[data-obsidian] :is(input:not([type=checkbox]):not([type=radio]), select):not(.xterm-helper-textarea) { border-radius: 999px; min-height: 44px; }
+:root[data-obsidian] textarea { border-radius: 14px; }
+:root[data-obsidian] [data-ob-subnav]::before { content: attr(data-ob-section); }
+:root[data-obsidian] [data-ob-subnav] :is(a, button) { border-radius: 999px; padding: 11px 16px; }
+:root[data-obsidian] [data-ob-subnav] a:hover { transform: none; }
+:root[data-obsidian] [data-ob-nav] #logo + div { position: relative; isolation: isolate; }
+:root[data-obsidian] [data-ob-subnav] { isolation: isolate; }
+:root[data-obsidian] [data-ob-motion] > :is(a,button) { position: relative; z-index: 1; }
+:root[data-obsidian] .ob-nav-highlight {
+    position: absolute; pointer-events: none; left: 0; top: 0; z-index: 0; border-radius: 999px;
+    background: var(--ob-n800); border: 1px solid var(--ob-border); opacity: 0;
+    transition: transform 260ms cubic-bezier(.22,.8,.25,1), width 260ms cubic-bezier(.22,.8,.25,1), height 260ms cubic-bezier(.22,.8,.25,1), opacity 140ms ease;
+}
+:root[data-obsidian] [data-ob-motion] > :is(a,button):is(.active,:hover,:focus) { background: transparent !important; box-shadow: none !important; }
+:root[data-obsidian] [data-ob-motion] > a.active { color: var(--ob-n50) !important; font-weight: 600; }
+:root[data-obsidian] .ob-search { z-index: 2; }
+:root[data-obsidian] :is([data-ob-card], [data-ob-titled]) label { line-height: 1.5; letter-spacing: .035em; }
+:root[data-obsidian] .CodeMirror { background: var(--ob-n900) !important; color: var(--ob-n100) !important; border: 1px solid var(--ob-border); border-radius: 16px; }
+:root[data-obsidian] .CodeMirror-gutters { background: var(--ob-n900) !important; border-color: var(--ob-border) !important; }
+:root[data-obsidian] .CodeMirror-linenumber { color: var(--ob-n400) !important; }
+:root[data-obsidian] .CodeMirror-cursor { border-left-color: var(--ob-n100) !important; }
+@media (max-width: 1100px) and (min-width: 901px) {
+    :root[data-obsidian] #ob-main > [class*="AccountOverviewContainer"] { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 900px) {
+    :root[data-obsidian] [data-ob-card], :root[data-obsidian] [data-ob-titled] { padding: 20px !important; }
+    :root[data-obsidian] #ob-main > [class*="AccountOverviewContainer"] { display: grid; grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+    :root[data-obsidian] .ob-nav-highlight { transition: none; }
+}
+
+/* Empty collections use the same bounded surface as populated settings. */
+:root[data-obsidian] #ob-main :is(p[class*="UsersContainer___StyledP-"], p[class*="ScheduleContainer___StyledP-"], p[class*="DatabasesContainer___StyledP-"], p[class*="BackupContainer___StyledP-"], p[class*="BackupContainer___StyledP2-"]) {
+    padding: 48px 24px; border: 1px dashed var(--ob-border); border-radius: 20px;
+    background: var(--ob-panel); color: var(--ob-n300); line-height: 1.6;
+}
+/* Keep code legible in light appearance without changing syntax token semantics. */
+:root[data-obsidian="light"] .CodeMirror .cm-comment { color: #71717a; }
+:root[data-obsidian="light"] .CodeMirror :is(.cm-keyword,.cm-tag) { color: #be185d; }
+:root[data-obsidian="light"] .CodeMirror :is(.cm-string,.cm-string-2) { color: #047857; }
+:root[data-obsidian="light"] .CodeMirror :is(.cm-number,.cm-atom) { color: #6d28d9; }
+:root[data-obsidian="light"] .CodeMirror :is(.cm-def,.cm-variable-2,.cm-type) { color: #0369a1; }
+:root[data-obsidian="light"] .CodeMirror :is(.cm-variable,.cm-property,.cm-operator) { color: #27272a; }
+
+:root[data-obsidian] #ob-main > :is([class*="AccountApiContainer___StyledDiv-"], [class*="AccountSSHContainer___StyledDiv-"]) {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; margin: 0 !important; align-items: start;
+}
+:root[data-obsidian] #ob-main > :is([class*="AccountApiContainer___StyledDiv-"], [class*="AccountSSHContainer___StyledDiv-"]) > [data-ob-card] { margin: 0 !important; width: auto; }
+:root[data-obsidian] textarea { border-radius: 14px !important; }
+@media (max-width: 900px) {
+    :root[data-obsidian] #ob-main { margin-left: 0 !important; margin-right: 0 !important; }
+    :root[data-obsidian] #ob-main > :is([class*="AccountApiContainer___StyledDiv-"], [class*="AccountSSHContainer___StyledDiv-"]) { grid-template-columns: 1fr; }
+}
+
+/* Server workspace icons inherit link color in both appearances. */
+:root[data-obsidian] [data-ob-subnav] a[data-ob-icon] { display: flex; align-items: center; gap: 12px; }
+:root[data-obsidian] [data-ob-subnav] a[data-ob-icon]::before {
+    content: ''; display: block; width: 17px; height: 17px; flex: 0 0 17px;
+    background: currentColor; -webkit-mask: var(--ob-nav-icon) center / contain no-repeat;
+    mask: var(--ob-nav-icon) center / contain no-repeat; opacity: .85;
+}
+:root[data-obsidian] [data-ob-icon="console"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m4%206%206%206-6%206M13%2018h7%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="files"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%207V5a2%202%200%200%201%202-2h5l2%203h7a2%202%200%200%201%202%202v11a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V7Z%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="databases"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cellipse%20cx%3D%2212%22%20cy%3D%225%22%20rx%3D%229%22%20ry%3D%223%22%2F%3E%3Cpath%20d%3D%22M3%205v14c0%204%2018%204%2018%200V5M3%2012c0%204%2018%204%2018%200%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="schedules"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2216%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M16%203v4M8%203v4M3%2011h18M8%2015h2M14%2015h2%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="users"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%229%22%20cy%3D%228%22%20r%3D%223%22%2F%3E%3Cpath%20d%3D%22M3%2021v-2a6%206%200%200%201%2012%200v2M16%205a3%203%200%200%201%200%206M21%2021v-2a6%206%200%200%200-4-5.66%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="backups"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%225%22%20rx%3D%221%22%2F%3E%3Cpath%20d%3D%22M5%208v13h14V8M10%2012h4%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="network"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%229%22%20y%3D%223%22%20width%3D%226%22%20height%3D%225%22%20rx%3D%221%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%2216%22%20width%3D%226%22%20height%3D%225%22%20rx%3D%221%22%2F%3E%3Crect%20x%3D%2216%22%20y%3D%2216%22%20width%3D%226%22%20height%3D%225%22%20rx%3D%221%22%2F%3E%3Cpath%20d%3D%22M12%208v4M5%2016v-4h14v4%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="startup"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%203v9M6.3%205.5a9%209%200%201%200%2011.4%200%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="settings"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%207h9M17%207h3M4%2017h3M11%2017h9%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%227%22%20r%3D%222%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2217%22%20r%3D%222%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="activity"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%2012h4l3-9%204%2018%203-9h4%22%2F%3E%3C%2Fsvg%3E"); }
+
+/* Compact workspace rail: fit the links instead of stretching to the viewport. */
+:root[data-obsidian] [data-ob-subnav] {
+    width: 194px; padding: 14px 8px; gap: 2px; bottom: auto;
+    max-height: calc(100dvh - 204px); overflow-y: auto;
+}
+:root[data-obsidian] [data-ob-subnav]::before { padding: 0 10px 7px; font-size: 9px; }
+:root[data-obsidian] [data-ob-subnav] :is(a,button) { padding: 8px 12px; min-height: 36px; line-height: 20px; }
+:root[data-obsidian] [data-ob-subnav] a[data-ob-icon] { gap: 10px; }
+:root[data-obsidian][data-ob-workspace] .ob-controls { width: 194px; }
+@media (min-width: 901px) {
+    :root[data-ob-shell][data-ob-workspace] body { padding-left: 242px; }
+}
+@media (max-width: 900px) {
+    :root[data-obsidian] [data-ob-subnav] { max-height: calc(100dvh - 274px); }
+    :root[data-obsidian] [data-ob-subnav] :is(a,button) { min-height: 44px; }
+}
+
+/* Compact appearance control; the button retains its accessible action label. */
+:root[data-obsidian] .ob-controls,
+:root[data-obsidian][data-ob-workspace] .ob-controls,
+:root[data-obsidian]:not([data-ob-workspace]) .ob-controls { width: 40px; }
+:root[data-obsidian] .ob-appearance {
+    display: grid; place-items: center; width: 40px; height: 40px;
+    padding: 0; font-size: 22px; line-height: 1; text-align: center;
+}
+
+/* Reuse the live power-status color as a soft wash behind resource statistics. */
+:root[data-obsidian] [data-ob-server-row] { isolation: isolate; overflow: hidden; }
+:root[data-obsidian] [data-ob-server-row] > :not(.status-bar) { position: relative; z-index: 1; }
+:root[data-obsidian] [data-ob-server-row] > .status-bar {
+    position: absolute; inset: 0 0 0 auto; width: 24%; height: 100%; margin: 0;
+    border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+    pointer-events: none; z-index: 0; opacity: .17;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000);
+    mask-image: linear-gradient(to right, transparent, #000);
+    transition: opacity 220ms ease, background-color 220ms ease;
+}
+:root[data-obsidian] [data-ob-server-row]:hover > .status-bar { opacity: .23; }
+:root[data-obsidian] [data-ob-server-state="pending"] > .status-bar { background-color: #eab308 !important; }
+:root[data-obsidian] [data-ob-server-state="unavailable"] > .status-bar { background-color: #ef4444 !important; }
+@media (max-width: 1023px) {
+    :root[data-obsidian] [data-ob-server-row] > .status-bar { width: 40%; }
+}
+
+/* Low-amplitude monochrome dithering breaks up dark-gradient color bands. */
+:root[data-obsidian] [data-ob-server-row] > .status-bar::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22128%22%20height%3D%22128%22%20viewBox%3D%220%200%20128%20128%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%22.9%22%20numOctaves%3D%223%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20type%3D%22saturate%22%20values%3D%220%22%2F%3E%3C%2Ffilter%3E%3Cpath%20fill%3D%22white%22%20filter%3D%22url%28%23n%29%22%20d%3D%22M0%200h128v128H0z%22%2F%3E%3C%2Fsvg%3E");
+    background-size: 128px 128px; opacity: .22; mix-blend-mode: soft-light;
+}
+
+/* Keep server headings close to the global navigation without browser h1 margins. */
+:root[data-obsidian] #ob-main h1 { margin-top: 0; margin-bottom: 4px; }
+@media (min-width: 901px) {
+    :root[data-ob-shell][data-ob-workspace] body { padding-top: 90px; }
+    :root[data-obsidian] [data-ob-subnav] { top: 90px; }
+}
+
+@media (min-width: 901px) {
+    :root[data-obsidian][data-ob-workspace] #ob-main { margin-top: 0 !important; }
+}
+/* The workspace links are fixed in the rail; their old bar needs no inset. */
+:root[data-obsidian] [data-ob-subnav-shell] { display: contents; }
+:root[data-obsidian] [data-ob-subnav-shell] [data-notur-renderer="server.header"] { display: block; padding: 0; margin: 0; }
+:root[data-obsidian] [data-ob-subnav-shell] [data-notur-renderer="server.header"]:empty { display: none; }
+
+/* Account navigation shares the server rail icon sizing and motion. */
+:root[data-obsidian] [data-ob-icon="account"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%228%22%20r%3D%224%22%2F%3E%3Cpath%20d%3D%22M4%2021v-2a8%208%200%200%201%2016%200v2%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="api"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m8%205-6%207%206%207M16%205l6%207-6%207M14%203l-4%2018%22%2F%3E%3C%2Fsvg%3E"); }
+:root[data-obsidian] [data-ob-icon="ssh"] { --ob-nav-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%228%22%20cy%3D%228%22%20r%3D%225%22%2F%3E%3Cpath%20d%3D%22m12%2012%209%209M17%2017l3-3M14%2014l3-3%22%2F%3E%3C%2Fsvg%3E"); }

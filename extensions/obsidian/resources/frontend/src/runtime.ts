@@ -1,4 +1,6 @@
 import css from './theme.css';
+import { createSearch } from './search';
+import { createNavigationMotion } from './navigation';
 import { createPaletteAdapter } from './palette';
 import { createTerminalAdapter } from './terminal';
 
@@ -20,13 +22,15 @@ export function mountTheme(): () => void {
     theme.textContent = css;
     document.head.append(adapted, theme);
 
+    const search = createSearch();
     const controls = document.createElement('div');
     controls.className = 'ob-controls';
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'ob-appearance';
     const updateToggle = () => {
-        toggle.textContent = mode === 'dark' ? '◐  Light appearance' : '◑  Dark appearance';
+        toggle.textContent = mode === 'dark' ? '☀' : '☾';
+        toggle.title = `Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`;
         toggle.setAttribute('aria-label', `Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`);
     };
     updateToggle();
@@ -63,12 +67,6 @@ export function mountTheme(): () => void {
     };
     let nav: HTMLElement | null = null;
     let subnav: HTMLElement | null = null;
-    let observedHeader: HTMLElement | null = null;
-    const measureNavigation = () => {
-        if (!observedHeader) return;
-        root.style.setProperty('--ob-subnav-top', `${Math.ceil(observedHeader.getBoundingClientRect().bottom + 14)}px`);
-    };
-    const resizeObserver = new ResizeObserver(measureNavigation);
     let open = false;
     const close = (restoreFocus = false) => {
         open = false;
@@ -81,7 +79,7 @@ export function mountTheme(): () => void {
         open = true;
         root.setAttribute('data-ob-open', '');
         menu.setAttribute('aria-expanded', 'true');
-        nav?.querySelector<HTMLElement>('a, button, [tabindex="0"]')?.focus();
+        subnav?.querySelector<HTMLElement>('a, button, [tabindex="0"]')?.focus();
     };
     backdrop.onclick = () => close(true);
     const keyboard = (event: KeyboardEvent) => {
@@ -92,7 +90,7 @@ export function mountTheme(): () => void {
         if (!open) return;
         if (event.key === 'Escape') { close(true); return; }
         if (event.key !== 'Tab') return;
-        const candidates = [nav, subnav, controls, menu].flatMap(container => container ?
+        const candidates = [subnav, controls, menu].flatMap(container => container ?
             (container === menu ? [menu] : Array.from(container.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), [tabindex="0"]'))) : [])
             .filter(element => element.getClientRects().length > 0);
         const index = candidates.indexOf(document.activeElement as HTMLElement);
@@ -116,6 +114,7 @@ export function mountTheme(): () => void {
 
     const adapt = createPaletteAdapter();
     const terminal = createTerminalAdapter();
+    const motion = createNavigationMotion();
     let frame = 0;
     const sync = () => {
         frame = 0;
@@ -123,10 +122,18 @@ export function mountTheme(): () => void {
         const slot = document.getElementById('notur-slot-server.subnav') ?? document.getElementById('notur-slot-account.subnav');
         subnav = slot?.parentElement ?? null;
         root.toggleAttribute('data-ob-shell', !!nav);
+        root.toggleAttribute('data-ob-workspace', !!subnav);
+        if (nav) {
+            const actions = nav.querySelector('#logo + div');
+            if (actions && search.element.parentElement !== actions) {
+                actions.querySelectorAll('.ob-search').forEach(node => node.remove());
+                actions.prepend(search.element);
+            }
+        } else search.element.remove();
         if (nav) {
             set(nav, 'data-ob-nav', ''); set(nav, 'role', 'navigation'); set(nav, 'aria-label', 'Main navigation');
             nav.querySelectorAll<HTMLElement>('a, button, .navigation-link').forEach(link => {
-                if (link.closest('#logo, [id^="notur-slot-"]')) return;
+                if (link.closest('#logo, [id^="notur-slot-"], .ob-search')) return;
                 const href = link.getAttribute('href');
                 const label = href === '/' ? 'Servers' : href === '/account' ? 'Account' : href === '/admin' ? 'Administration' :
                     link.matches('.navigation-link') ? 'Search servers' : link.tagName === 'BUTTON' ? 'Sign out' : '';
@@ -137,17 +144,33 @@ export function mountTheme(): () => void {
                     set(link, 'role', 'button'); set(link, 'tabindex', '0'); set(link, 'data-ob-search', '');
                 }
             });
-            const header = nav.lastElementChild as HTMLElement | null;
-            if (header !== observedHeader) {
-                resizeObserver.disconnect(); observedHeader = header;
-                if (header) resizeObserver.observe(header);
-            }
-            measureNavigation();
         } else close();
         if (subnav) {
             set(subnav, 'data-ob-subnav', ''); set(subnav, 'role', 'navigation'); set(subnav, 'aria-label', 'Page navigation');
+            set(subnav, 'data-ob-section', location.pathname.startsWith('/account') ? 'ACCOUNT' : 'WORKSPACE');
             if (subnav.parentElement) set(subnav.parentElement, 'data-ob-subnav-shell', '');
+            // Decorative CSS icons preserve React-owned link contents and accessible names.
+            subnav.querySelectorAll<HTMLAnchorElement>(':scope > a[href]').forEach(link => {
+                const href = link.getAttribute('href') ?? '';
+                const route = href.match(/^\/server\/[^/]+(?:\/([^/?#]+))?\/?(?:[?#].*)?$/);
+                const accountRoute = href.match(/^\/account(?:\/([^/?#]+))?\/?(?:[?#].*)?$/);
+                const key = route ? route[1] ?? 'console' : accountRoute ? accountRoute[1] ?? 'account' : href.startsWith('#') ? href.slice(1) : '';
+                if (['console', 'files', 'databases', 'schedules', 'users', 'backups', 'network', 'startup', 'settings', 'activity', 'account', 'api', 'ssh'].includes(key)) {
+                    set(link, 'data-ob-icon', key);
+                }
+            });
         }
+        motion.sync([nav?.querySelector<HTMLElement>('#logo + div') ?? null, subnav]);
+        document.querySelectorAll<HTMLElement>('a[href^="/server/"]:has(> .status-bar)').forEach(row => {
+            const status = Array.from(row.querySelectorAll('span')).map(node => node.textContent?.trim());
+            set(row, 'data-ob-server-row', '');
+            set(row, 'data-ob-server-state', status.some(label => ['Installing', 'Transferring', 'Restoring Backup'].includes(label ?? '')) ? 'pending' :
+                status.some(label => ['Suspended', 'Connection Error', 'Unavailable'].includes(label ?? '')) ? 'unavailable' : 'power');
+        });
+        document.querySelectorAll<HTMLElement>('h2[class*="ContentBox"]').forEach(heading => {
+            if (heading.parentElement) set(heading.parentElement, 'data-ob-card', '');
+        });
+        document.querySelectorAll<HTMLElement>('[class*="TitledGreyBox___StyledDiv-"]').forEach(card => set(card, 'data-ob-titled', ''));
         const content = document.querySelector<HTMLElement>('[class*="ContentContainer"]');
         if (content) { set(content, 'id', 'ob-main'); set(content, 'tabindex', '-1'); }
         const terminalContainer = document.querySelector<HTMLElement>('.xterm')?.parentElement;
@@ -185,8 +208,9 @@ export function mountTheme(): () => void {
     sync();
     return () => {
         observer.disconnect(); cancelAnimationFrame(frame);
+        motion.cleanup();
         terminal.cleanup();
-        resizeObserver.disconnect(); root.style.removeProperty('--ob-subnav-top');
+        search.cleanup();
         document.removeEventListener('load', schedule, true);
         document.removeEventListener('keydown', keyboard);
         document.removeEventListener('click', clicked);
@@ -194,7 +218,7 @@ export function mountTheme(): () => void {
         media.removeEventListener('change', resized);
         changes.forEach((attributes, node) => attributes.forEach((value, name) => value === null ? node.removeAttribute(name) : node.setAttribute(name, value)));
         [adapted, theme, controls, menu, backdrop, skip].forEach(node => node.remove());
-        ['data-ob-shell', 'data-ob-open'].forEach(name => root.removeAttribute(name));
+        ['data-ob-shell', 'data-ob-open', 'data-ob-workspace'].forEach(name => root.removeAttribute(name));
         if (originalMode === null) root.removeAttribute('data-obsidian'); else root.setAttribute('data-obsidian', originalMode);
     };
 }

@@ -11,7 +11,7 @@ php artisan notur:registry:sync
 php artisan notur:add notur/obsidian
 ```
 
-For offline installation, download the `.notur` asset from the [GitHub release](https://github.com/sak0a/notur/releases/tag/obsidian-v0.1.2) and pass its absolute path to `notur:add`.
+For offline installation, download the `.notur` asset from the [GitHub release](https://github.com/sak0a/notur/releases/tag/obsidian-v0.1.3) and pass its absolute path to `notur:add`.
 
 No panel rebuild or backend configuration is required. Dark appearance is the default; the toggle remembers the preference per browser and synchronizes open tabs. Disable with `php artisan notur:disable notur/obsidian`, then reload the panel.
 
@@ -39,7 +39,7 @@ Open `http://127.0.0.1:8765/preview/`. The preview uses representative panel mar
 npm run test:obsidian
 ```
 
-The eight browser tests check production CSS module surfaces, a real React 16 / xterm 4.19 canvas and cleanup, persistence, semantic colors, Tailwind palette translation, mobile overflow/focus/Escape, original click handlers, lazy styles, remounted navigation, reduced motion, unavailable storage and uninstall cleanup. The build and preview suite are verified; a running authenticated panel was unavailable, so live client routes and third-party extensions still need integration verification before production deployment.
+The ten browser tests check production CSS module surfaces, a real React 16 / xterm 4.19 canvas and cleanup, persistence, semantic colors, Tailwind palette translation, mobile overflow/focus/Escape, original click handlers, lazy styles, remounted navigation, reduced motion, unavailable storage and uninstall cleanup. The build and preview suite are verified. Account and server routes were also reviewed in an authenticated local panel with simulated server data; real game-server operations and third-party extensions are not covered by that visual review.
 
 ## 0.1.1
 
@@ -55,3 +55,16 @@ php artisan notur:update notur/obsidian
 ## 0.1.2
 
 Darker near-black base and cards; stronger action hierarchy inspired by [shadcn button variants](https://ui.shadcn.com/docs/components/button): solid light primary actions in dark mode, outlined secondary controls, and solid red destructive actions. Light mode reverses the primary contrast. Disabled controls retain disabled behavior. The preview now shows enabled action styles using harmless simulated clicks.
+
+## 0.1.3
+
+Global actions now sit in a pill bar at the top right. Workspace links remain in the left rail, with a drawer on mobile. The inline search queries the authenticated panel API after two characters and shows up to five matching servers, including keyboard navigation and loading, empty and error states. Original account, administration and sign-out handlers remain intact.
+
+
+### Layout and appearance
+
+The theme now uses a shared animated pill for global and workspace navigation (hover, keyboard focus, and active route), with reduced-motion support. Account, API, SSH, startup and server settings forms use single surfaces with consistent insets. Actions and single-line fields use pill shapes; empty server collections have bounded surfaces. Mobile account forms stack with a consistent gutter, and the file editor follows the selected appearance.
+
+Validation: `npm run test:obsidian` covers navigation motion, mobile focus, search, appearance, legacy form structure, terminal adaptation and teardown. The local simulated panel is used for visual review; it does not validate real game-server operations.
+
+Compact server and account sidebars include outline icons. The appearance toggle is icon-only with an accessible label. Server-list status indicators use a short, translucent, dithered gradient. The server header no longer reserves space for the old top navigation.

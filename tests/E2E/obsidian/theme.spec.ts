@@ -21,12 +21,13 @@ test('appearance persists, colors retain meaning, and the desktop layout fits', 
 test('mobile drawer closes with Escape, restores focus and has no horizontal overflow', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const menu = page.getByRole('button', { name: 'Menu', exact: false });
-    await expect(page.locator('[data-ob-nav]')).toBeHidden();
+    await expect(page.locator('[data-ob-nav]')).toBeVisible();
+    await expect(page.locator('[data-ob-subnav]')).toBeHidden();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await menu.click();
     await expect(menu).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('[data-ob-nav]')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Notur.' })).toBeFocused();
+    await expect(page.locator('[data-ob-subnav] a').first()).toBeFocused();
     await page.keyboard.press('Shift+Tab');
     await expect(menu).toBeFocused();
     await page.keyboard.press('Escape');
@@ -37,11 +38,25 @@ test('mobile drawer closes with Escape, restores focus and has no horizontal ove
     await expect(menu).toHaveAttribute('aria-expanded', 'false');
 });
 
-test('existing click handlers survive and search is keyboard accessible', async ({ page }) => {
-    const search = page.getByRole('button', { name: 'Search servers' });
-    await search.focus();
-    await page.keyboard.press('Enter');
-    await expect(page.locator('#preview-status')).toContainText('original panel handler');
+test('inline search supports results, empty and error states without a modal', async ({ page }) => {
+    await page.route('**/api/client?**', route => route.fulfill({ json: { data: [{ attributes: { identifier: 'test1234', name: 'Test server', node: 'Local' } }] } }));
+    const search = page.getByRole('searchbox', { name: 'Search servers' });
+    await search.fill('Test');
+    const result = page.locator('.ob-search-results a');
+    await expect(result).toHaveText('Test serverLocal');
+    await search.press('ArrowDown');
+    await expect(result).toBeFocused();
+    await result.press('Escape');
+    await expect(page.locator('.ob-search-results')).toBeHidden();
+    await expect(search).toBeFocused();
+    await page.route('**/api/client?**', route => route.fulfill({ json: { data: [] } }));
+    await search.fill('Missing');
+    await expect(page.locator('.ob-search-results')).toContainText('No servers found');
+    await page.route('**/api/client?**', route => route.fulfill({ status: 500, body: '{}' }));
+    await search.fill('Failure');
+    await expect(page.locator('.ob-search-results')).toContainText('Search unavailable');
+    await search.fill('');
+    await expect(page.locator('.ob-search-results')).toBeHidden();
     await page.getByRole('link', { name: 'Files', exact: true }).click();
     await expect(page.locator('#preview-status')).toContainText('Files');
 });
@@ -144,4 +159,49 @@ test('primary, outline and destructive actions have distinct high-contrast varia
     await start.evaluate((button: HTMLButtonElement) => { button.disabled = true; });
     await expect(start).toBeDisabled();
     await expect(start).toHaveCSS('opacity', '0.5');
+});
+
+
+test('shared navigation pill follows rapid hover, keyboard focus and the active destination', async ({ page }) => {
+    const menu = page.locator('[data-ob-subnav]');
+    const pill = menu.locator('.ob-nav-highlight');
+    const files = menu.getByRole('link', { name: 'Files', exact: true });
+    const settings = menu.getByRole('link', { name: 'Settings', exact: true });
+    const aligned = async (target: typeof files) => {
+        await expect.poll(async () => {
+            const [a,b] = await Promise.all([pill.boundingBox(), target.boundingBox()]);
+            return !!a && !!b && Math.abs(a.y-b.y)<1 && Math.abs(a.width-b.width)<1;
+        }).toBe(true);
+    };
+    await files.hover();
+    await settings.hover();
+    await aligned(settings);
+    await expect(menu.locator('.ob-nav-highlight')).toHaveCount(1);
+    await page.mouse.move(500, 5);
+    await aligned(menu.locator('a.active'));
+    await files.focus();
+    await aligned(files);
+    await files.press('Enter');
+    await expect(files).toHaveClass(/active/);
+    await aligned(files);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect(pill).toHaveCSS('transition-property', 'none');
+    await page.evaluate(() => (window as any).destroyPreviewTheme());
+    await expect(page.locator('.ob-nav-highlight, [data-ob-motion]')).toHaveCount(0);
+});
+
+test('legacy form headings and bodies become one consistently padded card', async ({ page }) => {
+    await page.evaluate(() => {
+        const card = document.createElement('section');
+        card.id = 'account-card-fixture';
+        card.innerHTML = '<h2 class="ContentBox___StyledH2-test">Email address</h2><div class="ContentBox___StyledDiv-test"><label>Email<input type="email"></label></div>';
+        document.querySelector('main')!.append(card);
+    });
+    const card = page.locator('#account-card-fixture');
+    await expect(card).toHaveAttribute('data-ob-card', '');
+    await expect(card).toHaveCSS('padding', '24px');
+    await expect(card.locator('h2')).toHaveCSS('border-top-width', '0px');
+    await expect(card.locator(':scope > div')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(card).toHaveCSS('padding', '20px');
 });
